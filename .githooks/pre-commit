@@ -1,0 +1,9 @@
+#!/bin/sh
+# Mirrors the ruff lint/format checks run in CI (see .github/workflows).
+set -e
+
+echo "Running ruff check..."
+ruff check .
+
+echo "Running ruff format --check..."
+ruff format --check .

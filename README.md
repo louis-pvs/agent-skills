@@ -112,6 +112,18 @@ Each skill folder inside `skills/` must follow the Agent Skill standard:
 
 ---
 
+## 🧹 Development: Lint & Format Hook
+
+This repo uses [ruff](https://docs.astral.sh/ruff/) for linting and formatting Python scripts (see `pyproject.toml`), enforced in CI. To catch issues before pushing, enable the tracked pre-commit hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+It runs `ruff check .` and `ruff format --check .` on every commit.
+
+---
+
 ## 📄 License
 
 MIT License. Free for use in personal and open-source projects.
