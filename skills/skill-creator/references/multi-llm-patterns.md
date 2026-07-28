@@ -61,6 +61,7 @@ Skills that rely on external CLIs or sub-agents must gracefully degrade if a too
 ```python
 import shutil
 
+
 def check_cli_availability(cli_name: str) -> bool:
     """Returns True if the required CLI binary exists on system PATH."""
     return shutil.which(cli_name) is not None

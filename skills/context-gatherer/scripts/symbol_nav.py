@@ -51,8 +51,20 @@ DEFINITION_PATTERNS = {
 
 # File extensions to search by default
 DEFAULT_EXTENSIONS = [
-    ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs",
-    ".java", ".rb", ".cpp", ".c", ".h", ".hpp", ".cs",
+    ".py",
+    ".js",
+    ".ts",
+    ".jsx",
+    ".tsx",
+    ".go",
+    ".rs",
+    ".java",
+    ".rb",
+    ".cpp",
+    ".c",
+    ".h",
+    ".hpp",
+    ".cs",
 ]
 
 
@@ -89,15 +101,28 @@ def search_files(
 
     if tool == "rg":
         cmd = [
-            "rg", "--no-heading", "--line-number", "--with-filename",
-            "--color=never", "--fixed-strings", pattern, search_path,
+            "rg",
+            "--no-heading",
+            "--line-number",
+            "--with-filename",
+            "--color=never",
+            "--fixed-strings",
+            pattern,
+            search_path,
         ]
     else:
         cmd = [
-            "grep", "-rnI", "--include=*.py", "--include=*.js",
-            "--include=*.ts", "--include=*.go", "--include=*.rs",
-            "--include=*.java", "--include=*.rb",
-            pattern, search_path,
+            "grep",
+            "-rnI",
+            "--include=*.py",
+            "--include=*.js",
+            "--include=*.ts",
+            "--include=*.go",
+            "--include=*.rs",
+            "--include=*.java",
+            "--include=*.rb",
+            pattern,
+            search_path,
         ]
 
     try:
@@ -119,11 +144,13 @@ def search_files(
         parts = line.split(":", 2)
         if len(parts) >= 3:
             try:
-                results.append({
-                    "file": parts[0],
-                    "line_number": int(parts[1]),
-                    "line": parts[2].strip(),
-                })
+                results.append(
+                    {
+                        "file": parts[0],
+                        "line_number": int(parts[1]),
+                        "line": parts[2].strip(),
+                    }
+                )
             except ValueError:
                 continue
 
@@ -161,12 +188,21 @@ def find_definitions(
 
     if tool == "rg":
         cmd = [
-            "rg", "--no-heading", "--line-number", "--with-filename",
-            "--color=never", "-e", combined, search_path_resolved,
+            "rg",
+            "--no-heading",
+            "--line-number",
+            "--with-filename",
+            "--color=never",
+            "-e",
+            combined,
+            search_path_resolved,
         ]
     else:
         cmd = [
-            "grep", "-rnEI", combined, search_path_resolved,
+            "grep",
+            "-rnEI",
+            combined,
+            search_path_resolved,
         ]
 
     try:
@@ -183,11 +219,13 @@ def find_definitions(
         parts = line.split(":", 2)
         if len(parts) >= 3:
             try:
-                results.append({
-                    "file": parts[0],
-                    "line_number": int(parts[1]),
-                    "line": parts[2].strip(),
-                })
+                results.append(
+                    {
+                        "file": parts[0],
+                        "line_number": int(parts[1]),
+                        "line": parts[2].strip(),
+                    }
+                )
             except ValueError:
                 continue
 
@@ -212,15 +250,10 @@ def find_references(
 
     # Get definitions to exclude
     definitions = find_definitions(symbol, search_path)
-    def_keys = {
-        (d["file"], d["line_number"]) for d in definitions
-    }
+    def_keys = {(d["file"], d["line_number"]) for d in definitions}
 
     # References = all matches minus definitions
-    return [
-        m for m in all_matches
-        if (m["file"], m["line_number"]) not in def_keys
-    ]
+    return [m for m in all_matches if (m["file"], m["line_number"]) not in def_keys]
 
 
 def format_results(
@@ -257,23 +290,27 @@ def format_results(
 
 def main() -> int:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Find definitions and references of a symbol in source code."
-    )
+    parser = argparse.ArgumentParser(description="Find definitions and references of a symbol in source code.")
     parser.add_argument(
-        "--symbol", required=True,
+        "--symbol",
+        required=True,
         help="Symbol name to search for.",
     )
     parser.add_argument(
-        "--path", default=".",
+        "--path",
+        default=".",
         help="Directory to search in (default: current directory).",
     )
     parser.add_argument(
-        "--type", choices=["all", "definition", "reference"], default="all",
+        "--type",
+        choices=["all", "definition", "reference"],
+        default="all",
         help="Type of match to find (default: all).",
     )
     parser.add_argument(
-        "--format", choices=["text", "json"], default="text",
+        "--format",
+        choices=["text", "json"],
+        default="text",
         help="Output format (default: text).",
     )
     args = parser.parse_args()

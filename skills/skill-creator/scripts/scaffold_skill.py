@@ -63,7 +63,7 @@ def parse_frontmatter(content: str) -> Tuple[Dict[str, str], str]:
         if ":" in line:
             key, val = line.split(":", 1)
             k = key.strip()
-            v = val.strip().strip('"\'')
+            v = val.strip().strip("\"'")
             metadata[k] = v
 
     return metadata, body
@@ -190,8 +190,7 @@ Overview of {skill_title}.
         tests_dir.mkdir(parents=True, exist_ok=True)
 
         (skill_path / "references" / "overview.md").write_text(
-            f"# {skill_title} Overview\n\nExtended reference documentation.\n",
-            encoding="utf-8"
+            f"# {skill_title} Overview\n\nExtended reference documentation.\n", encoding="utf-8"
         )
 
         starter_script = scripts_dir / "main.py"
@@ -215,7 +214,7 @@ def main() -> int:
 if __name__ == "__main__":
     sys.exit(main())
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         starter_test = tests_dir / "test_main.py"
@@ -234,7 +233,7 @@ class TestMain(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 """,
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
     return skill_path
@@ -280,8 +279,7 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     )
     if not has_completion_criteria:
         issues.append(
-            "Missing checkable completion criteria or verification section "
-            "('## Completion Criteria' or '## Verification')."
+            "Missing checkable completion criteria or verification section ('## Completion Criteria' or '## Verification')."
         )
 
     # Cognitive Load Audit (excessive nested decision branches without sub-skills/references)

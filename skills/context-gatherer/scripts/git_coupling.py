@@ -55,7 +55,8 @@ def run_git_log(
         Raw git log output string.
     """
     cmd = [
-        "git", "log",
+        "git",
+        "log",
         "--name-only",
         "--pretty=format:%H",
         f"-n{max_commits}",
@@ -167,11 +168,13 @@ def find_coupled_files(
     for filepath, count in co_changes.most_common():
         if count < min_commits:
             break
-        results.append({
-            "file": filepath,
-            "co_commits": count,
-            "coupling_ratio": round(count / target_commits, 4),
-        })
+        results.append(
+            {
+                "file": filepath,
+                "co_commits": count,
+                "coupling_ratio": round(count / target_commits, 4),
+            }
+        )
 
     return results[:limit]
 
@@ -205,35 +208,40 @@ def format_results(
     lines.append(f"{'File':<60} {'Co-commits':>10} {'Ratio':>8}")
     lines.append("-" * 80)
     for r in results:
-        lines.append(
-            f"{r['file']:<60} {r['co_commits']:>10} {r['coupling_ratio']:>8.2f}"
-        )
+        lines.append(f"{r['file']:<60} {r['co_commits']:>10} {r['coupling_ratio']:>8.2f}")
     return "\n".join(lines)
 
 
 def main() -> int:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Find files temporally coupled to a target file via git history."
-    )
+    parser = argparse.ArgumentParser(description="Find files temporally coupled to a target file via git history.")
     parser.add_argument(
-        "--file", required=True,
+        "--file",
+        required=True,
         help="Target file path to analyze coupling for.",
     )
     parser.add_argument(
-        "--min-commits", type=int, default=2,
+        "--min-commits",
+        type=int,
+        default=2,
         help="Minimum co-commit count to include (default: 2).",
     )
     parser.add_argument(
-        "--limit", type=int, default=30,
+        "--limit",
+        type=int,
+        default=30,
         help="Maximum number of coupled files to show (default: 30).",
     )
     parser.add_argument(
-        "--max-history", type=int, default=500,
+        "--max-history",
+        type=int,
+        default=500,
         help="Maximum number of git commits to analyze (default: 500).",
     )
     parser.add_argument(
-        "--format", choices=["text", "json"], default="text",
+        "--format",
+        choices=["text", "json"],
+        default="text",
         help="Output format (default: text).",
     )
     args = parser.parse_args()
@@ -270,7 +278,8 @@ def main() -> int:
             pass  # Fall back to filtered results
 
     results = find_coupled_files(
-        args.file, commits,
+        args.file,
+        commits,
         min_commits=args.min_commits,
         limit=args.limit,
     )

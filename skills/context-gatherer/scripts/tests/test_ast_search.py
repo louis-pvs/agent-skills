@@ -83,9 +83,7 @@ class TestSearchPythonAst(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "handlers.py"
             test_file.write_text(code, encoding="utf-8")
-            results = search_python_ast(
-                str(test_file), {"type": "class", "name_glob": "*", "base_class": "BaseHandler"}
-            )
+            results = search_python_ast(str(test_file), {"type": "class", "name_glob": "*", "base_class": "BaseHandler"})
             names = [r["name"] for r in results]
             self.assertIn("MyHandler", names)
             self.assertIn("OtherHandler", names)
@@ -106,9 +104,7 @@ class TestSearchPythonAst(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "tests.py"
             test_file.write_text(code, encoding="utf-8")
-            results = search_python_ast(
-                str(test_file), {"type": "function", "name_glob": "test_*"}
-            )
+            results = search_python_ast(str(test_file), {"type": "function", "name_glob": "test_*"})
             names = [r["name"] for r in results]
             self.assertIn("test_login", names)
             self.assertIn("test_logout", names)
@@ -118,9 +114,7 @@ class TestSearchPythonAst(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "broken.py"
             test_file.write_text("def broken(\n", encoding="utf-8")
-            results = search_python_ast(
-                str(test_file), {"type": "function", "name_glob": "*"}
-            )
+            results = search_python_ast(str(test_file), {"type": "function", "name_glob": "*"})
             self.assertEqual(results, [])
 
 

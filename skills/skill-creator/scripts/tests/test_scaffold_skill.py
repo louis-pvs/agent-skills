@@ -19,7 +19,6 @@ from scaffold_skill import (  # noqa: E402
 
 
 class TestScaffoldSkill(unittest.TestCase):
-
     def test_validate_skill_metadata_valid(self) -> None:
         valid, errors = validate_skill_metadata("my-skill-name", "Triggers when user asks for my skill.")
         self.assertTrue(valid)

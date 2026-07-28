@@ -21,7 +21,6 @@ from council import (  # noqa: E402
 
 
 class TestCouncilOrchestrator(unittest.TestCase):
-
     def test_parse_simple_yaml(self) -> None:
         sample_yaml = """
 council:
@@ -58,9 +57,9 @@ council:
                 }
             }
 
-            with patch("council.load_config", return_value=minimal_config), \
-                 patch("council.subprocess.Popen", return_value=mock_proc):
-
+            with patch("council.load_config", return_value=minimal_config), patch(
+                "council.subprocess.Popen", return_value=mock_proc
+            ):
                 job_dir = create_job("Unit test question", jobs_dir)
 
                 self.assertTrue(job_dir.exists())

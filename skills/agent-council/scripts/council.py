@@ -24,7 +24,7 @@ REPO_CONFIG_FILE = SKILL_DIR.parent.parent / "council.config.yaml"
 
 
 def _parse_val(val: str) -> Any:
-    val = val.strip().strip('"\'')
+    val = val.strip().strip("\"'")
     if val.lower() == "true":
         return True
     if val.lower() == "false":
@@ -292,6 +292,7 @@ def clean_job(job_dir: Path) -> None:
     stop_job(job_dir)
     if job_dir.exists():
         import shutil
+
         shutil.rmtree(job_dir, ignore_errors=True)
 
 
@@ -391,7 +392,7 @@ def main() -> int:
         return 0
 
     else:
-        print("Usage: council.py [start|status|wait|results|stop|clean|\"prompt\"]")
+        print('Usage: council.py [start|status|wait|results|stop|clean|"prompt"]')
         return 1
 
 

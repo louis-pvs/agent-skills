@@ -47,6 +47,7 @@ skills/<skill-name>/
   ```python
   import argparse
 
+
   def parse_args():
       parser = argparse.ArgumentParser(description="Skill script utility.")
       parser.add_argument("--input", required=True, help="Input file path")

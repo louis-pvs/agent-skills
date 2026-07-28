@@ -51,9 +51,7 @@ def parse_pattern(pattern: str) -> Dict[str, Any]:
     pattern = pattern.strip()
 
     # "class NAME (BASE)"
-    class_match = re.match(
-        r"^class\s+(\S+)\s*\(\s*(\S+)\s*\)$", pattern
-    )
+    class_match = re.match(r"^class\s+(\S+)\s*\(\s*(\S+)\s*\)$", pattern)
     if class_match:
         return {
             "type": "class",
@@ -123,30 +121,36 @@ def search_python_ast(
                         base_names.append(b.attr)
                 if base_class not in base_names:
                     continue
-            results.append({
-                "file": filepath,
-                "name": node.name,
-                "line": node.lineno,
-                "type": "class",
-            })
-
-        elif pattern_type == "function" and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if fnmatch.fnmatch(node.name, name_glob):
-                results.append({
+            results.append(
+                {
                     "file": filepath,
                     "name": node.name,
                     "line": node.lineno,
-                    "type": "function",
-                })
+                    "type": "class",
+                }
+            )
+
+        elif pattern_type == "function" and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if fnmatch.fnmatch(node.name, name_glob):
+                results.append(
+                    {
+                        "file": filepath,
+                        "name": node.name,
+                        "line": node.lineno,
+                        "type": "function",
+                    }
+                )
 
         elif pattern_type == "identifier":
             if isinstance(node, ast.Name) and fnmatch.fnmatch(node.id, name_glob):
-                results.append({
-                    "file": filepath,
-                    "name": node.id,
-                    "line": getattr(node, "lineno", 0),
-                    "type": "identifier",
-                })
+                results.append(
+                    {
+                        "file": filepath,
+                        "name": node.id,
+                        "line": getattr(node, "lineno", 0),
+                        "type": "identifier",
+                    }
+                )
 
     return results
 
@@ -168,10 +172,7 @@ def find_python_files(search_path: str) -> List[str]:
 
     for dirpath, dirnames, filenames in os.walk(root):
         # Skip hidden directories and common non-source dirs
-        dirnames[:] = [
-            d for d in dirnames
-            if not d.startswith(".") and d not in ("node_modules", "__pycache__", "venv", ".venv")
-        ]
+        dirnames[:] = [d for d in dirnames if not d.startswith(".") and d not in ("node_modules", "__pycache__", "venv", ".venv")]
         for f in filenames:
             if f.endswith(".py"):
                 files.append(os.path.join(dirpath, f))
@@ -257,27 +258,27 @@ def format_results(
 
     lines = [f"AST matches for: {pattern}", ""]
     for r in results:
-        lines.append(
-            f"  {r['type']:>10}  {r['name']:<40} {r['file']}:{r['line']}"
-        )
+        lines.append(f"  {r['type']:>10}  {r['name']:<40} {r['file']}:{r['line']}")
     return "\n".join(lines)
 
 
 def main() -> int:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Search for structural code patterns using AST analysis."
+    parser = argparse.ArgumentParser(description="Search for structural code patterns using AST analysis.")
+    parser.add_argument(
+        "--pattern",
+        required=True,
+        help="Search pattern (e.g., 'class * (BaseHandler)', 'def test_*').",
     )
     parser.add_argument(
-        "--pattern", required=True,
-        help='Search pattern (e.g., \'class * (BaseHandler)\', \'def test_*\').',
-    )
-    parser.add_argument(
-        "--path", default=".",
+        "--path",
+        default=".",
         help="Directory to search in (default: current directory).",
     )
     parser.add_argument(
-        "--format", choices=["text", "json"], default="text",
+        "--format",
+        choices=["text", "json"],
+        default="text",
         help="Output format (default: text).",
     )
     args = parser.parse_args()

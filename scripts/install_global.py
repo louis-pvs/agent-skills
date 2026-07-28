@@ -51,6 +51,7 @@ def install_skill(skill_dir: Path, target_base_dir: Path, dry_run: bool = False)
                 target_link.unlink()
             elif target_link.is_dir():
                 import shutil
+
                 shutil.rmtree(target_link)
 
     if dry_run:
@@ -78,6 +79,7 @@ def uninstall_skill(skill_dir: Path, target_base_dir: Path, dry_run: bool = Fals
             target_link.unlink()
         elif target_link.is_dir():
             import shutil
+
             shutil.rmtree(target_link)
         return f"[REMOVED] {target_link}"
     except Exception as err:
