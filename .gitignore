@@ -14,3 +14,7 @@ Thumbs.db
 # Python
 __pycache__/
 *.py[cod]
+
+# Graphify output
+graphify-out/
+
