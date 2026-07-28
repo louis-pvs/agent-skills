@@ -20,11 +20,10 @@ skills/{{SKILL_NAME}}/
 
 ## `SKILL.md` Boilerplate for Complex Skill
 
-```markdown
+````markdown
 ---
-name: {{SKILL_NAME}}
-description: {{SKILL_DESCRIPTION}}
-compatibility: Linux, macOS, Windows (Python 3.8+)
+name: { { SKILL_NAME } }
+description: { { SKILL_DESCRIPTION } }
 ---
 
 # {{SKILL_TITLE}}
@@ -41,8 +40,18 @@ compatibility: Linux, macOS, Windows (Python 3.8+)
    ```
 
 3. **Synthesis**: Process output and report results to user.
+````
+
+## Completion Criteria
+
+- [ ] All automation script executions finish with exit code 0.
+- [ ] Unit tests in `scripts/tests/` pass cleanly.
+- [ ] Output files and artifacts comply with required schema.
 
 ## References
 
 - [overview.md](references/overview.md) — Extended design documentation.
+
+```md
+
 ```

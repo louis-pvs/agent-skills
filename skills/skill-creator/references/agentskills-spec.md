@@ -31,6 +31,7 @@ Must be placed at the very top of `SKILL.md` enclosed by triple hyphens `---`.
 ---
 name: my-skill-name
 description: Clear, specific statement of what this skill does and when the agent should trigger it.
+disable-model-invocation: true
 license: MIT
 compatibility: Linux, macOS, Windows (Python 3.8+)
 allowed-tools: run_command view_file write_to_file
@@ -41,25 +42,24 @@ allowed-tools: run_command view_file write_to_file
 
 | Field | Required | Constraints | Purpose |
 | :--- | :--- | :--- | :--- |
-| `name` | **Yes** | Max 64 chars. Regex `^[a-z0-9-]+$`. Lowercase letters, numbers, hyphens. No leading/trailing hyphens. | Unique skill identifier. |
-| `description` | **Yes** | Max 1024 chars. Must clearly state what the skill accomplishes and explicit trigger phrases. | Used by agents during the **Discovery Tier** to decide whether to activate the skill. |
+| `name` | **Yes** | Max 64 chars. Regex `^[a-z0-9-]+$`. Lowercase letters, numbers, hyphens. | Unique skill identifier. |
+| `description` | **Yes** | Max 1024 chars. Clear summary or explicit trigger phrases. | Used during the **Discovery Tier** or for human reference. |
+| `disable-model-invocation` | No | Boolean (`true`/`false`). | When `true`, hides the skill from model autotriggering (**pays zero Context Load**). Invocable via explicit user command. |
 | `license` | No | Short string (e.g. `MIT`, `Apache-2.0`). | Software license. |
 | `compatibility` | No | Max 500 chars. OS or runtime requirements. | Environment eligibility check. |
 | `allowed-tools` | No | Space-separated list of approved tool names. | Restricts or hints required tool permissions. |
 
 ---
 
-### B. Markdown Body (Instructions)
+## 3. Invocation Modes & Load Management
 
-Follows immediately after the closing `---`.
-
-- **Length Constraint**: Keep main `SKILL.md` body under **500 lines**.
-- **Content**: High-level workflow, critical guardrails, edge case handling, and step-by-step procedures.
-- **Reference Linking**: Use relative markdown links to files in `references/` for deep technical details (e.g. `[api-docs.md](references/api-docs.md)`).
+1. **Model-Invoked Skills**: Keep `description` loaded in prompt context window for autonomous triggering (**pays Context Load**).
+2. **User-Invoked Skills (`disable-model-invocation: true`)**: Strips agent frontmatter discovery, reserving invocation for explicit human commands (**pays zero Context Load**).
+3. **Router Skills**: Lightweight user-invoked skills that index and triage sub-skills (solving **Cognitive Load** for users with many skills).
 
 ---
 
-## 3. Progressive Disclosure Architecture
+## 4. Progressive Disclosure Architecture
 
 To maximize context window efficiency, skills employ a 3-tier loading mechanism:
 
@@ -75,7 +75,17 @@ flowchart TD
 
 ---
 
-## 4. Cross-Platform Portability
+## 5. Checkable Completion Criteria
+
+Every skill or procedural workflow must end with a checkable `## Completion Criteria` section containing objective verification items:
+
+- `- [ ] Command execution returns exit code 0.`
+- `- [ ] Generated artifacts conform to specified schema.`
+- `- [ ] Unit test suite passes cleanly.`
+
+---
+
+## 6. Cross-Platform Portability
 
 Skills following this standard operate seamlessly across diverse agent environments:
 

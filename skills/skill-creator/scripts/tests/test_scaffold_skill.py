@@ -39,6 +39,7 @@ class TestScaffoldSkill(unittest.TestCase):
         content = """---
 name: test-skill
 description: A test skill description.
+disable-model-invocation: true
 ---
 
 # Test Title
@@ -47,6 +48,7 @@ Body text goes here.
         meta, body = parse_frontmatter(content)
         self.assertEqual(meta.get("name"), "test-skill")
         self.assertEqual(meta.get("description"), "A test skill description.")
+        self.assertEqual(meta.get("disable-model-invocation"), "true")
         self.assertTrue("Body text goes here." in body)
 
     def test_scaffold_and_validate_simple_skill(self) -> None:
@@ -56,11 +58,34 @@ Body text goes here.
                 name="test-simple-skill",
                 description="Test simple skill description.",
                 target_dir=target_dir,
-                is_complex=False,
+                skill_type="simple",
             )
 
             self.assertTrue(created_path.exists())
             self.assertTrue((created_path / "SKILL.md").exists())
+
+            is_valid, issues = validate_skill(created_path)
+            self.assertTrue(is_valid, msg=f"Validation failed with issues: {issues}")
+
+    def test_scaffold_and_validate_user_invoked_router_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_dir = Path(temp_dir)
+            created_path = scaffold_skill(
+                name="test-router-skill",
+                description="Test router skill summary.",
+                target_dir=target_dir,
+                skill_type="router",
+                user_invoked=True,
+            )
+
+            self.assertTrue(created_path.exists())
+            skill_md = created_path / "SKILL.md"
+            self.assertTrue(skill_md.exists())
+
+            content = skill_md.read_text(encoding="utf-8")
+            meta, body = parse_frontmatter(content)
+            self.assertEqual(meta.get("disable-model-invocation"), "true")
+            self.assertIn("Router skill for dispatching", body)
 
             is_valid, issues = validate_skill(created_path)
             self.assertTrue(is_valid, msg=f"Validation failed with issues: {issues}")
@@ -72,7 +97,7 @@ Body text goes here.
                 name="test-complex-skill",
                 description="Test complex skill description.",
                 target_dir=target_dir,
-                is_complex=True,
+                skill_type="complex",
             )
 
             self.assertTrue(created_path.exists())
@@ -83,6 +108,27 @@ Body text goes here.
 
             is_valid, issues = validate_skill(created_path)
             self.assertTrue(is_valid, msg=f"Validation failed with issues: {issues}")
+
+    def test_validate_skill_missing_completion_criteria(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_dir = Path(temp_dir)
+            skill_dir = target_dir / "no-criteria-skill"
+            skill_dir.mkdir()
+            skill_md = skill_dir / "SKILL.md"
+            skill_md.write_text(
+                """---
+name: no-criteria-skill
+description: Skill without criteria.
+---
+
+# Title
+Just some steps without verification.
+""",
+                encoding="utf-8",
+            )
+            is_valid, issues = validate_skill(skill_dir)
+            self.assertFalse(is_valid)
+            self.assertTrue(any("Missing checkable completion criteria" in i for i in issues))
 
 
 if __name__ == "__main__":

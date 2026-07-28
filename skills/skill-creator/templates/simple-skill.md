@@ -18,6 +18,8 @@ description: {{SKILL_DESCRIPTION}}
 - Constraint 1: Rule to enforce.
 - Constraint 2: Error prevention rule.
 
-## Verification
+## Completion Criteria
 
-Summary of how to verify that the task has succeeded.
+- [ ] Task execution completed without errors or unresolved exceptions.
+- [ ] Output produced matches requested structure and parameters.
+- [ ] Verification checks pass.
