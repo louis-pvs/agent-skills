@@ -6,12 +6,12 @@ Uses Python Standard Library only.
 """
 
 import argparse
+import os
 import re
 import sys
 import unittest
 from pathlib import Path
-from typing import Dict, Tuple, List, Optional
-
+from typing import Dict, List, Tuple
 
 NAME_REGEX = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 MAX_NAME_LEN = 64
@@ -76,7 +76,7 @@ def scaffold_skill(
     """Creates directory structure and boilerplate files for a new skill."""
     valid, errors = validate_skill_metadata(name, description)
     if not valid:
-        raise ValueError(f"Invalid skill metadata:\n" + "\n".join(f"- {e}" for e in errors))
+        raise ValueError("Invalid skill metadata:\n" + "\n".join(f"- {e}" for e in errors))
 
     skill_path = target_dir / name
     if skill_path.exists():
@@ -212,7 +212,7 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     if tests_dir.is_dir():
         loader = unittest.TestLoader()
         suite = loader.discover(str(tests_dir))
-        with open("/dev/null", "w") as null_stream:
+        with open(os.devnull, "w") as null_stream:
             runner = unittest.TextTestRunner(stream=null_stream, verbosity=0)
             result = runner.run(suite)
         if not result.wasSuccessful():

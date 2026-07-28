@@ -7,7 +7,7 @@ Uses Python Standard Library only to ensure zero-dependency execution across pla
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 def process_data(input_path: Path) -> Dict[str, Any]:

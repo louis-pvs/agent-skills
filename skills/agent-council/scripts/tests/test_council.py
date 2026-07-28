@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 """Unit tests for agent-council Python orchestrator (council.py)."""
 
-import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import sys
+from unittest.mock import MagicMock, patch
 
 SCRIPTS_DIR = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from council import (
-    parse_simple_yaml,
-    generate_job_id,
-    create_job,
-    update_job_status,
-    get_results,
+from council import (  # noqa: E402
     clean_job,
+    create_job,
+    generate_job_id,
+    get_results,
+    parse_simple_yaml,
+    update_job_status,
 )
 
 

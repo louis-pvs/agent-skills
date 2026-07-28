@@ -9,28 +9,23 @@ Collect multiple AI opinions and synthesize one answer using parallel CLI execut
 
 ## Usage
 
-Run a job and collect results (via Python 3 orchestrator or bash wrapper):
+### Asynchronous Lifecycle Execution (Recommended for AI Agents)
+
+For background tracking and non-blocking execution across member CLIs:
 
 ```bash
-JOB_DIR=$(python3 ./scripts/council.py start "your question here")
-python3 ./scripts/council.py wait "$JOB_DIR"
-python3 ./scripts/council.py results "$JOB_DIR"
-python3 ./scripts/council.py clean "$JOB_DIR"
+JOB_DIR=$(python3 skills/agent-council/scripts/council.py start "your question here")
+python3 skills/agent-council/scripts/council.py wait "$JOB_DIR"
+python3 skills/agent-council/scripts/council.py results "$JOB_DIR"
+python3 skills/agent-council/scripts/council.py clean "$JOB_DIR"
 ```
 
-Or using the thin bash wrapper:
+### Direct One-Shot Execution
+
+For quick, synchronous query and result synthesis:
 
 ```bash
-JOB_DIR=$(./scripts/council.sh start "your question here")
-./scripts/council.sh wait "$JOB_DIR"
-./scripts/council.sh results "$JOB_DIR"
-./scripts/council.sh clean "$JOB_DIR"
-```
-
-One-shot execution:
-
-```bash
-python3 ./scripts/council.py "your question here"
+python3 skills/agent-council/scripts/council.py "your question here"
 ```
 
 ## References

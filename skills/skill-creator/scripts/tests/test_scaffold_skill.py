@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """Unit tests for scaffold_skill.py script."""
 
+import sys
 import tempfile
 import unittest
 from pathlib import Path
-import sys
 
 # Add scripts directory to module search path
 SCRIPTS_DIR = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from scaffold_skill import (
-    validate_skill_metadata,
+from scaffold_skill import (  # noqa: E402
     parse_frontmatter,
     scaffold_skill,
     validate_skill,
+    validate_skill_metadata,
 )
 
 

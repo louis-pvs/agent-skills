@@ -8,40 +8,68 @@ Instead of relying on unguided AI generation, these skills provide structured pr
 
 ## 🚀 Available Skills
 
-| Skill | Description | Path |
-| :--- | :--- | :--- |
-| **`agent-council`** | Collect and synthesize opinions from multiple AI agents (Gemini, Claude, Copilot) into a unified recommendation. | [`skills/agent-council`](skills/agent-council/SKILL.md) |
+| Skill               | Description                                                                                                               | Path                                                    |
+| :------------------ | :------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------ |
+| **`agent-council`** | Collect and synthesize opinions from multiple AI agents (Gemini, Claude, Copilot) into a unified recommendation.          | [`skills/agent-council`](skills/agent-council/SKILL.md) |
 | **`skill-creator`** | Create, scaffold, format, and audit new Agent Skills adhering to the agentskills.io standard and Python stdlib standards. | [`skills/skill-creator`](skills/skill-creator/SKILL.md) |
 
 ---
 
 ## 📦 Global Setup & Installation
 
-To make these skills available automatically across all your projects without modifying individual codebases:
+To make all skills in this repository available automatically across all your projects in **Gemini / Antigravity**, **Claude Code**, and **GitHub Copilot**:
 
-### Option 1: Global Gemini / Antigravity Registration (Recommended)
+### Automatic Global Setup (Recommended)
 
-Register the `skills/` directory in your global configuration file `~/.gemini/config/skills.json`:
+Run the included zero-dependency Python installer:
+
+```bash
+python3 scripts/install_global.py
+```
+
+This automatically creates global symbolic links for all skills in `skills/` across:
+
+- **Gemini / Antigravity**: `~/.gemini/config/skills/`
+- **Claude Code**: `~/.claude/skills/`
+- **GitHub Copilot**: `~/.copilot/skills/`
+
+To show planned actions without modifying files:
+
+```bash
+python3 scripts/install_global.py --dry-run
+```
+
+To remove global symlinks:
+
+```bash
+python3 scripts/install_global.py --unlink
+```
+
+### Manual Configuration Options
+
+<details>
+<summary>Click to view manual config details</summary>
+
+#### Gemini / Antigravity (`skills.json`)
+
+Add the repository's `skills/` path to `~/.gemini/config/skills.json`:
 
 ```json
 {
-  "entries": [
-    { "path": "/path/to/agent-skills/skills" }
-  ]
+  "entries": [{ "path": "/path/to/agent-skills/skills" }]
 }
 ```
 
-Once added, your AI agent will automatically discover and trigger these skills regardless of which project workspace you are working in.
+#### Project-Scoped Symlinking
 
-### Option 2: Symlink into Project Customization Root
-
-If you prefer repository-scoped registration:
+Symlink specific skills into a project's `.agents/skills` folder:
 
 ```bash
 mkdir -p .agents/skills
 ln -s /path/to/agent-skills/skills/agent-council .agents/skills/agent-council
-ln -s /path/to/agent-skills/skills/skill-creator .agents/skills/skill-creator
 ```
+
+</details>
 
 ---
 

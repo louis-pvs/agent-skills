@@ -9,12 +9,13 @@ import argparse
 import hashlib
 import json
 import os
+import shlex
 import signal
 import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Any, Tuple
+from typing import Any, Dict
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 SKILL_DIR = SCRIPT_DIR.parent
@@ -177,11 +178,10 @@ def create_job(question: str, jobs_dir: Path) -> Path:
             "start_time": time.time(),
         }
 
-        full_cmd = f"{cmd_str} \"{question}\""
+        cmd_args = shlex.split(cmd_str) + [question]
         with open(log_file, "w", encoding="utf-8") as out_f, open(err_file, "w", encoding="utf-8") as err_f:
             proc = subprocess.Popen(
-                full_cmd,
-                shell=True,
+                cmd_args,
                 stdout=out_f,
                 stderr=err_f,
                 cwd=str(SKILL_DIR),
@@ -296,6 +296,9 @@ def clean_job(job_dir: Path) -> None:
 
 
 def parse_args():
+    if len(sys.argv) > 1 and sys.argv[1] not in {"start", "status", "wait", "results", "stop", "clean", "-h", "--help"}:
+        return argparse.Namespace(subcommand=None, prompt=" ".join(sys.argv[1:]))
+
     parser = argparse.ArgumentParser(description="Agent Council Orchestrator")
     subparsers = parser.add_subparsers(dest="subcommand")
 
@@ -326,9 +329,6 @@ def parse_args():
     # Clean
     clean_parser = subparsers.add_parser("clean")
     clean_parser.add_argument("job_dir", type=str)
-
-    # Positional one-shot catch-all
-    parser.add_argument("prompt", nargs="?", type=str, help="One-shot prompt question")
 
     return parser.parse_args()
 
