@@ -13,6 +13,7 @@ Instead of relying on unguided AI generation, these skills provide structured pr
 | **`agent-council`**      | Collect and synthesize opinions from multiple AI agents (Gemini, Claude, Copilot) into a unified recommendation.          | [`skills/agent-council`](skills/agent-council/SKILL.md)           |
 | **`context-gatherer`**   | Gather deep codebase context: git temporal coupling, symbol navigation, and AST-based structural search.                  | [`skills/context-gatherer`](skills/context-gatherer/SKILL.md)     |
 | **`skill-creator`**      | Create, scaffold, format, and audit new Agent Skills adhering to the agentskills.io standard and Python stdlib standards. | [`skills/skill-creator`](skills/skill-creator/SKILL.md)           |
+| **`tdd`**                | Enforce Test-Driven Development (TDD) workflows: write failing test (RED), write minimal code (GREEN), and refactor.      | [`skills/tdd`](skills/tdd/SKILL.md)                               |
 
 ---
 
@@ -87,7 +88,8 @@ agent-skills/
 └── skills/
     ├── agent-council/        # Multi-agent consensus synthesis skill
     ├── context-gatherer/     # Codebase context gathering (git coupling, symbol nav, AST search)
-    └── skill-creator/        # Skill authoring, scaffolding, & validation skill
+    ├── skill-creator/        # Skill authoring, scaffolding, & validation skill
+    └── tdd/                  # Test-Driven Development (RED-GREEN-REFACTOR execution & verification) skill
 ```
 
 ---
