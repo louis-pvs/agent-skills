@@ -9,14 +9,12 @@ Uses Python 3 Standard Library only (plus external grep/rg via subprocess).
 
 import argparse
 import json
-import os
 import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
 
 # Definition patterns per language extension
 DEFINITION_PATTERNS = {
@@ -153,7 +151,7 @@ def find_definitions(
 
     # Collect all definition patterns across supported languages
     all_patterns = []
-    for ext, patterns in DEFINITION_PATTERNS.items():
+    for patterns in DEFINITION_PATTERNS.values():
         for pat in patterns:
             escaped_symbol = re.escape(symbol)
             all_patterns.append(pat.format(symbol=escaped_symbol))

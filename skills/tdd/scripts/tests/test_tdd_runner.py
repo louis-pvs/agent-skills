@@ -1,15 +1,11 @@
 import json
-import os
 import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-# Ensure parent script directory is in sys.path for test discovery
-script_dir = Path(__file__).resolve().parent.parent
-if str(script_dir) not in sys.path:
-    sys.path.insert(0, str(script_dir))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tdd_runner import detect_test_runner, run_test_command
 

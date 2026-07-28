@@ -279,12 +279,18 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
         or "- [x]" in body
     )
     if not has_completion_criteria:
-        issues.append("Missing checkable completion criteria or verification section ('## Completion Criteria' or '## Verification').")
+        issues.append(
+            "Missing checkable completion criteria or verification section "
+            "('## Completion Criteria' or '## Verification')."
+        )
 
     # Cognitive Load Audit (excessive nested decision branches without sub-skills/references)
     if body.count("if ") + body.count("else:") + body.count("elif ") > 12:
         if not (skill_dir / "references").is_dir() and not (skill_dir / "scripts").is_dir():
-            issues.append("High Cognitive Load: High volume of conditional branching in SKILL.md body. Consider pushing reference details to references/ or creating a sub-skill.")
+            issues.append(
+                "High Cognitive Load: High volume of conditional branching in SKILL.md body. "
+                "Consider pushing reference details to references/ or creating a sub-skill."
+            )
 
     # Script Unit Tests Audit
     tests_dir = skill_dir / "scripts" / "tests"
@@ -307,7 +313,13 @@ def parse_args(args=None) -> argparse.Namespace:
     parser.add_argument("--name", type=str, help="Name of the skill to scaffold (e.g. 'my-skill')")
     parser.add_argument("--description", type=str, help="Description of when to trigger the skill")
     parser.add_argument("--target-dir", type=str, default="skills", help="Directory to scaffold skill inside")
-    parser.add_argument("--type", type=str, choices=["simple", "complex", "router"], default="simple", help="Type of skill template to scaffold")
+    parser.add_argument(
+        "--type",
+        type=str,
+        choices=["simple", "complex", "router"],
+        default="simple",
+        help="Type of skill template to scaffold",
+    )
     parser.add_argument("--user-invoked", action="store_true", help="Mark skill as user-invoked (disable-model-invocation: true)")
     parser.add_argument("--complex", action="store_true", help="Alias for --type complex")
     parser.add_argument("--validate", type=str, help="Validate an existing skill directory")

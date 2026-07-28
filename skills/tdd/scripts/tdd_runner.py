@@ -7,20 +7,23 @@ Auto-detects project test framework and enforces TDD state validation
 
 import argparse
 import json
-import os
 import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 
 def detect_test_runner(workspace_dir: Path) -> Tuple[Optional[str], Optional[List[str]]]:
     """Detect test runner command based on project files."""
     # Python detection
-    if (workspace_dir / "pyproject.toml").exists() or (workspace_dir / "pytest.ini").exists() or (workspace_dir / "setup.cfg").exists():
+    if (
+        (workspace_dir / "pyproject.toml").exists()
+        or (workspace_dir / "pytest.ini").exists()
+        or (workspace_dir / "setup.cfg").exists()
+    ):
         return "pytest", ["pytest"]
-    
+
     if list(workspace_dir.glob("**/test_*.py")) or list(workspace_dir.glob("**/*_test.py")):
         return "unittest", [sys.executable, "-m", "unittest", "discover", "-s", "."]
 
@@ -28,7 +31,7 @@ def detect_test_runner(workspace_dir: Path) -> Tuple[Optional[str], Optional[Lis
     package_json = workspace_dir / "package.json"
     if package_json.exists():
         try:
-            with open(package_json, "r", encoding="utf-8") as f:
+            with open(package_json, encoding="utf-8") as f:
                 data = json.load(f)
                 scripts = data.get("scripts", {})
                 if "test" in scripts:
@@ -54,8 +57,7 @@ def run_test_command(cmd: List[str], cwd: Path) -> Tuple[int, str, str]:
         proc = subprocess.run(
             cmd,
             cwd=str(cwd),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             timeout=120,
         )

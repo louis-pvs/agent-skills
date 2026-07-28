@@ -2,7 +2,6 @@
 """Tests for symbol_nav — symbol/reference navigation."""
 
 import json
-import os
 import sys
 import tempfile
 import textwrap

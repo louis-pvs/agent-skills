@@ -2,7 +2,6 @@
 """Tests for ast_search — AST-based structural code search."""
 
 import json
-import os
 import sys
 import tempfile
 import textwrap

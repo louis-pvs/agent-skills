@@ -20,7 +20,7 @@ class TestSkillScript(unittest.TestCase):
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             temp_path = Path(temp_file.name)
             temp_file.write(b"Hello World")
-        
+
         try:
             # Replace with actual function invocation
             self.assertTrue(temp_path.exists())

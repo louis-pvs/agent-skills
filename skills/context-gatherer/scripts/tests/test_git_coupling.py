@@ -2,14 +2,11 @@
 """Tests for git_coupling — git temporal coupling analysis."""
 
 import json
-import os
-import subprocess
 import sys
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 # Add scripts directory to path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

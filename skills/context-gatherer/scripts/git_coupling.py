@@ -12,7 +12,6 @@ import json
 import subprocess
 import sys
 from collections import Counter
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 
@@ -100,15 +99,11 @@ def parse_git_log(log_output: str) -> List[Set[str]]:
 
     commits: List[Set[str]] = []
     current_files: Set[str] = set()
-    in_files = False
 
     for line in log_output.splitlines():
         stripped = line.strip()
 
         if not stripped:
-            # Blank line — if we have files, this separates them from the next hash
-            if current_files:
-                in_files = False
             continue
 
         # A 40-char hex string is a commit hash
@@ -117,7 +112,6 @@ def parse_git_log(log_output: str) -> List[Set[str]]:
             if current_files:
                 commits.append(current_files)
                 current_files = set()
-            in_files = True
             continue
 
         # Otherwise it's a filename

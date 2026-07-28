@@ -14,7 +14,7 @@ def process_data(input_path: Path) -> Dict[str, Any]:
     """Processes input file and returns structured metadata result dictionary."""
     if not input_path.exists():
         raise FileNotFoundError(f"Input path does not exist: {input_path}")
-    
+
     return {
         "status": "success",
         "file_name": input_path.name,
@@ -38,7 +38,7 @@ def main() -> int:
     """CLI entrypoint."""
     parsed = parse_args()
     input_path = Path(parsed.input).resolve()
-    
+
     try:
         result = process_data(input_path)
         print(f"Processed: {result}")
