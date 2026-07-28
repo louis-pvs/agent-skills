@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Skill runtime files & job output
+.jobs/
+*.log
+logs/
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
