@@ -2,22 +2,19 @@
 
 ## Decision Tree
 
-```
-User asks about codebase →
-├── "What's the architecture of X?" / "How do components relate?"
-│   └── → graphify (if graphify-out/ exists)
-│
-├── "What else changes when I modify X?" / "Impact of changing Y?"
-│   └── → git_coupling.py
-│
-├── "Who calls X?" / "Where is Y defined?" / "Find all references to Z"
-│   └── → symbol_nav.py
-│
-├── "Find all classes that extend X" / "Match this pattern"
-│   └── → ast_search.py
-│
-└── Complex / multi-dimensional question
-    └── → Combine: run multiple techniques, synthesize results
+```mermaid
+flowchart TD
+    Q["User asks about codebase"] --> A["Architecture / Component relationships"]
+    Q --> B["Co-changing files / Impact analysis"]
+    Q --> C["Who calls X / Where defined / References"]
+    Q --> D["Class inheritance / Structural pattern matching"]
+    Q --> E["Complex / Multi-dimensional question"]
+
+    A --> A_OUT["graphify<br/>(if graphify-out/ exists)"]
+    B --> B_OUT["git_coupling.py"]
+    C --> C_OUT["symbol_nav.py"]
+    D --> D_OUT["ast_search.py"]
+    E --> E_OUT["Combine multiple techniques & synthesize"]
 ```
 
 ## Technique Comparison
