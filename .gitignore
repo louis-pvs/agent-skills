@@ -1,8 +1,3 @@
-# Dependencies
-node_modules/
-.pnp/
-.pnp.js
-
 # Skill runtime files & job output
 .jobs/
 *.log
@@ -15,3 +10,7 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+# Python
+__pycache__/
+*.py[cod]

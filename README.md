@@ -11,6 +11,7 @@ Instead of relying on unguided AI generation, these skills provide structured pr
 | Skill | Description | Path |
 | :--- | :--- | :--- |
 | **`agent-council`** | Collect and synthesize opinions from multiple AI agents (Gemini, Claude, Copilot) into a unified recommendation. | [`skills/agent-council`](skills/agent-council/SKILL.md) |
+| **`skill-creator`** | Create, scaffold, format, and audit new Agent Skills adhering to the agentskills.io standard and Python stdlib standards. | [`skills/skill-creator`](skills/skill-creator/SKILL.md) |
 
 ---
 
@@ -39,6 +40,7 @@ If you prefer repository-scoped registration:
 ```bash
 mkdir -p .agents/skills
 ln -s /path/to/agent-skills/skills/agent-council .agents/skills/agent-council
+ln -s /path/to/agent-skills/skills/skill-creator .agents/skills/skill-creator
 ```
 
 ---
@@ -49,12 +51,13 @@ ln -s /path/to/agent-skills/skills/agent-council .agents/skills/agent-council
 agent-skills/
 ├── README.md
 ├── .gitignore
+├── .agents/
+│   └── AGENTS.md             # Project-level agent rules & privacy guidelines
+├── docs/
+│   └── adr/                  # Architectural Decision Records (ADRs)
 └── skills/
-    └── agent-council/
-        ├── SKILL.md             # Skill instructions & frontmatter trigger
-        ├── council.config.yaml  # Member agents & provider settings
-        ├── references/          # Detailed documentation & guidelines
-        └── scripts/             # Execution scripts & CLI wrappers
+    ├── agent-council/        # Multi-agent consensus synthesis skill
+    └── skill-creator/        # Skill authoring, scaffolding, & validation skill
 ```
 
 ---
@@ -73,7 +76,7 @@ Each skill folder inside `skills/` must follow the Agent Skill standard:
    ```
 
 2. **Body**: Keep instructions under 500 lines. Place supplementary material in a `references/` subdirectory.
-3. **Scripts**: Place helper automation or execution tools in a `scripts/` subdirectory.
+3. **Scripts**: Use **Python 3 Standard Library First** for any executable scripts in `scripts/` with corresponding unit tests in `scripts/tests/`.
 
 ---
 
