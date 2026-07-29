@@ -1,15 +1,15 @@
 ---
 name: what-if-analysis
-description: Prospective simulation, blast-radius calculation, dependency impact modeling, and test suite ripple analysis before refactoring or committing code changes.
+description: Prospective simulation, blast-radius calculation, dependency impact modeling, sensitivity scenario evaluation, and test suite ripple analysis before refactoring or committing code changes.
 ---
 
 # What-If Analysis
 
-Perform prospective blast-radius calculation, symbol-reference dependency mapping, test suite impact estimation, and doc drift detection before making code changes.
+Perform prospective blast-radius calculation, symbol-reference dependency mapping, sensitivity scenario modeling, test suite impact estimation, and doc drift detection before making code changes.
 
 ## Usage
 
-### Direct CLI Blast Radius Execution
+### 1. Direct CLI Blast Radius Execution (Phase 1)
 
 To calculate the blast radius of a target function, class, or symbol:
 
@@ -23,30 +23,33 @@ Output raw JSON metadata:
 python3 skills/what-if-analysis/scripts/impact_analyzer.py --symbol <symbol_name> --json
 ```
 
----
+### 2. Scenario Tradeoff Matrix & Sensitivity Probes (Phase 2)
 
-## Output Structure
-
-The skill generates a structured Markdown report containing:
-
-1. **Target Symbol & Risk Level**: Categorized as `LOW`, `MEDIUM`, or `HIGH` risk based on total impacted file count.
-2. **Code Callers Table**: Precise file paths, line numbers, and code snippets referencing the symbol.
-3. **Impacted Test Suites (TDD Pre-Flight)**: List of test files containing references to the target symbol.
-4. **Documentation Drift Check**: List of documentation files (`.md`) referencing the symbol.
-
----
-
-## Agent Council Integration
-
-When blast-radius analysis reports a `HIGH` risk rating (> 10 impacted files or > 5 core caller files), option to invoke `agent-council` for multi-perspective architectural review:
+To model and compare trade-offs across competing architectural options or parameter configurations:
 
 ```bash
-python3 skills/agent-council/scripts/council.py "What are the trade-offs of refactoring <symbol> given high blast-radius impact?"
+python3 skills/what-if-analysis/scripts/scenario_runner.py --symbol <symbol_name> --scenarios "Option A: Async Dispatch, Option B: Subprocess Fork"
 ```
 
 ---
 
-## References & Future Roadmap
+## Consumer System Fallback (Soft Dependency)
+
+`what-if-analysis` automatically detects whether `agent-council` and external AI CLIs (`claude`, `gemini`, `copilot`) are available:
+
+- **Full Environment**: Runs parallel multi-model probes via `agent-council`.
+- **Consumer System (Fallback)**: Gracefully falls back to single-agent analytical heuristics (`Antigravity`) without hard-failing or requiring external CLIs.
+
+---
+
+## Output Structure
+
+1. **Blast Radius Report** (`impact_analyzer.py`): Target Symbol, Risk Level (`LOW`/`MEDIUM`/`HIGH`), Code Callers Table, Impacted Test Suites (TDD Pre-Flight), and Documentation Drift Check.
+2. **Scenario Tradeoff Matrix** (`scenario_runner.py`): Scenario Comparison Matrix across Latency Impact, Blast Radius Risk, Maintenance Cost, Confidence Level, and Execution Mode / Fallback Notice.
+
+---
+
+## References & Multi-Phase Roadmap
 
 - [blast-radius.md](references/blast-radius.md) — Heuristics, risk level formulas, and symbol reference matching rules.
-- [roadmap.md](references/roadmap.md) — Multi-phase evolution (Phase 2: Sensitivity Modeling, Phase 3: Counterfactual Test Generation).
+- [roadmap.md](references/roadmap.md) — Multi-phase evolution (Phase 1: Blast Radius, Phase 2: Sensitivity & Scenario Modeling [Shipped], Phase 3: Counterfactual Test Generation).

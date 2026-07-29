@@ -7,11 +7,21 @@ and documentation drift across a codebase using word-boundary regex matching.
 
 import argparse
 import json
-import os
 import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
+
+_IGNORED_DIRS = frozenset({"__pycache__", "node_modules", "venv", "graphify-out", ".jobs"})
+
+
+def resolve_project_dir(raw_path: str) -> Path:
+    """Resolves and validates a user-supplied directory path without stripping absolute path prefixes."""
+    project_dir = Path(raw_path).resolve()
+    if not project_dir.exists() or not project_dir.is_dir():
+        sys.stderr.write(f"Error: Directory '{project_dir}' does not exist or is not a directory.\n")
+        sys.exit(1)
+    return project_dir
 
 
 def _is_test_file(file_path: str) -> bool:
@@ -34,8 +44,7 @@ def find_symbol_callers(target_symbol: str, project_dir: Path) -> List[Dict[str,
         if not file_path.is_file():
             continue
         # Skip git, venv, graphify-out, and binary/cache dirs
-        ignored_dirs = ("__pycache__", "node_modules", "venv", "graphify-out", ".jobs")
-        if any(part.startswith(".") or part in ignored_dirs for part in file_path.parts):
+        if any(part.startswith(".") or part in _IGNORED_DIRS for part in file_path.parts):
             continue
         if file_path.suffix not in (".py", ".md", ".sh", ".yaml", ".yml", ".json"):
             continue
@@ -155,11 +164,7 @@ def parse_args():
 
 def main() -> int:
     args = parse_args()
-    safe_dir = os.path.basename(os.path.normpath(args.dir)) or "."
-    project_dir = Path(safe_dir).resolve()
-    if not project_dir.exists():
-        sys.stderr.write(f"Error: Directory {project_dir} does not exist.\n")
-        return 1
+    project_dir = resolve_project_dir(args.dir)
 
     analysis = analyze_blast_radius(args.symbol, project_dir)
     if args.json:
