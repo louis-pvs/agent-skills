@@ -51,14 +51,14 @@ Standard schema, calibration guidelines, and report formatting template for arch
 - **Confidence**: `CONFIRMED` | `PLAUSIBLE`
 - **Impact**: Detailed explanation of why this hurts maintainability, testability, or extensibility.
 
-#### Code Snippet (Current)
+### Code Snippet (Current)
 
 ```python
 # Current code snippet
 ```
 ````
 
-#### Proposed Refactoring (Suggested Diff)
+### Proposed Refactoring (Suggested Diff)
 
 ```python
 # Refactored code snippet
@@ -70,6 +70,6 @@ Standard schema, calibration guidelines, and report formatting template for arch
 
 _Highlights any design tensions evaluated (e.g., why DRY was prioritized over YAGNI in this instance)._
 
-```
+```md
 
 ```
