@@ -2,22 +2,24 @@
 
 A curated, open-source collection of procedural skills and workflows for AI coding assistants (Antigravity, Gemini CLI, Claude Code, Codex, and Cursor).
 
-Instead of relying on unguided AI generation, these skills provide structured procedures, architectural guidelines, and multi-agent synthesis tools to ensure clean code execution and reliable decision-making.
+Instead of relying on unguided AI generation, these skills provide structured procedures, architectural guidelines, and multi-agent synthesis tools to ensure clean code execution, reliable decision-making, and high-impact technical documentation.
 
 ---
 
 ## 🚀 Available Skills
 
-| Skill                    | Description                                                                                                               | Path                                                              |
-| :----------------------- | :------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------- |
-| **`agent-council`**      | Collect and synthesize opinions from multiple AI agents (Gemini, Claude, Copilot) into a unified recommendation.          | [`skills/agent-council`](skills/agent-council/SKILL.md)           |
-| **`context-gatherer`**   | Gather deep codebase context: git temporal coupling, symbol navigation, and AST-based structural search.                  | [`skills/context-gatherer`](skills/context-gatherer/SKILL.md)     |
-| **`self-annealer`**      | Enforce bounded self-healing repair loops with strict convergence limits and automated git rollback safeguards.              | [`skills/self-annealer`](skills/self-annealer/SKILL.md)           |
-| **`skill-creator`**      | Create, scaffold, format, and audit new Agent Skills adhering to the agentskills.io standard and Python stdlib standards. | [`skills/skill-creator`](skills/skill-creator/SKILL.md)           |
-| **`tdd`**                | Enforce Test-Driven Development (TDD) workflows: write failing test (RED), write minimal code (GREEN), and refactor.      | [`skills/tdd`](skills/tdd/SKILL.md)                               |
+| Skill | Description | Path |
+| :--- | :--- | :--- |
+| **`agent-council`** | Collect and synthesize opinions from multiple AI agents (Gemini, Claude, Copilot) into a unified recommendation. | [`skills/agent-council`](skills/agent-council/SKILL.md) |
+| **`architecture-auditor`** | Audit codebases against software design principles (SOLID, DRY, YAGNI, KISS, CUPID) and resolve principle tensions. | [`skills/architecture-auditor`](skills/architecture-auditor/SKILL.md) |
+| **`benchmarking`** | Empirical performance benchmarking, baseline differential analysis, and expandable metric evaluations. | [`skills/benchmarking`](skills/benchmarking/SKILL.md) |
+| **`context-gatherer`** | Gather deep codebase context: git temporal coupling, symbol navigation, and AST-based structural search. | [`skills/context-gatherer`](skills/context-gatherer/SKILL.md) |
+| **`self-annealer`** | Enforce bounded self-healing repair loops with strict convergence limits and automated git rollback safeguards. | [`skills/self-annealer`](skills/self-annealer/SKILL.md) |
+| **`skill-creator`** | Create, scaffold, format, and audit new Agent Skills adhering to the agentskills.io standard and Python stdlib standards. | [`skills/skill-creator`](skills/skill-creator/SKILL.md) |
+| **`tdd`** | Enforce Test-Driven Development (TDD) workflows: write failing test (RED), write minimal code (GREEN), and refactor. | [`skills/tdd`](skills/tdd/SKILL.md) |
+| **`tech-doc-writer`** | Generate, refactor, and audit human-facing technical documentation using technical writing directives and GFM conventions. | [`skills/tech-doc-writer`](skills/tech-doc-writer/SKILL.md) |
 
 ---
-
 
 ## 📦 Global Setup & Installation
 
@@ -70,7 +72,7 @@ Symlink specific skills into a project's `.agents/skills` folder:
 
 ```bash
 mkdir -p .agents/skills
-ln -s /path/to/agent-skills/skills/agent-council .agents/skills/agent-council
+ln -s /path/to/agent-skills/skills/tech-doc-writer .agents/skills/tech-doc-writer
 ```
 
 </details>
@@ -89,9 +91,13 @@ agent-skills/
 │   └── adr/                  # Architectural Decision Records (ADRs)
 └── skills/
     ├── agent-council/        # Multi-agent consensus synthesis skill
+    ├── architecture-auditor/ # Software design principle auditing skill
+    ├── benchmarking/         # Performance benchmarking & differential analysis skill
     ├── context-gatherer/     # Codebase context gathering (git coupling, symbol nav, AST search)
+    ├── self-annealer/        # Bounded repair loop & git rollback skill
     ├── skill-creator/        # Skill authoring, scaffolding, & validation skill
-    └── tdd/                  # Test-Driven Development (RED-GREEN-REFACTOR execution & verification) skill
+    ├── tdd/                  # Test-Driven Development (RED-GREEN-REFACTOR) skill
+    └── tech-doc-writer/      # Technical documentation authoring & auditing skill
 ```
 
 ---
@@ -109,7 +115,7 @@ Each skill folder inside `skills/` must follow the Agent Skill standard:
    ---
    ```
 
-2. **Body**: Keep instructions under 500 lines. Place supplementary material in a `references/` subdirectory.
+2. **Body**: Keep instructions under 500 lines (**Context Load Optimization**). Place supplementary material in a `references/` subdirectory.
 3. **Scripts**: Use **Python 3 Standard Library First** for any executable scripts in `scripts/` with corresponding unit tests in `scripts/tests/`.
 
 ---

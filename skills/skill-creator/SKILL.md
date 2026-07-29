@@ -51,8 +51,9 @@ Directory Structure:
 
 ```text
 skills/my-new-skill/
-├── SKILL.md
-├── references/
+├── SKILL.md                 # AI agent instruction protocol (lean)
+├── README.md                # Human developer landing page (GFM)
+├── references/              # On-demand reference documentation
 ├── scripts/
 │   └── tests/
 ├── templates/
@@ -66,6 +67,7 @@ Optimize context and cognitive load:
 1. **Discovery Tier**: Keep `SKILL.md` YAML frontmatter concise (~100 tokens).
 2. **Activation Tier**: Keep `SKILL.md` body concise (< 500 lines). Focus on high-level workflow, decision trees, and guardrails (**Context Load Audit**).
 3. **Execution Tier**: Offload detailed API schemas, extensive documentation, or reference manuals into `references/` (**Cognitive Load Audit**).
+4. **Human Landing Tier**: Use **`tech-doc-writer`** directives and `doc_auditor.py` to maintain human-facing `README.md` entry points without inflating `SKILL.md` token load.
 
 ### 4. Checkable Completion Criteria & Scripting Standards
 

@@ -302,6 +302,23 @@ Overview of {skill_title}.
 
     skill_md.write_text(content, encoding="utf-8")
 
+    # Generate human-facing README.md (applying tech-doc-writer GFM conventions)
+    readme_md = skill_path / "README.md"
+    readme_content = f"""# {skill_title}
+
+{desc_str}
+
+---
+
+## Documentation Entry Points
+
+- **AI Agent Protocol**: See [SKILL.md](SKILL.md) (used automatically by Antigravity, Claude Code, and Copilot).
+"""
+    if skill_type == "complex":
+        readme_content += "- **Architecture & References**: See [references/overview.md](references/overview.md).\n"
+
+    readme_md.write_text(readme_content, encoding="utf-8")
+
     if skill_type == "complex":
         (skill_path / "references").mkdir(exist_ok=True)
         (skill_path / "templates").mkdir(exist_ok=True)
