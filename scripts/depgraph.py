@@ -13,12 +13,30 @@ import re
 import sys
 from collections import deque
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 REPO_DIR = Path(__file__).parent.parent.resolve()
 SKILLS_DIR = REPO_DIR / "skills"
 LOCKFILE_PATH = REPO_DIR / "skills.lock"
 CONFIG_FILE = REPO_DIR / "skills.config.yaml"
+
+
+def sanitize_path(input_path: Union[str, Path], base_dir: Optional[Path] = None) -> Path:
+    """Sanitize and validate a file or directory path against path traversal attacks.
+
+    Resolves symlinks and relative elements ('..'). If base_dir is provided,
+    verifies that the resolved path is located within base_dir.
+    """
+    path = Path(input_path).resolve()
+    if base_dir is not None:
+        base = Path(base_dir).resolve()
+        try:
+            path.relative_to(base)
+        except ValueError as err:
+            raise ValueError(
+                f"Security Error: Path traversal attempt detected. '{input_path}' is outside allowed base directory '{base}'"
+            ) from err
+    return path
 
 
 def load_global_skill_paths() -> List[Path]:
@@ -277,8 +295,10 @@ def build_lockfile_data(nodes: Dict[str, SkillNode]) -> Tuple[Dict[str, Any], Li
     return lockfile_data, errors
 
 
-def generate_lockfile(skills_dir: Path, lockfile_path: Path) -> bool:
+def generate_lockfile(skills_dir: Path, lockfile_path: Path, base_dir: Optional[Path] = None) -> bool:
     """Generate and save skills.lock file."""
+    skills_dir = sanitize_path(skills_dir, base_dir=base_dir)
+    lockfile_path = sanitize_path(lockfile_path, base_dir=base_dir)
     nodes = discover_skills(skills_dir)
     lock_data, errors = build_lockfile_data(nodes)
 
@@ -296,13 +316,16 @@ def generate_lockfile(skills_dir: Path, lockfile_path: Path) -> bool:
     return True
 
 
-def verify_graph(skills_dir: Path, lockfile_path: Path) -> Tuple[bool, List[str], List[str]]:
+def verify_graph(skills_dir: Path, lockfile_path: Path, base_dir: Optional[Path] = None) -> Tuple[bool, List[str], List[str]]:
     """Verify graph integrity and lockfile sync.
 
     Returns (is_valid, errors, warnings).
     """
     errors: List[str] = []
     warnings: List[str] = []
+
+    skills_dir = sanitize_path(skills_dir, base_dir=base_dir)
+    lockfile_path = sanitize_path(lockfile_path, base_dir=base_dir)
 
     nodes = discover_skills(skills_dir)
     if not nodes:
@@ -411,8 +434,8 @@ def main() -> int:
     )
 
     args = parser.parse_args()
-    skills_dir = Path(args.skills_dir).resolve()
-    lockfile_path = Path(args.lockfile).resolve()
+    skills_dir = sanitize_path(args.skills_dir, base_dir=REPO_DIR)
+    lockfile_path = sanitize_path(args.lockfile, base_dir=REPO_DIR)
 
     if args.generate_lock:
         success = generate_lockfile(skills_dir, lockfile_path)
