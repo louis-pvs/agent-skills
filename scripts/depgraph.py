@@ -319,7 +319,7 @@ def build_lockfile_data(nodes: Dict[str, SkillNode]) -> Tuple[Dict[str, Any], Li
     return lockfile_data, errors
 
 
-def generate_lockfile(skills_dir: Path, lockfile_path: Path, base_dir: Optional[Path] = None) -> bool:
+def generate_lockfile(skills_dir: Path, lockfile_path: Path, base_dir: Optional[Path] = None, dry_run: bool = False) -> bool:
     """Generate and save skills.lock file."""
     effective_base = base_dir if base_dir is not None else REPO_DIR
     skills_dir = sanitize_path(skills_dir, base_dir=effective_base)
@@ -334,6 +334,10 @@ def generate_lockfile(skills_dir: Path, lockfile_path: Path, base_dir: Optional[
         for err in errors:
             print(f"  ❌ {err}", file=sys.stderr)
         return False
+
+    if dry_run:
+        print(f"[DRY-RUN] Would write generated lockfile to {safe_lockfile}")
+        return True
 
     with open(safe_lockfile, "w", encoding="utf-8") as f:
         json.dump(lock_data, f, indent=2)
@@ -457,6 +461,11 @@ def main() -> int:
         help="Generate or update skills.lock file",
     )
     parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show planned actions without modifying lockfile on disk",
+    )
+    parser.add_argument(
         "--verify",
         action="store_true",
         help="Verify graph integrity and lockfile synchronization",
@@ -472,7 +481,7 @@ def main() -> int:
     lockfile_path = sanitize_path(args.lockfile, base_dir=REPO_DIR)
 
     if args.generate_lock:
-        success = generate_lockfile(skills_dir, lockfile_path, base_dir=REPO_DIR)
+        success = generate_lockfile(skills_dir, lockfile_path, base_dir=REPO_DIR, dry_run=args.dry_run)
         return 0 if success else 1
 
     if args.verify:

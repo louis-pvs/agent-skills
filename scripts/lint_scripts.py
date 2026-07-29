@@ -115,6 +115,57 @@ def is_inside_try_block(node: ast.AST, parent_map: dict) -> bool:
     return False
 
 
+MUTATING_METHOD_NAMES = {
+    "write_text",
+    "write_bytes",
+    "mkdir",
+    "unlink",
+    "rmdir",
+    "makedirs",
+    "symlink_to",
+    "rmtree",
+}
+
+MUTATING_MODULE_CALLS = {
+    ("os", "remove"),
+    ("os", "unlink"),
+    ("os", "rmdir"),
+    ("os", "mkdir"),
+    ("os", "makedirs"),
+    ("os", "replace"),
+    ("os", "rename"),
+    ("os", "symlink"),
+    ("os", "system"),
+    ("shutil", "rmtree"),
+    ("shutil", "move"),
+    ("shutil", "copy"),
+    ("shutil", "copy2"),
+}
+
+
+def is_mutating_script(tree: ast.AST) -> bool:
+    """Inspects AST to determine if a script performs mutating operations.
+
+    Checks for file writes, deletes, symlinks, or filesystem modification calls.
+    """
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute):
+            if node.attr in MUTATING_METHOD_NAMES:
+                return True
+            if isinstance(node.value, ast.Name) and (node.value.id, node.attr) in MUTATING_MODULE_CALLS:
+                return True
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "open":
+            mode_str = ""
+            if len(node.args) >= 2 and isinstance(node.args[1], ast.Constant) and isinstance(node.args[1].value, str):
+                mode_str = node.args[1].value
+            for kw in node.keywords:
+                if kw.arg == "mode" and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                    mode_str = kw.value.value
+            if any(m in mode_str for m in ("w", "a", "+", "x")):
+                return True
+    return False
+
+
 def check_script_compliance(script_path: Path) -> List[str]:
     """Performs AST analysis on a script file and returns list of compliance issues."""
     issues = []
@@ -159,15 +210,7 @@ def check_script_compliance(script_path: Path) -> List[str]:
 
     # 4. Check for --dry-run flag on mutating scripts (ADR 0003)
     # Mutating scripts are those that perform file writes, deletes, scaffolding, process spawning, or installs
-    mutating_scripts = {
-        "_template.py",
-        "install_global.py",
-        "scaffold_skill.py",
-        "anneal_runner.py",
-        "council.py",
-        "python-script-template.py",
-    }
-    if script_path.name in mutating_scripts:
+    if script_path.name != "python-test-template.py" and is_mutating_script(tree):
         has_dry_run = "--dry-run" in content or "dry_run" in content
         if not has_dry_run:
             issues.append("ADR 0003 violation: Mutating script missing '--dry-run' flag support.")

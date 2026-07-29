@@ -52,6 +52,18 @@ class TestLintScripts(unittest.TestCase):
         data = json.loads(res.stdout)
         self.assertTrue(data.get("compliant"), f"Non-compliant scripts found: {data.get('issues')}")
 
+    def test_is_mutating_script_detection(self):
+        """Verify is_mutating_script correctly identifies mutating operations via AST."""
+        import ast
+
+        from scripts.lint_scripts import is_mutating_script
+
+        mutating_code = ast.parse("from pathlib import Path\nPath('foo.txt').write_text('bar')")
+        self.assertTrue(is_mutating_script(mutating_code))
+
+        non_mutating_code = ast.parse("target = 'foo.txt'.replace('a', 'b')")
+        self.assertFalse(is_mutating_script(non_mutating_code))
+
 
 if __name__ == "__main__":
     unittest.main()

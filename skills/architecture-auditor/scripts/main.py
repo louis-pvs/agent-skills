@@ -36,13 +36,14 @@ def analyze_file(file_path: Path) -> Dict[str, Any]:
 
 
 def resolve_safe_file(raw_path: str, base_dir: Optional[Path] = None) -> Path:
-    """Resolve --file to an absolute path, preserving nested subpaths while
-    rejecting any path that escapes base_dir (defaults to the invocation cwd)."""
-    base = os.path.realpath(str(base_dir) if base_dir is not None else os.getcwd())
-    target = os.path.realpath(raw_path)
-    if os.path.commonpath([base, target]) != base:
-        raise ValueError(f"'{raw_path}' resolves outside the working directory '{base}'.")
-    return Path(target)
+    """Resolve --file to an absolute path within base_dir."""
+    base = (base_dir if base_dir is not None else Path.cwd()).resolve()
+    target = Path(raw_path).expanduser().resolve()
+
+    if not target.is_relative_to(base) or os.path.commonpath([str(base), str(target)]) != str(base):
+        raise ValueError(f"Security Error: '{raw_path}' escapes allowed base directory '{base}'.")
+
+    return target
 
 
 def main(argv: Optional[List[str]] = None) -> int:
