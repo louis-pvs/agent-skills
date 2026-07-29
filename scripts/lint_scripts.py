@@ -13,17 +13,79 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()
-KNOWN_PYPI_PACKAGES = {
-    "requests",
-    "pandas",
-    "numpy",
-    "yaml",
-    "click",
-    "typer",
-    "pydantic",
-    "bs4",
-    "flask",
-    "django",
+
+# Allowlist of Python 3 standard library module names (mirrors
+# skills/skill-creator/scripts/scaffold_skill.py's STDLIB_MODULES — copied
+# rather than imported, since lint_scripts.py is repo-root tooling and must
+# not depend on a portable skill script meant to be symlinked standalone).
+STDLIB_MODULES = getattr(sys, "stdlib_module_names", None) or {
+    "argparse",
+    "ast",
+    "asyncio",
+    "base64",
+    "collections",
+    "concurrent",
+    "configparser",
+    "contextlib",
+    "copy",
+    "csv",
+    "datetime",
+    "decimal",
+    "difflib",
+    "doctest",
+    "email",
+    "enum",
+    "functools",
+    "glob",
+    "hashlib",
+    "hmac",
+    "html",
+    "http",
+    "importlib",
+    "inspect",
+    "io",
+    "json",
+    "logging",
+    "math",
+    "multiprocessing",
+    "os",
+    "pathlib",
+    "pickle",
+    "platform",
+    "pprint",
+    "queue",
+    "random",
+    "re",
+    "shlex",
+    "shutil",
+    "signal",
+    "socket",
+    "sqlite3",
+    "ssl",
+    "stat",
+    "string",
+    "struct",
+    "subprocess",
+    "sys",
+    "tempfile",
+    "textwrap",
+    "threading",
+    "time",
+    "timeit",
+    "tkinter",
+    "token",
+    "tokenize",
+    "traceback",
+    "types",
+    "typing",
+    "unittest",
+    "urllib",
+    "uuid",
+    "warnings",
+    "weakref",
+    "xml",
+    "zipfile",
+    "zlib",
 }
 
 
@@ -74,13 +136,13 @@ def check_script_compliance(script_path: Path) -> List[str]:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 mod = alias.name.split(".")[0]
-                if mod in KNOWN_PYPI_PACKAGES and not is_inside_try_block(node, parent_map):
-                    issues.append(f"ADR 0001 violation: Imports third-party PyPI package '{mod}'.")
+                if mod and mod not in STDLIB_MODULES and not mod.startswith(".") and not is_inside_try_block(node, parent_map):
+                    issues.append(f"ADR 0001 violation: Imports non-stdlib package '{mod}'.")
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 mod = node.module.split(".")[0]
-                if mod in KNOWN_PYPI_PACKAGES and not is_inside_try_block(node, parent_map):
-                    issues.append(f"ADR 0001 violation: Imports from third-party PyPI package '{mod}'.")
+                if mod and mod not in STDLIB_MODULES and not mod.startswith(".") and not is_inside_try_block(node, parent_map):
+                    issues.append(f"ADR 0001 violation: Imports from non-stdlib package '{mod}'.")
 
     # 2. Check for argparse usage (ADR 0003)
     has_argparse = "argparse" in content

@@ -17,30 +17,21 @@ CONFIG_FILE = REPO_DIR / "skills.config.yaml"
 
 
 def load_global_skill_targets(config_path: Path = CONFIG_FILE) -> Dict[str, Path]:
-    """Loads global skill target paths from skills.config.yaml with stdlib defaults."""
+    """Loads global skill target paths from skills.config.yaml with stdlib defaults.
+
+    Delegates parsing to depgraph.load_global_skill_config() (the single source
+    of truth for skills.config.yaml) and reshapes it into a name-keyed dict.
+    """
     default_targets = {
         "Gemini / Antigravity": Path.home() / ".gemini" / "config" / "skills",
         "Claude Code": Path.home() / ".claude" / "skills",
         "GitHub Copilot": Path.home() / ".copilot" / "skills",
     }
-    if not config_path.exists():
-        return default_targets
-
     try:
-        content = config_path.read_text(encoding="utf-8")
-        targets = {}
-        curr_name = None
-        for line in content.splitlines():
-            line_str = line.split("#")[0].strip()
-            if not line_str:
-                continue
-            if line_str.startswith("- name:"):
-                curr_name = line_str.split(":", 1)[1].strip().strip("\"'")
-            elif line_str.startswith("path:") and curr_name:
-                raw_path = line_str.split(":", 1)[1].strip().strip("\"'")
-                expanded_path = Path(os.path.expanduser(raw_path)).resolve()
-                targets[curr_name] = expanded_path
-                curr_name = None
+        from depgraph import load_global_skill_config
+
+        entries = load_global_skill_config(config_path)
+        targets = {entry["name"]: Path(os.path.expanduser(entry["path"])).resolve() for entry in entries if entry.get("name")}
         if targets:
             return targets
     except Exception:

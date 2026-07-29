@@ -46,30 +46,47 @@ def sanitize_path(input_path: Union[str, Path], base_dir: Optional[Path] = None)
     return resolved_path
 
 
-def load_global_skill_paths() -> List[Path]:
-    """Loads target global skill search paths from skills.config.yaml."""
-    default_paths = [
-        Path.home() / ".gemini" / "config" / "skills",
-        Path.home() / ".claude" / "skills",
-        Path.home() / ".copilot" / "skills",
+def load_global_skill_config(config_path: Path = CONFIG_FILE) -> List[Dict[str, str]]:
+    """Single source of truth for parsing skills.config.yaml's 'targets' list.
+
+    Returns raw (un-expanded) {"name": ..., "path": ...} dicts. Both
+    load_global_skill_paths() here and install_global.load_global_skill_targets()
+    derive their shaped outputs from this, instead of each hand-parsing the
+    config file independently.
+    """
+    default: List[Dict[str, str]] = [
+        {"name": "Gemini / Antigravity", "path": "~/.gemini/config/skills"},
+        {"name": "Claude Code", "path": "~/.claude/skills"},
+        {"name": "GitHub Copilot", "path": "~/.copilot/skills"},
     ]
-    if not CONFIG_FILE.exists():
-        return default_paths
+    if not config_path.exists():
+        return default
 
     try:
-        content = CONFIG_FILE.read_text(encoding="utf-8")
-        paths = []
+        content = config_path.read_text(encoding="utf-8")
+        entries: List[Dict[str, str]] = []
+        curr_name: Optional[str] = None
         for line in content.splitlines():
             line_str = line.split("#")[0].strip()
-            if line_str.startswith("path:"):
+            if not line_str:
+                continue
+            if line_str.startswith("- name:"):
+                curr_name = line_str.split(":", 1)[1].strip().strip("\"'")
+            elif line_str.startswith("path:"):
                 raw_path = line_str.split(":", 1)[1].strip().strip("\"'")
-                paths.append(Path(os.path.expanduser(raw_path)).resolve())
-        if paths:
-            return paths
+                entries.append({"name": curr_name or "", "path": raw_path})
+                curr_name = None
+        if entries:
+            return entries
     except Exception:
         pass
 
-    return default_paths
+    return default
+
+
+def load_global_skill_paths() -> List[Path]:
+    """Loads target global skill search paths from skills.config.yaml."""
+    return [Path(os.path.expanduser(entry["path"])).resolve() for entry in load_global_skill_config()]
 
 
 class SkillNode:
@@ -353,6 +370,11 @@ def verify_graph(skills_dir: Path, lockfile_path: Path, base_dir: Optional[Path]
                 match = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
                 if match:
                     yaml_block = match.group(1)
+                    # NOTE: This yaml-or-fallback frontmatter syntax check is intentionally
+                    # duplicated in skills/skill-creator/scripts/scaffold_skill.py's
+                    # check_yaml_frontmatter_syntax() — that script is symlinked standalone
+                    # into other agent tool directories and must stay self-contained, so it
+                    # can't import this module. Keep both blocks in sync manually.
                     try:
                         import yaml
 

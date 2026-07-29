@@ -2,6 +2,7 @@
 """Tests for Architecture Auditor main script."""
 
 import importlib.util
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -39,6 +40,32 @@ class TestMain(unittest.TestCase):
             self.assertEqual(metrics["functions"], 2)
         finally:
             f_path.unlink()
+
+    def test_file_flag_resolves_nested_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            nested_dir = Path(tmp_dir) / "subdir"
+            nested_dir.mkdir()
+            (nested_dir / "sample.py").write_text("def foo():\n    pass\n", encoding="utf-8")
+
+            cwd_before = os.getcwd()
+            os.chdir(tmp_dir)
+            try:
+                exit_code = main(["--file", "subdir/sample.py"])
+            finally:
+                os.chdir(cwd_before)
+
+            self.assertEqual(exit_code, 0)
+
+    def test_file_flag_rejects_path_traversal(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            cwd_before = os.getcwd()
+            os.chdir(tmp_dir)
+            try:
+                exit_code = main(["--file", "../outside.py"])
+            finally:
+                os.chdir(cwd_before)
+
+            self.assertEqual(exit_code, 1)
 
 
 if __name__ == "__main__":

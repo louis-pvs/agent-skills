@@ -35,6 +35,16 @@ def analyze_file(file_path: Path) -> Dict[str, Any]:
     }
 
 
+def resolve_safe_file(raw_path: str, base_dir: Optional[Path] = None) -> Path:
+    """Resolve --file to an absolute path, preserving nested subpaths while
+    rejecting any path that escapes base_dir (defaults to the invocation cwd)."""
+    base = os.path.realpath(str(base_dir) if base_dir is not None else os.getcwd())
+    target = os.path.realpath(raw_path)
+    if os.path.commonpath([base, target]) != base:
+        raise ValueError(f"'{raw_path}' resolves outside the working directory '{base}'.")
+    return Path(target)
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Architecture Auditor CLI tool")
     parser.add_argument("--check", action="store_true", help="Run health check")
@@ -42,9 +52,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     if args.file:
-        safe_file = os.path.basename(args.file)
-        metrics = analyze_file(Path(safe_file))
-        print(f"File analysis metrics for {safe_file}: {metrics}")
+        try:
+            safe_path = resolve_safe_file(args.file)
+        except ValueError as err:
+            print(f"Error: {err}", file=sys.stderr)
+            return 1
+        if not safe_path.is_file():
+            print(f"Error: File not found: {safe_path}", file=sys.stderr)
+            return 1
+        metrics = analyze_file(safe_path)
+        print(f"File analysis metrics for {safe_path}: {metrics}")
 
     if args.check:
         print("Architecture Auditor check completed successfully.")

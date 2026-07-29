@@ -154,6 +154,10 @@ def check_yaml_frontmatter_syntax(content: str) -> List[str]:
 
     yaml_block = parts[1]
 
+    # NOTE: This yaml-or-fallback frontmatter syntax check is intentionally
+    # duplicated in scripts/depgraph.py's verify_graph() — this script is
+    # symlinked standalone into other agent tool directories and must stay
+    # self-contained, so it can't import repo-root code. Keep both in sync manually.
     try:
         import yaml
 
