@@ -312,11 +312,26 @@ def verify_graph(skills_dir: Path, lockfile_path: Path) -> Tuple[bool, List[str]
     lock_data, build_errors = build_lockfile_data(nodes)
     errors.extend(build_errors)
 
-    # Warn on missing soft dependencies
+    # Check soft dependencies (enhances) against local and global skill paths
+    global_skill_paths = [
+        Path.home() / ".gemini" / "config" / "skills",
+        Path.home() / ".claude" / "skills",
+        Path.home() / ".copilot" / "skills",
+    ]
+
     for name, node in nodes.items():
         for enh in node.enhances:
-            if enh not in nodes:
-                warnings.append(f"Skill '{name}' enhances optional skill '{enh}', which is not currently installed.")
+            if enh in nodes:
+                continue
+            # Secondary lookup in user global skill configuration directories
+            is_globally_installed = any(
+                (g_dir / enh / "SKILL.md").exists() or (g_dir / enh).exists() for g_dir in global_skill_paths
+            )
+            if not is_globally_installed:
+                warnings.append(
+                    f"Optional enhancer '{enh}' for skill '{name}' is not found locally or globally "
+                    f"(skill will gracefully use fallback handlers)."
+                )
 
     # Verify lockfile synchronicity
     if not lockfile_path.exists():
