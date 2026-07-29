@@ -12,6 +12,16 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+
+def resolve_project_dir(raw_path: str) -> Path:
+    """Resolves and validates a user-supplied directory path without stripping absolute path prefixes."""
+    project_dir = Path(raw_path).resolve()
+    if not project_dir.exists() or not project_dir.is_dir():
+        sys.stderr.write(f"Error: Directory '{project_dir}' does not exist or is not a directory.\n")
+        sys.exit(1)
+    return project_dir
+
+
 _HEURISTIC_PROFILES: List[tuple[set[str], Dict[str, Any]]] = [
     (
         {"async", "cache"},
@@ -26,15 +36,6 @@ _HEURISTIC_PROFILES: List[tuple[set[str], Dict[str, Any]]] = [
         },
     ),
 ]
-
-
-def resolve_project_dir(raw_path: str) -> Path:
-    """Resolves and validates a user-supplied directory path without stripping absolute path prefixes."""
-    project_dir = Path(raw_path).resolve()
-    if not project_dir.exists() or not project_dir.is_dir():
-        sys.stderr.write(f"Error: Directory '{project_dir}' does not exist or is not a directory.\n")
-        sys.exit(1)
-    return project_dir
 
 
 def check_council_availability(repo_root: Path) -> bool:

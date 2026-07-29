@@ -97,7 +97,8 @@ agent-skills/
     ├── self-annealer/        # Bounded repair loop & git rollback skill
     ├── skill-creator/        # Skill authoring, scaffolding, & validation skill
     ├── tdd/                  # Test-Driven Development (RED-GREEN-REFACTOR) skill
-    └── tech-doc-writer/      # Technical documentation authoring & auditing skill
+    ├── tech-doc-writer/      # Technical documentation authoring & auditing skill
+    └── what-if-analysis/     # Predictive blast-radius, scenario modeling, & pre-emptive healing skill
 ```
 
 ---

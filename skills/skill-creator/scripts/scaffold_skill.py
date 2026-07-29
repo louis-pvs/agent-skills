@@ -154,10 +154,6 @@ def check_yaml_frontmatter_syntax(content: str) -> List[str]:
 
     yaml_block = parts[1]
 
-    # NOTE: This yaml-or-fallback frontmatter syntax check is intentionally
-    # duplicated in scripts/depgraph.py's verify_graph() — this script is
-    # symlinked standalone into other agent tool directories and must stay
-    # self-contained, so it can't import repo-root code. Keep both in sync manually.
     try:
         import yaml
 
@@ -189,7 +185,7 @@ def scaffold_skill(
     target_dir: Path,
     skill_type: str = "simple",
     user_invoked: bool = False,
-    is_complex: bool = False,  # Backwards compatibility
+    is_complex: bool = False,
 ) -> Path:
     """Creates directory structure and boilerplate files for a new skill."""
     if is_complex and skill_type == "simple":
@@ -302,7 +298,6 @@ Overview of {skill_title}.
 
     skill_md.write_text(content, encoding="utf-8")
 
-    # Generate human-facing README.md (applying tech-doc-writer GFM conventions)
     readme_md = skill_path / "README.md"
     readme_content = f"""# {skill_title}
 
@@ -476,8 +471,30 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     if name and name != skill_dir.name:
         issues.append(f"Frontmatter name ('{name}') does not match directory name ('{skill_dir.name}').")
 
-    # Audit Python script imports (ADR 0001)
+    # Complex Skill Structural Completeness Audit
     scripts_dir = skill_dir / "scripts"
+    references_dir = skill_dir / "references"
+    is_complex_skill = scripts_dir.is_dir() or references_dir.is_dir()
+
+    if is_complex_skill:
+        overview_md = references_dir / "overview.md"
+        if not overview_md.exists():
+            issues.append(f"Complex Skill Structure Warning: Missing mandatory 'references/overview.md' at: {overview_md}")
+        if scripts_dir.is_dir():
+            main_script = scripts_dir / "main.py"
+            # Allow custom orchestrator CLI scripts if documented (e.g. council.py, scaffold_skill.py)
+            has_orchestrator = (
+                main_script.exists()
+                or (scripts_dir / "council.py").exists()
+                or (scripts_dir / "scaffold_skill.py").exists()
+                or (scripts_dir / "tdd_runner.py").exists()
+                or (scripts_dir / "anneal_runner.py").exists()
+                or (scripts_dir / "doc_auditor.py").exists()
+            )
+            if not has_orchestrator:
+                issues.append(f"Complex Skill Structure Warning: Missing main CLI orchestrator script in {scripts_dir}")
+
+    # Audit Python script imports (ADR 0001)
     if scripts_dir.is_dir():
         issues.extend(check_python_stdlib_compliance(scripts_dir))
 
@@ -496,7 +513,7 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
 
     # Cognitive Load Audit (excessive nested decision branches without sub-skills/references)
     if body.count("if ") + body.count("else:") + body.count("elif ") > 12:
-        if not (skill_dir / "references").is_dir() and not (skill_dir / "scripts").is_dir():
+        if not references_dir.is_dir() and not scripts_dir.is_dir():
             issues.append(
                 "High Cognitive Load: High volume of conditional branching in SKILL.md body. "
                 "Consider pushing reference details to references/ or creating a sub-skill."
@@ -507,7 +524,6 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     if tests_dir.is_dir():
         if str(tests_dir.parent) not in sys.path:
             sys.path.insert(0, str(tests_dir.parent))
-        # Clear temporary module cache to prevent unittest loader collisions
         for mod_name in list(sys.modules.keys()):
             if mod_name.startswith("test_") or mod_name in ("evaluators", "benchmark_runner", "main"):
                 sys.modules.pop(mod_name, None)
@@ -564,8 +580,7 @@ def main() -> int:
         return 0
 
     if args.validate:
-        safe_validate = os.path.basename(os.path.normpath(args.validate))
-        target_path = (Path.cwd() / safe_validate).resolve()
+        target_path = Path(args.validate).resolve()
         is_valid, issues = validate_skill(target_path)
         if is_valid:
             print(f"✅ Skill at '{target_path}' is VALID according to agentskills.io standard!")

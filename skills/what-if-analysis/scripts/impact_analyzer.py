@@ -12,8 +12,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-_IGNORED_DIRS = frozenset({"__pycache__", "node_modules", "venv", "graphify-out", ".jobs"})
-
 
 def resolve_project_dir(raw_path: str) -> Path:
     """Resolves and validates a user-supplied directory path without stripping absolute path prefixes."""
@@ -22,6 +20,9 @@ def resolve_project_dir(raw_path: str) -> Path:
         sys.stderr.write(f"Error: Directory '{project_dir}' does not exist or is not a directory.\n")
         sys.exit(1)
     return project_dir
+
+
+_IGNORED_DIRS = frozenset({"__pycache__", "node_modules", "venv", "graphify-out", ".jobs"})
 
 
 def _is_test_file(file_path: str) -> bool:
