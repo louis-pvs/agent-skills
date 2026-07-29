@@ -94,11 +94,34 @@ def parse_args(args=None) -> argparse.Namespace:
         help="Disable automatic git rollback when repair fails to converge",
     )
     parser.add_argument("--json", action="store_true", help="Output summary in JSON format")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview annealing loop execution parameters without running commands or rollback",
+    )
     return parser.parse_args(args)
 
 
 def main() -> int:
     args = parse_args()
+    if args.dry_run:
+        result = {
+            "converged": True,
+            "dry_run": True,
+            "test_cmd": args.cmd,
+            "max_iterations": args.max_iterations,
+            "auto_rollback": args.auto_rollback,
+            "message": (
+                f"Dry-run: Would run command '{args.cmd}' up to {args.max_iterations} "
+                f"iterations with auto_rollback={args.auto_rollback}."
+            ),
+        }
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(f"[DRY-RUN] {result['message']}")
+        return 0
+
     result = execute_anneal_loop(
         test_cmd=args.cmd,
         max_iterations=args.max_iterations,

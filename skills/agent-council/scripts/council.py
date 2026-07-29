@@ -306,6 +306,7 @@ def parse_args():
     # Start
     start_parser = subparsers.add_parser("start")
     start_parser.add_argument("question", type=str)
+    start_parser.add_argument("--dry-run", action="store_true", help="Preview council member commands without spawning CLIs")
 
     # Status
     status_parser = subparsers.add_parser("status")
@@ -339,6 +340,11 @@ def main() -> int:
     jobs_dir = SKILL_DIR / ".jobs"
 
     if args.subcommand == "start":
+        if getattr(args, "dry_run", False):
+            config = load_config()
+            members = [m.get("name") for m in config.get("council", {}).get("members", []) if isinstance(m, dict)]
+            print(f"[DRY-RUN] Would launch Council job for question: '{args.question}' with members: {members}")
+            return 0
         job_dir = create_job(args.question, jobs_dir)
         print(str(job_dir.resolve()))
         return 0

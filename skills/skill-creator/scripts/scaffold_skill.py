@@ -500,11 +500,28 @@ def parse_args(args=None) -> argparse.Namespace:
     parser.add_argument("--user-invoked", action="store_true", help="Mark skill as user-invoked (disable-model-invocation: true)")
     parser.add_argument("--complex", action="store_true", help="Alias for --type complex")
     parser.add_argument("--validate", type=str, help="Validate an existing skill directory")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview scaffolding or validation actions without writing files to disk",
+    )
     return parser.parse_args(args)
 
 
 def main() -> int:
     args = parse_args()
+
+    if args.dry_run:
+        if args.validate:
+            print(f"[DRY-RUN] Would validate skill at: {Path(args.validate).resolve()}")
+            return 0
+        if not args.name or not args.description:
+            print("Error: Both --name and --description are required when scaffolding a skill.", file=sys.stderr)
+            return 1
+        skill_type = "complex" if args.complex else args.type
+        target_dir = Path(args.target_dir).resolve() / args.name
+        print(f"[DRY-RUN] Would scaffold skill '{args.name}' ({skill_type}) at: {target_dir}")
+        return 0
 
     if args.validate:
         target_path = Path(args.validate).resolve()
