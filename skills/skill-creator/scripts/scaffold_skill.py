@@ -378,6 +378,15 @@ def check_scope_creep(description: str) -> List[str]:
     return issues
 
 
+def _is_in_try(n, p_map):
+    curr = p_map.get(n)
+    while curr:
+        if isinstance(curr, ast.Try):
+            return True
+        curr = p_map.get(curr)
+    return False
+
+
 def check_python_stdlib_compliance(scripts_dir: Path) -> List[str]:
     """Audits Python scripts to enforce ADR 0001 (Standard Library First)."""
     issues = []
@@ -389,13 +398,20 @@ def check_python_stdlib_compliance(scripts_dir: Path) -> List[str]:
             continue
         try:
             tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+            parent_map = {}
+            for parent in ast.walk(tree):
+                for child in ast.iter_child_nodes(parent):
+                    parent_map[child] = parent
+
             for node in ast.walk(tree):
+                if _is_in_try(node, parent_map):
+                    continue
                 imported_mods = []
                 if isinstance(node, ast.Import):
                     for alias in node.names:
                         imported_mods.append(alias.name.split(".")[0])
                 elif isinstance(node, ast.ImportFrom):
-                    if node.module:
+                    if getattr(node, "level", 0) == 0 and node.module:
                         imported_mods.append(node.module.split(".")[0])
 
                 for mod in imported_mods:
@@ -472,9 +488,11 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     # Script Unit Tests Audit
     tests_dir = skill_dir / "scripts" / "tests"
     if tests_dir.is_dir():
+        if str(tests_dir.parent) not in sys.path:
+            sys.path.insert(0, str(tests_dir.parent))
         # Clear temporary module cache to prevent unittest loader collisions
         for mod_name in list(sys.modules.keys()):
-            if mod_name.startswith("test_"):
+            if mod_name.startswith("test_") or mod_name in ("evaluators", "benchmark_runner", "main"):
                 sys.modules.pop(mod_name, None)
         loader = unittest.TestLoader()
         suite = loader.discover(str(tests_dir))

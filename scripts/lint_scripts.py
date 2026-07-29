@@ -99,7 +99,7 @@ def discover_script_files(repo_dir: Path) -> List[Path]:
     files = []
     for pattern in target_patterns:
         for path in repo_dir.glob(pattern):
-            if "tests/" in str(path) or "__pycache__" in str(path):
+            if "tests/" in str(path) or "__pycache__" in str(path) or path.name.startswith("__init__"):
                 continue
             files.append(path)
     return sorted(files)

@@ -7,6 +7,7 @@
     "context-gatherer",
     "skill-creator",
     "tdd",
+    "benchmarking",
     "self-annealer"
   ],
   "skills": {
@@ -25,6 +26,25 @@
       "transitive_requires": [],
       "transitive_enhances": [],
       "path": "skills/architecture-auditor"
+    },
+    "benchmarking": {
+      "version": "1.0.0",
+      "requires": [
+        "tdd"
+      ],
+      "enhances": [
+        "self-annealer",
+        "architecture-auditor"
+      ],
+      "transitive_requires": [
+        "tdd"
+      ],
+      "transitive_enhances": [
+        "architecture-auditor",
+        "graphify",
+        "self-annealer"
+      ],
+      "path": "skills/benchmarking"
     },
     "context-gatherer": {
       "version": "1.0.0",
