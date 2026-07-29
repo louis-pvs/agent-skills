@@ -2,6 +2,9 @@
 name: context-gatherer
 description: Gather deep codebase context before making changes. Use when the user says 'gather context', 'what changes with this file', 'who calls this', 'find pattern', or wants to understand impact before a refactor.
 disable-model-invocation: true
+enhances:
+  - graphify
+version: 1.0.0
 ---
 
 # Context Gatherer

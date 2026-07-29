@@ -1,0 +1,65 @@
+{
+  "version": "1.0.0",
+  "generated_by": "scripts/depgraph.py",
+  "topological_order": [
+    "agent-council",
+    "context-gatherer",
+    "skill-creator",
+    "tdd",
+    "self-annealer"
+  ],
+  "skills": {
+    "agent-council": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [],
+      "transitive_requires": [],
+      "transitive_enhances": [],
+      "path": "skills/agent-council"
+    },
+    "context-gatherer": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [
+        "graphify"
+      ],
+      "transitive_requires": [],
+      "transitive_enhances": [
+        "graphify"
+      ],
+      "path": "skills/context-gatherer"
+    },
+    "self-annealer": {
+      "version": "1.0.0",
+      "requires": [
+        "tdd"
+      ],
+      "enhances": [
+        "graphify"
+      ],
+      "transitive_requires": [
+        "tdd"
+      ],
+      "transitive_enhances": [
+        "graphify"
+      ],
+      "path": "skills/self-annealer"
+    },
+    "skill-creator": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [],
+      "transitive_requires": [],
+      "transitive_enhances": [],
+      "path": "skills/skill-creator"
+    },
+    "tdd": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [],
+      "transitive_requires": [],
+      "transitive_enhances": [],
+      "path": "skills/tdd"
+    }
+  }
+}

@@ -107,6 +107,33 @@ def main() -> int:
         print(f"No valid skills found in {SKILLS_DIR}")
         return 1
 
+    if not args.unlink:
+        print("Validating skill dependency graph...")
+        try:
+            from depgraph import generate_lockfile, verify_graph
+
+            lockfile_path = REPO_DIR / "skills.lock"
+            is_valid, errors, warnings = verify_graph(SKILLS_DIR, lockfile_path)
+
+            if warnings:
+                for w in warnings:
+                    print(f"  ⚠️ {w}")
+
+            if not is_valid:
+                print("  Attempting to regenerate lockfile...")
+                if generate_lockfile(SKILLS_DIR, lockfile_path):
+                    is_valid, errors, warnings = verify_graph(SKILLS_DIR, lockfile_path)
+
+            if not is_valid:
+                print("❌ Skill dependency graph validation FAILED:")
+                for err in errors:
+                    print(f"  ❌ {err}")
+                return 1
+
+            print("✅ Skill dependency graph validated successfully.\n")
+        except Exception as err:
+            print(f"⚠️ Dependency validation skipped: {err}\n")
+
     action_str = "Uninstalling" if args.unlink else "Installing"
     print(f"{action_str} {len(skills)} skill(s) globally...\n")
 

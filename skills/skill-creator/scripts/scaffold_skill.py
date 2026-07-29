@@ -8,12 +8,83 @@ Uses Python Standard Library only.
 """
 
 import argparse
+import ast
 import os
 import re
 import sys
 import unittest
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+STDLIB_MODULES = getattr(sys, "stdlib_module_names", None) or {
+    "argparse",
+    "ast",
+    "asyncio",
+    "base64",
+    "collections",
+    "concurrent",
+    "configparser",
+    "contextlib",
+    "copy",
+    "csv",
+    "datetime",
+    "decimal",
+    "difflib",
+    "doctest",
+    "email",
+    "enum",
+    "functools",
+    "glob",
+    "hashlib",
+    "hmac",
+    "html",
+    "http",
+    "importlib",
+    "inspect",
+    "io",
+    "json",
+    "logging",
+    "math",
+    "multiprocessing",
+    "os",
+    "pathlib",
+    "pickle",
+    "platform",
+    "pprint",
+    "queue",
+    "random",
+    "re",
+    "shlex",
+    "shutil",
+    "signal",
+    "socket",
+    "sqlite3",
+    "ssl",
+    "stat",
+    "string",
+    "struct",
+    "subprocess",
+    "sys",
+    "tempfile",
+    "textwrap",
+    "threading",
+    "time",
+    "timeit",
+    "tkinter",
+    "token",
+    "tokenize",
+    "traceback",
+    "types",
+    "typing",
+    "unittest",
+    "urllib",
+    "uuid",
+    "warnings",
+    "weakref",
+    "xml",
+    "zipfile",
+    "zlib",
+}
 
 NAME_REGEX = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 MAX_NAME_LEN = 64
@@ -239,6 +310,52 @@ if __name__ == "__main__":
     return skill_path
 
 
+def check_scope_creep(description: str) -> List[str]:
+    """Detects potential scope creep (multiple compound task connectors in skill description)."""
+    issues = []
+    lower_desc = description.lower()
+
+    compound_phrases = [" and also ", " as well as ", " along with ", " and additionally "]
+    has_compound_phrase = any(phrase in lower_desc for phrase in compound_phrases)
+    and_count = lower_desc.count(" and ")
+
+    if has_compound_phrase or and_count >= 3:
+        issues.append(
+            f"Scope Creep / Slob warning: Skill description contains compound task connectors ('{description}'). "
+            "Consider splitting into atomic skills."
+        )
+    return issues
+
+
+def check_python_stdlib_compliance(scripts_dir: Path) -> List[str]:
+    """Audits Python scripts to enforce ADR 0001 (Standard Library First)."""
+    issues = []
+    if not scripts_dir.is_dir():
+        return issues
+
+    for py_file in scripts_dir.rglob("*.py"):
+        if "tests" in py_file.parts:
+            continue
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+            for node in ast.walk(tree):
+                imported_mods = []
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        imported_mods.append(alias.name.split(".")[0])
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        imported_mods.append(node.module.split(".")[0])
+
+                for mod in imported_mods:
+                    if mod and mod not in STDLIB_MODULES and not mod.startswith("."):
+                        issues.append(f"Non-stdlib import detected in {py_file.name}: '{mod}' (violates ADR 0001).")
+        except Exception as err:
+            issues.append(f"Failed to parse AST for {py_file.name}: {err}")
+
+    return issues
+
+
 def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     """Validates an existing skill directory against agentskills.io standard & design rules."""
     issues = []
@@ -266,8 +383,16 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     if not valid_meta:
         issues.extend(meta_errs)
 
+    if desc:
+        issues.extend(check_scope_creep(desc))
+
     if name and name != skill_dir.name:
         issues.append(f"Frontmatter name ('{name}') does not match directory name ('{skill_dir.name}').")
+
+    # Audit Python script imports (ADR 0001)
+    scripts_dir = skill_dir / "scripts"
+    if scripts_dir.is_dir():
+        issues.extend(check_python_stdlib_compliance(scripts_dir))
 
     # Completion Criteria Audit
     has_completion_criteria = (
@@ -293,8 +418,13 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     # Script Unit Tests Audit
     tests_dir = skill_dir / "scripts" / "tests"
     if tests_dir.is_dir():
+        # Clear temporary module cache to prevent unittest loader collisions
+        for mod_name in list(sys.modules.keys()):
+            if mod_name.startswith("test_"):
+                sys.modules.pop(mod_name, None)
         loader = unittest.TestLoader()
         suite = loader.discover(str(tests_dir))
+
         with open(os.devnull, "w") as null_stream:
             runner = unittest.TextTestRunner(stream=null_stream, verbosity=0)
             result = runner.run(suite)

@@ -129,6 +129,50 @@ Just some steps without verification.
             self.assertFalse(is_valid)
             self.assertTrue(any("Missing checkable completion criteria" in i for i in issues))
 
+    def test_validate_skill_detects_scope_creep(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_dir = Path(temp_dir)
+            created_path = scaffold_skill(
+                name="test-scope-creep-skill",
+                description="Fetches git logs and parses python AST and updates databases and sends slack notifications.",
+                target_dir=target_dir,
+                skill_type="simple",
+            )
+            is_valid, issues = validate_skill(created_path)
+            self.assertFalse(is_valid)
+            self.assertTrue(any("Scope Creep / Slob warning" in i for i in issues))
+
+    def test_validate_skill_detects_non_stdlib_imports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_dir = Path(temp_dir)
+            created_path = scaffold_skill(
+                name="test-non-stdlib-skill",
+                description="Test non stdlib import auditing.",
+                target_dir=target_dir,
+                skill_type="complex",
+            )
+            script_path = created_path / "scripts" / "bad_import.py"
+            script_path.write_text("import requests\nimport pydantic\n", encoding="utf-8")
+            is_valid, issues = validate_skill(created_path)
+            self.assertFalse(is_valid)
+            self.assertTrue(any("Non-stdlib import detected" in i for i in issues))
+
+    def test_validate_skill_detects_excessive_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_dir = Path(temp_dir)
+            created_path = scaffold_skill(
+                name="test-long-skill",
+                description="Test long skill description.",
+                target_dir=target_dir,
+                skill_type="simple",
+            )
+            skill_md = created_path / "SKILL.md"
+            long_content = skill_md.read_text(encoding="utf-8") + "\n" + "\n".join([f"# Line {i}" for i in range(505)])
+            skill_md.write_text(long_content, encoding="utf-8")
+            is_valid, issues = validate_skill(created_path)
+            self.assertFalse(is_valid)
+            self.assertTrue(any("Context Load warning: SKILL.md line count" in i for i in issues))
+
 
 if __name__ == "__main__":
     unittest.main()
