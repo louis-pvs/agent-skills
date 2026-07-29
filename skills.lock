@@ -3,6 +3,7 @@
   "generated_by": "scripts/depgraph.py",
   "topological_order": [
     "agent-council",
+    "architecture-auditor",
     "context-gatherer",
     "skill-creator",
     "tdd",
@@ -16,6 +17,14 @@
       "transitive_requires": [],
       "transitive_enhances": [],
       "path": "skills/agent-council"
+    },
+    "architecture-auditor": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [],
+      "transitive_requires": [],
+      "transitive_enhances": [],
+      "path": "skills/architecture-auditor"
     },
     "context-gatherer": {
       "version": "1.0.0",

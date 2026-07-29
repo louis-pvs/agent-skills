@@ -24,19 +24,26 @@ CONFIG_FILE = REPO_DIR / "skills.config.yaml"
 def sanitize_path(input_path: Union[str, Path], base_dir: Optional[Path] = None) -> Path:
     """Sanitize and validate a file or directory path against path traversal attacks.
 
-    Resolves symlinks and relative elements ('..'). If base_dir is provided,
-    verifies that the resolved path is located within base_dir.
+    Resolves symlinks and relative elements ('..'). Validates that the resolved path
+    is located strictly within base_dir (or REPO_DIR if base_dir is None).
     """
-    path = Path(input_path).resolve()
-    if base_dir is not None:
-        base = Path(base_dir).resolve()
-        try:
-            path.relative_to(base)
-        except ValueError as err:
-            raise ValueError(
-                f"Security Error: Path traversal attempt detected. '{input_path}' is outside allowed base directory '{base}'"
-            ) from err
-    return path
+    base = os.path.realpath(str(base_dir if base_dir is not None else REPO_DIR))
+    target = os.path.realpath(str(input_path))
+
+    if os.path.commonpath([base, target]) != base:
+        raise ValueError(
+            f"Security Error: Path traversal attempt detected. '{input_path}' is outside allowed base directory '{base}'"
+        )
+
+    resolved_path = Path(target)
+    try:
+        resolved_path.relative_to(Path(base))
+    except ValueError as err:
+        raise ValueError(
+            f"Security Error: Path traversal attempt detected. '{input_path}' is outside allowed base directory '{base}'"
+        ) from err
+
+    return resolved_path
 
 
 def load_global_skill_paths() -> List[Path]:
@@ -297,8 +304,11 @@ def build_lockfile_data(nodes: Dict[str, SkillNode]) -> Tuple[Dict[str, Any], Li
 
 def generate_lockfile(skills_dir: Path, lockfile_path: Path, base_dir: Optional[Path] = None) -> bool:
     """Generate and save skills.lock file."""
-    skills_dir = sanitize_path(skills_dir, base_dir=base_dir)
-    lockfile_path = sanitize_path(lockfile_path, base_dir=base_dir)
+    effective_base = base_dir if base_dir is not None else REPO_DIR
+    skills_dir = sanitize_path(skills_dir, base_dir=effective_base)
+    lock_filename = os.path.basename(str(lockfile_path))
+    safe_lockfile = sanitize_path(effective_base / lock_filename, base_dir=effective_base)
+
     nodes = discover_skills(skills_dir)
     lock_data, errors = build_lockfile_data(nodes)
 
@@ -308,11 +318,11 @@ def generate_lockfile(skills_dir: Path, lockfile_path: Path, base_dir: Optional[
             print(f"  ❌ {err}", file=sys.stderr)
         return False
 
-    with open(lockfile_path, "w", encoding="utf-8") as f:
+    with open(safe_lockfile, "w", encoding="utf-8") as f:
         json.dump(lock_data, f, indent=2)
         f.write("\n")
 
-    print(f"Successfully generated lockfile at {lockfile_path}")
+    print(f"Successfully generated lockfile at {safe_lockfile}")
     return True
 
 
@@ -324,8 +334,10 @@ def verify_graph(skills_dir: Path, lockfile_path: Path, base_dir: Optional[Path]
     errors: List[str] = []
     warnings: List[str] = []
 
-    skills_dir = sanitize_path(skills_dir, base_dir=base_dir)
-    lockfile_path = sanitize_path(lockfile_path, base_dir=base_dir)
+    effective_base = base_dir if base_dir is not None else REPO_DIR
+    skills_dir = sanitize_path(skills_dir, base_dir=effective_base)
+    lock_filename = os.path.basename(str(lockfile_path))
+    safe_lockfile = sanitize_path(effective_base / lock_filename, base_dir=effective_base)
 
     nodes = discover_skills(skills_dir)
     if not nodes:
@@ -381,11 +393,11 @@ def verify_graph(skills_dir: Path, lockfile_path: Path, base_dir: Optional[Path]
                 )
 
     # Verify lockfile synchronicity
-    if not lockfile_path.exists():
-        errors.append(f"Lockfile missing: {lockfile_path}. Run 'python3 scripts/depgraph.py --generate-lock' to create it.")
+    if not safe_lockfile.exists():
+        errors.append(f"Lockfile missing: {safe_lockfile}. Run 'python3 scripts/depgraph.py --generate-lock' to create it.")
     else:
         try:
-            with open(lockfile_path, encoding="utf-8") as f:
+            with open(safe_lockfile, encoding="utf-8") as f:
                 existing_lock = json.load(f)
 
             if existing_lock.get("skills") != lock_data.get("skills"):
@@ -397,7 +409,7 @@ def verify_graph(skills_dir: Path, lockfile_path: Path, base_dir: Optional[Path]
             if existing_lock.get("topological_order") != lock_data.get("topological_order"):
                 errors.append("Lockfile topological_order is out of sync with current dependency graph.")
         except Exception as err:
-            errors.append(f"Failed to read existing lockfile {lockfile_path}: {err}")
+            errors.append(f"Failed to read existing lockfile {safe_lockfile}: {err}")
 
     is_valid = len(errors) == 0
     return is_valid, errors, warnings
@@ -438,11 +450,11 @@ def main() -> int:
     lockfile_path = sanitize_path(args.lockfile, base_dir=REPO_DIR)
 
     if args.generate_lock:
-        success = generate_lockfile(skills_dir, lockfile_path)
+        success = generate_lockfile(skills_dir, lockfile_path, base_dir=REPO_DIR)
         return 0 if success else 1
 
     if args.verify:
-        is_valid, errors, warnings = verify_graph(skills_dir, lockfile_path)
+        is_valid, errors, warnings = verify_graph(skills_dir, lockfile_path, base_dir=REPO_DIR)
         if args.json:
             out = {
                 "valid": is_valid,

@@ -108,12 +108,12 @@ Some markdown content.
             )
 
             # Test lockfile generation
-            success = generate_lockfile(skills_dir, lockfile_path)
+            success = generate_lockfile(skills_dir, lockfile_path, base_dir=tmp_path)
             self.assertTrue(success)
             self.assertTrue(lockfile_path.exists())
 
             # Test graph verification
-            is_valid, errors, warnings = verify_graph(skills_dir, lockfile_path)
+            is_valid, errors, warnings = verify_graph(skills_dir, lockfile_path, base_dir=tmp_path)
             self.assertTrue(is_valid)
             self.assertEqual(len(errors), 0)
 
@@ -123,7 +123,7 @@ Some markdown content.
                 encoding="utf-8",
             )
 
-            is_valid_drift, errors_drift, _ = verify_graph(skills_dir, lockfile_path)
+            is_valid_drift, errors_drift, _ = verify_graph(skills_dir, lockfile_path, base_dir=tmp_path)
             self.assertFalse(is_valid_drift)
             self.assertTrue(any("out of sync" in err for err in errors_drift))
 
