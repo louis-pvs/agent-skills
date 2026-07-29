@@ -43,15 +43,17 @@ We need a unified, portable, zero-prerequisite scripting language standard for a
 
 **Selected Option 1: Python 3 (Standard Library First)**
 
-### Rationale:
+### Rationale
 
 - **Zero Prerequisite Installation**: Python 3.8+ is universally available across Linux, macOS, and AI agent environments. Using standard library modules (`argparse`, `pathlib`, `json`, `subprocess`, `urllib`, `dataclasses`, `asyncio`, `unittest`) ensures scripts run out-of-the-box without `pip install`.
 - **Built-in Testing**: `unittest` (`python3 -m unittest discover`) provides an immediate, zero-dependency test runner.
 - **Cross-Platform Paths**: `pathlib.Path` handles OS path differences seamlessly.
 - **Clean LLM Maintenance**: A single `.py` file encapsulates logic cleanly, avoiding fragmented `.sh` + `.js` script wrappers.
 
-### Restrictions & Exceptions:
+### Scope & Exceptions
 
+- **Skill Runtime Scope**: The zero-external-dependency requirement applies strictly to individual skill automation and execution scripts (code residing under `skills/*/scripts/`). Skills must run out-of-the-box in any consumer or AI agent execution environment without requiring end-users or agent engines to execute `pip install` or `npm install`.
+- **Repository Development Tooling Exception**: Standard developer tooling, linters, formatters, and static analysis tools (e.g., `yamllint`, `ruff`, pre-commit hooks) installed at the repository root level or globally are permitted and encouraged for repository maintenance and CI quality gates. Maintainers should not reinvent established dev tooling wheels.
 - **Shell Script Wrappers**: Permitted **only** as thin entrypoints ($< 20$ lines) with strict bash flags (`set -euo pipefail`).
 
 ---
