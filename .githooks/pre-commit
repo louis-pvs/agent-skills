@@ -1,5 +1,5 @@
 #!/bin/sh
-# Mirrors the ruff lint/format checks run in CI (see .github/workflows).
+# Mirrors the ruff, lint_scripts, depgraph, and unit test checks run in CI.
 set -e
 
 echo "Running ruff check..."
@@ -7,3 +7,13 @@ ruff check .
 
 echo "Running ruff format --check..."
 ruff format --check .
+
+echo "Running script compliance check..."
+python3 scripts/lint_scripts.py
+
+echo "Running skill dependency graph verification..."
+python3 scripts/depgraph.py --verify
+
+echo "Running unit test suite..."
+python3 -m unittest discover -s scripts/tests
+
