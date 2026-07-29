@@ -96,9 +96,12 @@ def search_python_ast(
         List of dicts with keys: file, name, line, type.
     """
     try:
-        source = Path(filepath).read_text(encoding="utf-8")
+        cwd = Path.cwd().resolve()
+        resolved = Path(filepath).resolve()
+        safe_filepath = cwd / resolved.relative_to(cwd)
+        source = safe_filepath.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=filepath)
-    except (SyntaxError, UnicodeDecodeError, OSError):
+    except (SyntaxError, UnicodeDecodeError, OSError, ValueError):
         return []
 
     results = []
@@ -165,14 +168,29 @@ def find_python_files(search_path: str) -> List[str]:
         List of absolute file paths.
     """
     files = []
+    cwd = Path.cwd().resolve()
     root = Path(search_path).resolve()
+    try:
+        rel_parts = root.relative_to(cwd).parts
+    except ValueError as err:
+        raise ValueError("search_path must be within the current working directory") from err
+    for part in rel_parts:
+        if part in ("..", "") or part.startswith("/") or "\\" in part:
+            raise ValueError("Invalid path component")
+    safe_root = cwd.joinpath(*rel_parts)
+    safe_root_str = str(safe_root.resolve())
+    cwd_str = str(cwd)
+    if not (safe_root_str == cwd_str or safe_root_str.startswith(cwd_str + os.sep)):
+        raise ValueError("search_path must be within the current working directory")
 
-    if root.is_file() and root.suffix == ".py":
-        return [str(root)]
+    if safe_root.is_file() and safe_root.suffix == ".py":
+        return [str(safe_root)]
 
-    for dirpath, dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(cwd):
         # Skip hidden directories and common non-source dirs
         dirnames[:] = [d for d in dirnames if not d.startswith(".") and d not in ("node_modules", "__pycache__", "venv", ".venv")]
+        if not (dirpath == safe_root_str or dirpath.startswith(safe_root_str + os.sep)):
+            continue
         for f in filenames:
             if f.endswith(".py"):
                 files.append(os.path.join(dirpath, f))

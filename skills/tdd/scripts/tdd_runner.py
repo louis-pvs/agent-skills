@@ -104,7 +104,31 @@ def main() -> int:
     )
 
     args = parser.parse_args()
-    target_path = Path(args.path).resolve()
+    requested_path = Path(args.path).resolve()
+    base_dir = Path.cwd().resolve()
+
+    target_path: Optional[Path] = None
+    if requested_path == base_dir:
+        target_path = base_dir
+    else:
+        for candidate in base_dir.rglob("*"):
+            if not candidate.is_dir():
+                continue
+            resolved_candidate = candidate.resolve()
+            try:
+                resolved_candidate.relative_to(base_dir)
+            except ValueError:
+                continue
+            if resolved_candidate == requested_path:
+                target_path = resolved_candidate
+                break
+
+    if target_path is None:
+        print(
+            f"Error: Target path '{requested_path}' is not an allowed directory under '{base_dir}'.",
+            file=sys.stderr,
+        )
+        return 1
 
     if not target_path.exists():
         print(f"Error: Target path '{target_path}' does not exist.", file=sys.stderr)
@@ -112,7 +136,24 @@ def main() -> int:
 
     if args.cmd:
         runner_name = "custom"
-        cmd = shlex.split(args.cmd)
+        parsed_cmd = shlex.split(args.cmd)
+        allowed_executables = {"pytest", "python", "python3", sys.executable, "npm", "npx", "go", "cargo"}
+        if not parsed_cmd or parsed_cmd[0] not in allowed_executables:
+            print(
+                f"Error: Custom command executable must be one of: {sorted(allowed_executables)}",
+                file=sys.stderr,
+            )
+            return 1
+        import re as _re
+
+        token_re = _re.compile(r"\A[A-Za-z0-9_./=:@%+,-]+\Z")
+        safe_cmd: List[str] = []
+        for tok in parsed_cmd:
+            if not token_re.match(tok):
+                print("Error: Custom command contains disallowed characters.", file=sys.stderr)
+                return 1
+            safe_cmd.append(str(tok))
+        cmd = safe_cmd
     else:
         runner_name, cmd = detect_test_runner(target_path)
 

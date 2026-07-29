@@ -195,7 +195,8 @@ def scaffold_skill(
     if not valid:
         raise ValueError("Invalid skill metadata:\n" + "\n".join(f"- {e}" for e in errors))
 
-    skill_path = target_dir / name
+    safe_name = os.path.basename(name)
+    skill_path = target_dir / safe_name
     if skill_path.exists():
         raise FileExistsError(f"Skill directory already exists: {skill_path}")
 
@@ -524,7 +525,8 @@ def main() -> int:
         return 0
 
     if args.validate:
-        target_path = Path(args.validate).resolve()
+        safe_validate = os.path.basename(os.path.normpath(args.validate))
+        target_path = (Path.cwd() / safe_validate).resolve()
         is_valid, issues = validate_skill(target_path)
         if is_valid:
             print(f"✅ Skill at '{target_path}' is VALID according to agentskills.io standard!")
@@ -539,7 +541,8 @@ def main() -> int:
         print("Error: Both --name and --description are required when scaffolding a skill.", file=sys.stderr)
         return 1
 
-    target_dir = Path(args.target_dir).resolve()
+    safe_target = os.path.basename(os.path.normpath(args.target_dir)) or "skills"
+    target_dir = (Path.cwd() / safe_target).resolve()
     skill_type = "complex" if args.complex else args.type
     try:
         created_path = scaffold_skill(

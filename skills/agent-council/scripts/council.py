@@ -290,10 +290,18 @@ def stop_job(job_dir: Path) -> None:
 def clean_job(job_dir: Path) -> None:
     """Removes job directory."""
     stop_job(job_dir)
-    if job_dir.exists():
-        import shutil
+    jobs_root = (SKILL_DIR / ".jobs").resolve()
+    safe_name = os.path.basename(str(job_dir))
+    if not safe_name or safe_name in (".", ".."):
+        return
+    trusted_dir = (jobs_root / safe_name).resolve()
+    if trusted_dir.parent != jobs_root:
+        return
+    if not trusted_dir.exists():
+        return
+    import shutil
 
-        shutil.rmtree(job_dir, ignore_errors=True)
+    shutil.rmtree(str(trusted_dir), ignore_errors=True)
 
 
 def parse_args():
@@ -350,7 +358,7 @@ def main() -> int:
         return 0
 
     elif args.subcommand == "status":
-        job_dir = Path(args.job_dir).resolve()
+        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
         status = update_job_status(job_dir)
         if args.json:
             print(json.dumps(status, indent=2))
@@ -361,7 +369,7 @@ def main() -> int:
         return 0
 
     elif args.subcommand == "wait":
-        job_dir = Path(args.job_dir).resolve()
+        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
         while True:
             status = update_job_status(job_dir)
             if status.get("overallState") == "done":
@@ -371,17 +379,17 @@ def main() -> int:
         return 0
 
     elif args.subcommand == "results":
-        job_dir = Path(args.job_dir).resolve()
+        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
         print(get_results(job_dir, is_json=args.json))
         return 0
 
     elif args.subcommand == "stop":
-        job_dir = Path(args.job_dir).resolve()
+        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
         stop_job(job_dir)
         return 0
 
     elif args.subcommand == "clean":
-        job_dir = Path(args.job_dir).resolve()
+        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
         clean_job(job_dir)
         return 0
 

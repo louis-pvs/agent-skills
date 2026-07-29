@@ -12,6 +12,7 @@
 As the number of Agent Skills in this repository grows, executable scripts (`skills/*/scripts/` and repository maintenance tools) risk drifting in behavior, flag conventions, error handling, and output formats.
 
 Specifically:
+
 1. **Inconsistent CLI Flags**: Some scripts used positional arguments, while others supported `-h`/`--help` or custom option names.
 2. **Unsafe Mutating Side-Effects**: Scripts modifying the filesystem or external systems lacked a uniform `--dry-run` flag for previewing changes.
 3. **Stream Pollution**: Error messages and diagnostic logs were frequently mixed into standard output (`stdout`), breaking downstream JSON parsers and piping workflows.

@@ -15,12 +15,18 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
+ALLOWED_COMMANDS = frozenset({"python", "python3", "git", "pytest", "flake8", "mypy", "ruff", "black"})
+
 
 def run_cmd(cmd_str: str, cwd: Optional[Path] = None) -> Tuple[int, str, str]:
     """Executes shell command and returns exit code, stdout, and stderr."""
     try:
+        tokens = shlex.split(cmd_str) if isinstance(cmd_str, str) else list(cmd_str)
+        if not tokens or tokens[0] not in ALLOWED_COMMANDS:
+            return 1, "", f"Command not permitted: {tokens[0] if tokens else ''}"
+        safe_tokens = [str(t) for t in tokens]
         proc = subprocess.run(
-            shlex.split(cmd_str) if isinstance(cmd_str, str) else cmd_str,
+            safe_tokens,
             capture_output=True,
             text=True,
             cwd=str(cwd) if cwd else None,

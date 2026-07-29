@@ -49,7 +49,6 @@ For each iteration up to `--max-iterations`:
 
 ### 4. Convergence & Escalation
 
-
 - **GREEN (Converged)**: All tests/linters pass within 3 iterations. Commit changes.
 - **RED (Failed)**: If 3 iterations expire without reaching GREEN status, `anneal_runner.py` automatically triggers `git checkout -- .` to revert uncommitted changes and output a structured failure report for human escalation.
 
