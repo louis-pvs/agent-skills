@@ -1,0 +1,13 @@
+# Global Agent Skill Configuration
+# Defines target installation and lookup paths for AI coding assistants.
+# Add custom agent paths or environment overrides here.
+
+targets:
+  - name: "Gemini / Antigravity"
+    path: "~/.gemini/config/skills"
+
+  - name: "Claude Code"
+    path: "~/.claude/skills"
+
+  - name: "GitHub Copilot"
+    path: "~/.copilot/skills"

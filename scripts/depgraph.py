@@ -8,6 +8,7 @@ transitive dependencies, and generates/verifies skills.lock.
 
 import argparse
 import json
+import os
 import re
 import sys
 from collections import deque
@@ -17,6 +18,33 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 REPO_DIR = Path(__file__).parent.parent.resolve()
 SKILLS_DIR = REPO_DIR / "skills"
 LOCKFILE_PATH = REPO_DIR / "skills.lock"
+CONFIG_FILE = REPO_DIR / "skills.config.yaml"
+
+
+def load_global_skill_paths() -> List[Path]:
+    """Loads target global skill search paths from skills.config.yaml."""
+    default_paths = [
+        Path.home() / ".gemini" / "config" / "skills",
+        Path.home() / ".claude" / "skills",
+        Path.home() / ".copilot" / "skills",
+    ]
+    if not CONFIG_FILE.exists():
+        return default_paths
+
+    try:
+        content = CONFIG_FILE.read_text(encoding="utf-8")
+        paths = []
+        for line in content.splitlines():
+            line_str = line.split("#")[0].strip()
+            if line_str.startswith("path:"):
+                raw_path = line_str.split(":", 1)[1].strip().strip("\"'")
+                paths.append(Path(os.path.expanduser(raw_path)).resolve())
+        if paths:
+            return paths
+    except Exception:
+        pass
+
+    return default_paths
 
 
 class SkillNode:
@@ -312,12 +340,8 @@ def verify_graph(skills_dir: Path, lockfile_path: Path) -> Tuple[bool, List[str]
     lock_data, build_errors = build_lockfile_data(nodes)
     errors.extend(build_errors)
 
-    # Check soft dependencies (enhances) against local and global skill paths
-    global_skill_paths = [
-        Path.home() / ".gemini" / "config" / "skills",
-        Path.home() / ".claude" / "skills",
-        Path.home() / ".copilot" / "skills",
-    ]
+    # Check soft dependencies (enhances) against local and global skill paths defined in skills.config.yaml
+    global_skill_paths = load_global_skill_paths()
 
     for name, node in nodes.items():
         for enh in node.enhances:

@@ -6,18 +6,50 @@ for Gemini/Antigravity, Claude Code, and GitHub Copilot.
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Dict, List
 
 REPO_DIR = Path(__file__).parent.parent.resolve()
 SKILLS_DIR = REPO_DIR / "skills"
+CONFIG_FILE = REPO_DIR / "skills.config.yaml"
 
-GLOBAL_SKILL_TARGETS: Dict[str, Path] = {
-    "Gemini / Antigravity": Path.home() / ".gemini" / "config" / "skills",
-    "Claude Code": Path.home() / ".claude" / "skills",
-    "GitHub Copilot": Path.home() / ".copilot" / "skills",
-}
+
+def load_global_skill_targets(config_path: Path = CONFIG_FILE) -> Dict[str, Path]:
+    """Loads global skill target paths from skills.config.yaml with stdlib defaults."""
+    default_targets = {
+        "Gemini / Antigravity": Path.home() / ".gemini" / "config" / "skills",
+        "Claude Code": Path.home() / ".claude" / "skills",
+        "GitHub Copilot": Path.home() / ".copilot" / "skills",
+    }
+    if not config_path.exists():
+        return default_targets
+
+    try:
+        content = config_path.read_text(encoding="utf-8")
+        targets = {}
+        curr_name = None
+        for line in content.splitlines():
+            line_str = line.split("#")[0].strip()
+            if not line_str:
+                continue
+            if line_str.startswith("- name:"):
+                curr_name = line_str.split(":", 1)[1].strip().strip("\"'")
+            elif line_str.startswith("path:") and curr_name:
+                raw_path = line_str.split(":", 1)[1].strip().strip("\"'")
+                expanded_path = Path(os.path.expanduser(raw_path)).resolve()
+                targets[curr_name] = expanded_path
+                curr_name = None
+        if targets:
+            return targets
+    except Exception:
+        pass
+
+    return default_targets
+
+
+GLOBAL_SKILL_TARGETS: Dict[str, Path] = load_global_skill_targets()
 
 
 def find_repo_skills(skills_dir: Path) -> List[Path]:
