@@ -8,6 +8,7 @@
     "skill-creator",
     "tdd",
     "tech-doc-writer",
+    "what-if-analysis",
     "benchmarking",
     "self-annealer"
   ],
@@ -98,6 +99,14 @@
       "transitive_requires": [],
       "transitive_enhances": [],
       "path": "skills/tech-doc-writer"
+    },
+    "what-if-analysis": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [],
+      "transitive_requires": [],
+      "transitive_enhances": [],
+      "path": "skills/what-if-analysis"
     }
   }
 }
