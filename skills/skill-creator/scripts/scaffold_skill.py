@@ -140,6 +140,45 @@ def parse_frontmatter(content: str) -> Tuple[Dict[str, str], str]:
     return metadata, body
 
 
+def check_yaml_frontmatter_syntax(content: str) -> List[str]:
+    """Validates YAML frontmatter syntax in SKILL.md to catch unquoted colons, invalid mappings, etc."""
+    issues = []
+    if not content.startswith("---"):
+        issues.append("SKILL.md must start with YAML frontmatter delimiter '---'.")
+        return issues
+
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        issues.append("SKILL.md YAML frontmatter is not closed with '---'.")
+        return issues
+
+    yaml_block = parts[1]
+
+    try:
+        import yaml
+
+        try:
+            parsed = yaml.safe_load(yaml_block)
+            if not isinstance(parsed, dict):
+                issues.append("YAML frontmatter must parse to a dictionary/mapping object.")
+        except Exception as err:
+            issues.append(f"Invalid YAML frontmatter syntax: {err}")
+    except ImportError:
+        # Fallback stdlib check for unquoted colons in values
+        for line in yaml_block.splitlines():
+            line_str = line.strip()
+            if line_str and not line_str.startswith("#") and ":" in line_str:
+                key, val = line_str.split(":", 1)
+                val_str = val.strip()
+                if ":" in val_str and not (val_str.startswith("'") or val_str.startswith('"')):
+                    issues.append(
+                        f"Unquoted colon detected in YAML frontmatter field '{key.strip()}'. "
+                        "Values containing colons must be enclosed in quotes."
+                    )
+
+    return issues
+
+
 def scaffold_skill(
     name: str,
     description: str,
@@ -166,7 +205,14 @@ def scaffold_skill(
     skill_title = " ".join(title_words)
     skill_md = skill_path / "SKILL.md"
 
-    frontmatter_lines = ["---", f"name: {name}", f"description: {description}"]
+    desc_str = description.strip()
+    if ":" in desc_str or "'" in desc_str or '"' in desc_str or "#" in desc_str:
+        escaped_desc = desc_str.replace("'", "''")
+        formatted_desc = f"'{escaped_desc}'"
+    else:
+        formatted_desc = desc_str
+
+    frontmatter_lines = ["---", f"name: {name}", f"description: {formatted_desc}"]
     if user_invoked:
         frontmatter_lines.append("disable-model-invocation: true")
     frontmatter_lines.append("---")
@@ -369,6 +415,9 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
 
     content = skill_md.read_text(encoding="utf-8")
     lines = content.splitlines()
+
+    # YAML Frontmatter Syntax Audit
+    issues.extend(check_yaml_frontmatter_syntax(content))
 
     # Context Load Audit
     if len(lines) > 500:

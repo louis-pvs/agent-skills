@@ -281,6 +281,34 @@ def verify_graph(skills_dir: Path, lockfile_path: Path) -> Tuple[bool, List[str]
         errors.append(f"No skills found in {skills_dir}")
         return False, errors, warnings
 
+    # Verify YAML frontmatter syntax across all SKILL.md files
+    for item in sorted(skills_dir.iterdir()):
+        if item.is_dir():
+            skill_md = item / "SKILL.md"
+            if skill_md.exists():
+                content = skill_md.read_text(encoding="utf-8")
+                match = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
+                if match:
+                    yaml_block = match.group(1)
+                    try:
+                        import yaml
+
+                        try:
+                            yaml.safe_load(yaml_block)
+                        except Exception as err:
+                            errors.append(f"Skill '{item.name}' has invalid YAML frontmatter syntax: {err}")
+                    except ImportError:
+                        for line in yaml_block.splitlines():
+                            line_str = line.strip()
+                            if line_str and not line_str.startswith("#") and ":" in line_str:
+                                key, val = line_str.split(":", 1)
+                                val_str = val.strip()
+                                if ":" in val_str and not (val_str.startswith("'") or val_str.startswith('"')):
+                                    errors.append(
+                                        f"Skill '{item.name}' has unquoted colon in YAML field "
+                                        f"'{key.strip()}'. Enclose value in quotes."
+                                    )
+
     lock_data, build_errors = build_lockfile_data(nodes)
     errors.extend(build_errors)
 

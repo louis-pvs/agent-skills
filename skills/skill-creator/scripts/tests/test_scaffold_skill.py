@@ -173,6 +173,40 @@ Just some steps without verification.
             self.assertFalse(is_valid)
             self.assertTrue(any("Context Load warning: SKILL.md line count" in i for i in issues))
 
+    def test_validate_skill_detects_invalid_yaml_frontmatter(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_dir = Path(temp_dir)
+            skill_dir = target_dir / "bad-yaml-skill"
+            skill_dir.mkdir()
+            skill_md = skill_dir / "SKILL.md"
+            skill_md.write_text(
+                """---
+name: bad-yaml-skill
+description: Unquoted colon in description: causes YAML parse error
+---
+
+# Title
+## Completion Criteria
+- [ ] Done
+""",
+                encoding="utf-8",
+            )
+            is_valid, issues = validate_skill(skill_dir)
+            self.assertFalse(is_valid)
+            self.assertTrue(any("Invalid YAML frontmatter syntax" in i or "Unquoted colon detected" in i for i in issues))
+
+    def test_scaffold_skill_quotes_colon_description(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_dir = Path(temp_dir)
+            created_path = scaffold_skill(
+                name="test-colon-skill",
+                description="Skill description: contains a colon.",
+                target_dir=target_dir,
+                skill_type="simple",
+            )
+            is_valid, issues = validate_skill(created_path)
+            self.assertTrue(is_valid, msg=f"Validation failed: {issues}")
+
 
 if __name__ == "__main__":
     unittest.main()

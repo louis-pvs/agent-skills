@@ -84,15 +84,16 @@ Optimize context and cognitive load:
 
 Run `scaffold_skill.py --validate skills/<skill-name>` to verify:
 
-- YAML frontmatter format & invocation mode compliance.
-- Description character limit and triggering clarity.
+- **YAML Frontmatter Syntax**: Ensure valid YAML formatting. If `description` or any string field contains colons (`:`), quotes, or special characters, enclose the value in single quotes (`'...'`) or double quotes (`"..."`).
+- **Invocation Mode Compliance**: Validate name, description, and invocation mode flag (`disable-model-invocation`).
 - Checkable **Completion Criteria** section presence (`## Completion Criteria`).
 - **Context Load** (lines <= 500) and **Cognitive Load** branch checks.
 - Python script test pass status.
 
 ## Completion Criteria
 
-- [ ] Frontmatter validated with valid name and description.
+- [ ] Frontmatter YAML syntax validated (no unquoted colons `:` in description or metadata).
+- [ ] Frontmatter metadata verified with valid name and description.
 - [ ] Invocation mode explicitly chosen (`disable-model-invocation` set for command-only skills).
 - [ ] Checkable completion criteria included in `SKILL.md`.
 - [ ] Script unit tests (if any) passing cleanly.

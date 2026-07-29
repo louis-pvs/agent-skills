@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Enforce Test-Driven Development (TDD) workflows: write failing test (RED), write minimal code (GREEN), and refactor. Use when the user requests TDD, "write tests first", or when building tested features.
+description: 'Enforce Test-Driven Development (TDD) workflows: write failing test (RED), write minimal code (GREEN), and refactor. Use when the user requests TDD, "write tests first", or when building tested features.'
 ---
 
 # TDD (Test-Driven Development)
