@@ -12,6 +12,7 @@
 Agent Skills often require executable automation scripts (for scaffolding, parsing multi-LLM outputs, running background jobs, or data processing).
 
 Previously, skills used a mix of Bash (`.sh`) and Node.js (`.cjs`/`.js`). However, during real-world execution across diverse agent platforms (Antigravity, Gemini CLI, Claude Code, Cursor, Codex):
+
 1. **Prerequisite & Dependency Failures**: Node.js scripts frequently failed due to missing npm dependencies (e.g., `Missing runtime dependency: yaml`), requiring manual `npm/pnpm install` steps.
 2. **Cross-Platform Incompatibility**: Shell scripts (`.sh`) fail natively on Windows environments without WSL or Git Bash.
 3. **Subprocess Sandbox Restrictions**: Spawning nested shell subprocesses within AI agent CLI tool environments often triggered binary path and permission errors.
@@ -32,7 +33,7 @@ We need a unified, portable, zero-prerequisite scripting language standard for a
 
 ## Considered Options
 
-1. **Option 1: Python 3 (Standard Library First)** *(Selected)*
+1. **Option 1: Python 3 (Standard Library First)** _(Selected)_
 2. **Option 2: Node.js (CommonJS / ES Modules)**
 3. **Option 3: Bash / Shell Scripts**
 
@@ -43,12 +44,14 @@ We need a unified, portable, zero-prerequisite scripting language standard for a
 **Selected Option 1: Python 3 (Standard Library First)**
 
 ### Rationale:
+
 - **Zero Prerequisite Installation**: Python 3.8+ is universally available across Linux, macOS, and AI agent environments. Using standard library modules (`argparse`, `pathlib`, `json`, `subprocess`, `urllib`, `dataclasses`, `asyncio`, `unittest`) ensures scripts run out-of-the-box without `pip install`.
 - **Built-in Testing**: `unittest` (`python3 -m unittest discover`) provides an immediate, zero-dependency test runner.
 - **Cross-Platform Paths**: `pathlib.Path` handles OS path differences seamlessly.
 - **Clean LLM Maintenance**: A single `.py` file encapsulates logic cleanly, avoiding fragmented `.sh` + `.js` script wrappers.
 
 ### Restrictions & Exceptions:
+
 - **Shell Script Wrappers**: Permitted **only** as thin entrypoints ($< 20$ lines) with strict bash flags (`set -euo pipefail`).
 
 ---
