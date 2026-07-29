@@ -7,6 +7,7 @@
     "context-gatherer",
     "skill-creator",
     "tdd",
+    "tech-doc-writer",
     "benchmarking",
     "self-annealer"
   ],
@@ -89,6 +90,14 @@
       "transitive_requires": [],
       "transitive_enhances": [],
       "path": "skills/tdd"
+    },
+    "tech-doc-writer": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [],
+      "transitive_requires": [],
+      "transitive_enhances": [],
+      "path": "skills/tech-doc-writer"
     }
   }
 }
