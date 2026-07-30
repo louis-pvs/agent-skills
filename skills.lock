@@ -4,6 +4,7 @@
   "topological_order": [
     "agent-council",
     "architecture-auditor",
+    "architecture-decision-records",
     "capability-gap-analyzer",
     "context-gatherer",
     "domain-modeling",
@@ -37,6 +38,24 @@
         "graphify"
       ],
       "path": "skills/architecture-auditor"
+    },
+    "architecture-decision-records": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [
+        "tech-doc-writer",
+        "architecture-auditor",
+        "domain-modeling"
+      ],
+      "transitive_requires": [],
+      "transitive_enhances": [
+        "architecture-auditor",
+        "context-gatherer",
+        "domain-modeling",
+        "graphify",
+        "tech-doc-writer"
+      ],
+      "path": "skills/architecture-decision-records"
     },
     "benchmarking": {
       "version": "1.0.0",

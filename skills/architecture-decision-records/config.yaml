@@ -1,0 +1,8 @@
+# Architecture Decision Records Skill Configuration
+# 4-Tier Configuration (ADR 0005 compliant)
+
+architecture_decision_records:
+  adr_dir: "docs/adr"
+  default_template: "madr"
+  id_padding: 4
+  auto_reindex: true
