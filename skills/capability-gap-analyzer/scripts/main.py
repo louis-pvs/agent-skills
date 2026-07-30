@@ -7,6 +7,7 @@ and JSON structured output for AI Agent Tier 2 semantic evaluation.
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -75,19 +76,26 @@ SCAFFOLD_SUGGESTIONS = {
 
 
 def build_scaffold_suggestions(heatmap):
-    """Builds skill-creator scaffold commands for Zero-Zone taxonomy categories."""
+    """Builds skill-creator scaffold commands for Zero-Zone taxonomy categories,
+    incorporating Tier 2 LLM prompt suggestions for emergent dynamic domains.
+    """
     suggestions = []
     for category, meta in heatmap.items():
         if meta["status"] != "Zero-Zone":
             continue
         suggestion = SCAFFOLD_SUGGESTIONS.get(category)
-        if not suggestion:
-            continue
+        if suggestion:
+            name = suggestion["name"]
+            desc = suggestion["description"]
+        else:
+            slug = re.sub(r"[^a-z0-9]+", "-", category.lower()).strip("-")
+            name = f"{slug}-scaffold" if slug else "domain-scaffold"
+            desc = f"Tier 2 LLM Prompt Suggestion: Scaffold initial capability set for {category} domain."
+
         command = (
-            "python3 skills/skill-creator/scripts/scaffold_skill.py "
-            f'--name {suggestion["name"]} --description "{suggestion["description"]}"'
+            f'python3 skills/skill-creator/scripts/scaffold_skill.py --name {name} --domain "{category}" --description "{desc}"'
         )
-        suggestions.append({"category": category, "command": command, **suggestion})
+        suggestions.append({"category": category, "command": command, "name": name, "description": desc})
     return suggestions
 
 

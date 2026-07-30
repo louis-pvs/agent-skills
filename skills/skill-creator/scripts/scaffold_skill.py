@@ -14,7 +14,7 @@ import re
 import sys
 import unittest
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 try:
     from scripts._path_safety import sanitize_path
@@ -195,6 +195,8 @@ def scaffold_skill(
     skill_type: str = "simple",
     user_invoked: bool = False,
     is_complex: bool = False,
+    domain: Optional[str] = None,
+    tags: Optional[List[str]] = None,
 ) -> Path:
     """Creates directory structure and boilerplate files for a new skill."""
     if is_complex and skill_type == "simple":
@@ -224,6 +226,15 @@ def scaffold_skill(
         formatted_desc = desc_str
 
     frontmatter_lines = ["---", f"name: {name}", f"description: {formatted_desc}"]
+    if domain:
+        dom_str = domain.strip()
+        if ":" in dom_str or "'" in dom_str or '"' in dom_str:
+            dom_str = f"'{dom_str}'"
+        frontmatter_lines.append(f"domain: {dom_str}")
+    if tags:
+        clean_tags = [t.strip() for t in tags if t.strip()]
+        if clean_tags:
+            frontmatter_lines.append(f"tags: [{', '.join(clean_tags)}]")
     if user_invoked:
         frontmatter_lines.append("disable-model-invocation: true")
     frontmatter_lines.append("---")
@@ -562,6 +573,8 @@ def parse_args(args=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Scaffold and validate Agent Skills")
     parser.add_argument("--name", type=str, help="Name of the skill to scaffold (e.g. 'my-skill')")
     parser.add_argument("--description", type=str, help="Description of when to trigger the skill")
+    parser.add_argument("--domain", type=str, help="Target domain category for dynamic capability mapping")
+    parser.add_argument("--tags", type=str, help="Comma-separated list of tags for taxonomy classification")
     parser.add_argument("--target-dir", type=str, default="skills", help="Directory to scaffold skill inside")
     parser.add_argument(
         "--type",
@@ -615,6 +628,7 @@ def main() -> int:
 
     target_dir = sanitize_path(args.target_dir)
     skill_type = "complex" if args.complex else args.type
+    tags_list = [t.strip() for t in args.tags.split(",")] if args.tags else None
     try:
         created_path = scaffold_skill(
             name=args.name,
@@ -622,6 +636,8 @@ def main() -> int:
             target_dir=target_dir,
             skill_type=skill_type,
             user_invoked=args.user_invoked,
+            domain=args.domain,
+            tags=tags_list,
         )
         print(f"🎉 Successfully scaffolded skill ({skill_type}) at: {created_path}")
         return 0

@@ -118,10 +118,28 @@ def parse_skill_frontmatter(skill_md_path: Path) -> Dict[str, Any]:
                 key, val = line.split(":", 1)
                 key = key.strip()
                 val = val.strip().strip("\"'")
-                if key in {"name", "description", "version"}:
+                if key in {"name", "description", "version", "domain"}:
                     data[key] = val
+                elif key == "tags":
+                    if val.startswith("[") and val.endswith("]"):
+                        tag_items = [t.strip().strip("\"'") for t in val[1:-1].split(",") if t.strip()]
+                    else:
+                        tag_items = [t.strip().strip("\"'") for t in val.split(",") if t.strip()]
+                    data["tags"] = tag_items
 
     return data
+
+
+def canonicalize_domain(domain_str: str) -> str:
+    """Normalizes raw domain strings into clean, canonical taxonomy category headers."""
+    if not domain_str:
+        return "General"
+    cleaned = domain_str.strip()
+    for baseline_cat in TAXONOMY_DOMAINS:
+        if cleaned.lower() == baseline_cat.lower():
+            return baseline_cat
+    words = cleaned.replace("-", " ").replace("_", " ").split()
+    return " ".join(w.capitalize() for w in words)
 
 
 def scan_skills_inventory(skills_dir: Optional[Path] = None, include_global: bool = True) -> List[Dict[str, Any]]:
@@ -171,17 +189,40 @@ def scan_skills_inventory(skills_dir: Optional[Path] = None, include_global: boo
 
 def calculate_taxonomy_heatmap(inventory: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     """Maps inventory skills against taxonomy domains and calculates coverage scores."""
-    heatmap = {
-        cat: {"keywords": meta["keywords"], "matched_skills": [], "score": 0.0, "status": "Zero-Zone"}
+    heatmap: Dict[str, Dict[str, Any]] = {
+        cat: {"keywords": set(meta["keywords"]), "matched_skills": [], "score": 0.0, "status": "Zero-Zone"}
         for cat, meta in TAXONOMY_DOMAINS.items()
     }
+
+    # Harvest explicit dynamic domains from scanned inventory
+    for skill in inventory:
+        raw_dom = skill.get("domain")
+        if raw_dom:
+            cat_name = canonicalize_domain(raw_dom)
+            if cat_name not in heatmap:
+                heatmap[cat_name] = {
+                    "keywords": set(skill.get("tags", [])) | {cat_name.lower()},
+                    "matched_skills": [],
+                    "score": 0.0,
+                    "status": "Zero-Zone",
+                }
 
     for skill in inventory:
         name = skill.get("name", "")
         desc = skill.get("description", "")
         origin = skill.get("origin", "workspace")
-        text = f"{name} {desc}".lower()
+        raw_dom = skill.get("domain")
+        tags = skill.get("tags", [])
+        text = f"{name} {desc} {' '.join(tags)}".lower()
 
+        # If skill explicitly declared a domain, attach directly
+        if raw_dom:
+            cat_name = canonicalize_domain(raw_dom)
+            already_matched_names = {s["name"] for s in heatmap[cat_name]["matched_skills"]}
+            if name not in already_matched_names:
+                heatmap[cat_name]["matched_skills"].append({"name": name, "origin": origin})
+
+        # Match against keywords for all taxonomy categories
         for _cat, meta in heatmap.items():
             keywords = meta["keywords"]
             matches = []

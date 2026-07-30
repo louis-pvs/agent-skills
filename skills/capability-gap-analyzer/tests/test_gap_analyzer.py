@@ -17,10 +17,13 @@ if str(_script_dir) not in sys.path:
 from domain_detector import detect_workspace_domains  # noqa: E402
 from gap_analyzer import (  # noqa: E402
     calculate_taxonomy_heatmap,
+    canonicalize_domain,
     generate_heatmap_markdown,
     load_global_skill_paths,
+    parse_skill_frontmatter,
     scan_skills_inventory,
 )
+from main import build_scaffold_suggestions  # noqa: E402
 
 
 class TestCapabilityGapAnalyzer(unittest.TestCase):
@@ -66,6 +69,56 @@ class TestCapabilityGapAnalyzer(unittest.TestCase):
         self.assertIn("Architecture & DDD", heatmap)
         self.assertEqual(heatmap["Architecture & DDD"]["status"], "Strong")
         self.assertEqual(heatmap["Frontend & UI/UX"]["status"], "Zero-Zone")
+
+    def test_dynamic_domain_harvesting(self):
+        inventory = [
+            {
+                "name": "quantum-sim",
+                "description": "Quantum statevector simulation",
+                "domain": "Quantum Computing",
+                "tags": ["quantum", "qiskit"],
+                "origin": "workspace",
+            }
+        ]
+        heatmap = calculate_taxonomy_heatmap(inventory)
+        self.assertIn("Quantum Computing", heatmap)
+        self.assertEqual(heatmap["Quantum Computing"]["status"], "Partial")
+        matched = [s["name"] for s in heatmap["Quantum Computing"]["matched_skills"]]
+        self.assertIn("quantum-sim", matched)
+
+    def test_canonicalize_domain(self):
+        self.assertEqual(canonicalize_domain("frontend & ui/ux"), "Frontend & UI/UX")
+        self.assertEqual(canonicalize_domain("quantum-computing"), "Quantum Computing")
+        self.assertEqual(canonicalize_domain(""), "General")
+
+    def test_parse_skill_frontmatter_with_domain_and_tags(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skill_dir = Path(tmpdir) / "my-test-skill"
+            skill_dir.mkdir()
+            skill_md = skill_dir / "SKILL.md"
+            skill_md.write_text(
+                "---\nname: my-test-skill\ndescription: Test description\n"
+                "domain: Quantum Computing\ntags: [qiskit, sim]\n---\n\n# Body\n"
+            )
+            fm = parse_skill_frontmatter(skill_md)
+            self.assertEqual(fm.get("domain"), "Quantum Computing")
+            self.assertEqual(fm.get("tags"), ["qiskit", "sim"])
+
+    def test_build_scaffold_suggestions_dynamic_tier2(self):
+        heatmap = {
+            "Quantum Computing": {
+                "keywords": {"quantum"},
+                "matched_skills": [],
+                "score": 0.0,
+                "status": "Zero-Zone",
+            }
+        }
+        suggestions = build_scaffold_suggestions(heatmap)
+        self.assertEqual(len(suggestions), 1)
+        self.assertEqual(suggestions[0]["category"], "Quantum Computing")
+        self.assertEqual(suggestions[0]["name"], "quantum-computing-scaffold")
+        self.assertIn("Tier 2 LLM Prompt Suggestion", suggestions[0]["description"])
+        self.assertIn('--domain "Quantum Computing"', suggestions[0]["command"])
 
     def test_detect_workspace_domains(self):
         with tempfile.TemporaryDirectory() as tmpdir:

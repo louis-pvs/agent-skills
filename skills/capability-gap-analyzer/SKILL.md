@@ -70,14 +70,15 @@ flowchart TD
 ### 3. Perform LLM & Matrix Gap Scoring (Tier 2)
 
 - Combine the Tier 1 inventory dataset with Tier 2 LLM semantic evaluation.
-- Classify skills across standard lifecycle domains:
+- Dynamically harvest explicit taxonomy domains declared via `domain:` and `tags:` in `SKILL.md` frontmatter headers alongside baseline domains:
   - **Architecture & DDD**
-  - **Static Analysis & Testing**
+  - **Analysis & Refactoring**
   - **Performance & Benchmarking**
   - **Frontend & UI/UX**
   - **Backend & Data Pipelines**
   - **DevOps & Infrastructure**
   - **Security & Compliance**
+  - *(Emergent custom domains like Quantum Computing or Bioinformatics)*
 - Assign coverage levels: **Strong** (75-100%), **Partial** (25-74%), or
   **Zero-Zone** (0-24%).
 
@@ -85,7 +86,7 @@ flowchart TD
 
 - Render the GFM Taxonomy Heatmap matrix with origin annotations
   (`[workspace]`, `[global]`).
-- If missing skills are identified, offer to scaffold draft skill templates via
+- If missing skills are identified, generate Tier 2 LLM prompt scaffold suggestions via
   [skill-creator](file:///home/phalou/github/louis-pvs/agent-skills/skills/skill-creator/SKILL.md):
 
   ```bash
