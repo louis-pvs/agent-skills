@@ -1,6 +1,8 @@
 ---
 name: tdd
 description: 'Enforce Test-Driven Development (TDD) workflows: write failing test (RED), write minimal code (GREEN), and refactor. Use when the user requests TDD, "write tests first", or when building tested features.'
+enhances:
+  - domain-modeling
 ---
 
 # TDD (Test-Driven Development)
@@ -30,7 +32,7 @@ Follow these 4 steps sequentially:
 ### 1. Specify & RED (Verify Failure)
 
 1. Identify or create the appropriate test file in the project.
-2. Write a minimal unit test asserting the expected behavior/contract for the new feature or bug fix.
+2. Write a minimal unit test asserting the expected behavior/contract for the new feature or bug fix. (For domain logic, check `domain-modeling` for aggregate invariants, value object rules, and state transition guards to use directly as test specifications).
 3. Run `tdd_runner.py` with `--verify-red` to verify that the test fails as expected:
 
    ```bash
@@ -53,7 +55,7 @@ Follow these 4 steps sequentially:
 
 ### 3. Refactor
 
-1. Clean up code structure, variable naming, and duplication while maintaining design patterns.
+1. Clean up code structure, variable naming, and duplication while maintaining design patterns (applying `domain-modeling` Ubiquitous Language to test descriptions and symbols).
 2. Re-verify the GREEN state to ensure no regressions were introduced:
 
    ```bash

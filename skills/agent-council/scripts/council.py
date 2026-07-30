@@ -19,8 +19,21 @@ from typing import Any, Dict
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 SKILL_DIR = SCRIPT_DIR.parent
+
+# Dynamic sys.path Root Resolution
+_repo_root = Path(__file__).resolve().parents[3]
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
+
+try:
+    from scripts._path_safety import get_repo_root
+
+    REPO_ROOT = get_repo_root(__file__)
+except ImportError:
+    REPO_ROOT = SKILL_DIR.parent.parent
+
 SKILL_CONFIG_FILE = SKILL_DIR / "council.config.yaml"
-REPO_CONFIG_FILE = SKILL_DIR.parent.parent / "council.config.yaml"
+REPO_CONFIG_FILE = REPO_ROOT / "council.config.yaml"
 
 
 def _parse_val(val: str) -> Any:
@@ -184,7 +197,7 @@ def create_job(question: str, jobs_dir: Path) -> Path:
                 cmd_args,
                 stdout=out_f,
                 stderr=err_f,
-                cwd=str(SKILL_DIR),
+                cwd=str(REPO_ROOT),
             )
             pid_file = job_dir / f"{m_name}.pid"
             pid_file.write_text(str(proc.pid), encoding="utf-8")
@@ -290,18 +303,15 @@ def stop_job(job_dir: Path) -> None:
 def clean_job(job_dir: Path) -> None:
     """Removes job directory."""
     stop_job(job_dir)
-    jobs_root = (SKILL_DIR / ".jobs").resolve()
-    safe_name = os.path.basename(str(job_dir))
+    resolved_dir = job_dir.resolve()
+    if not resolved_dir.exists():
+        return
+    safe_name = resolved_dir.name
     if not safe_name or safe_name in (".", ".."):
-        return
-    trusted_dir = (jobs_root / safe_name).resolve()
-    if trusted_dir.parent != jobs_root:
-        return
-    if not trusted_dir.exists():
         return
     import shutil
 
-    shutil.rmtree(str(trusted_dir), ignore_errors=True)
+    shutil.rmtree(str(resolved_dir), ignore_errors=True)
 
 
 def parse_args():

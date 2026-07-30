@@ -36,3 +36,11 @@ python3 skills/agent-council/scripts/council.py "your question here"
 - [requirements.md](references/requirements.md) — Python 3 requirements and CLI checks.
 - [host-ui.md](references/host-ui.md) — Host UI checklist guidance.
 - [safety.md](references/safety.md) — Safety guidelines.
+
+---
+
+## Completion Criteria
+
+- [ ] Parallel CLI sub-agent processes spawned with repo root CWD context.
+- [ ] Member responses collected and synthesized without unhandled process exceptions.
+- [ ] Job logs and temporary process files cleaned up after execution.

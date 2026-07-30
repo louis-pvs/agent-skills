@@ -2,6 +2,8 @@
 name: tech-doc-writer
 description: "Generate, refactor, and audit human-facing technical documentation (README.md, ARCHITECTURE.md, CONTRIBUTING.md, docs/) using technical writing directives and GFM conventions."
 disable-model-invocation: false
+enhances:
+  - domain-modeling
 version: 1.0.0
 ---
 
@@ -37,6 +39,7 @@ Read the required reference documents before drafting content:
 - [writing-directives.md](references/writing-directives.md) — Voice, tone, and the 5 Technical Writing Directives.
 - [gfm-conventions.md](references/gfm-conventions.md) — GitHub Flavored Markdown rules (Alerts, Mermaid, collapsibles).
 - [doc-templates.md](references/doc-templates.md) — Skeletons for README, Architecture, and Contributing guides.
+- **Domain Models & Diagrams**: For `ARCHITECTURE.md`, if domain concepts exist, refer to `domain-modeling` to source Bounded Context maps, Ubiquitous Language glossaries, and Mermaid state diagrams.
 
 ### 3. Draft Content Applying Technical Writing Directives
 

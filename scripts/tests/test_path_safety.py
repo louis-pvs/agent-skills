@@ -175,5 +175,22 @@ class TestResolveSafeDir(unittest.TestCase):
             self.assertEqual(result, base.resolve())
 
 
+class TestGetRepoRoot(unittest.TestCase):
+    """Tests for the get_repo_root() function."""
+
+    def test_finds_repo_root_from_nested_dir(self) -> None:
+        from scripts._path_safety import get_repo_root
+
+        root = get_repo_root()
+        self.assertTrue((root / ".git").exists() or (root / "skills.lock").is_file() or (root / "AGENTS.md").is_file())
+
+    def test_finds_root_from_explicit_path(self) -> None:
+        from scripts._path_safety import get_repo_root
+
+        nested = Path(__file__).resolve().parent
+        root = get_repo_root(nested)
+        self.assertTrue((root / ".git").exists() or (root / "skills.lock").is_file() or (root / "AGENTS.md").is_file())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -168,3 +168,28 @@ def resolve_safe_dir(
         raise ValueError(f"Error: Directory '{project_dir}' does not exist or is not a directory.")
 
     return project_dir
+
+
+def get_repo_root(from_path: Optional[Union[str, Path]] = None) -> Path:
+    """Safely resolve the root directory of the repository.
+
+    Searches upwards from from_path (or caller __file__ / cwd) for key anchor
+    markers: .git, skills.lock, or AGENTS.md.
+
+    Args:
+        from_path: Optional starting file or directory path.
+
+    Returns:
+        Resolved Path object representing the repository root.
+    """
+    if from_path is None:
+        start = Path.cwd().resolve()
+    else:
+        p = Path(from_path).resolve()
+        start = p if p.is_dir() else p.parent
+
+    for parent in [start] + list(start.parents):
+        if (parent / ".git").exists() or (parent / "skills.lock").is_file() or (parent / "AGENTS.md").is_file():
+            return parent
+
+    return start

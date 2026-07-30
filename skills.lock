@@ -25,9 +25,16 @@
     "architecture-auditor": {
       "version": "1.0.0",
       "requires": [],
-      "enhances": [],
+      "enhances": [
+        "domain-modeling"
+      ],
       "transitive_requires": [],
-      "transitive_enhances": [],
+      "transitive_enhances": [
+        "architecture-auditor",
+        "context-gatherer",
+        "domain-modeling",
+        "graphify"
+      ],
       "path": "skills/architecture-auditor"
     },
     "benchmarking": {
@@ -44,6 +51,8 @@
       ],
       "transitive_enhances": [
         "architecture-auditor",
+        "context-gatherer",
+        "domain-modeling",
         "graphify",
         "self-annealer"
       ],
@@ -72,6 +81,7 @@
       "transitive_enhances": [
         "architecture-auditor",
         "context-gatherer",
+        "domain-modeling",
         "graphify"
       ],
       "path": "skills/domain-modeling"
@@ -103,17 +113,31 @@
     "tdd": {
       "version": "1.0.0",
       "requires": [],
-      "enhances": [],
+      "enhances": [
+        "domain-modeling"
+      ],
       "transitive_requires": [],
-      "transitive_enhances": [],
+      "transitive_enhances": [
+        "architecture-auditor",
+        "context-gatherer",
+        "domain-modeling",
+        "graphify"
+      ],
       "path": "skills/tdd"
     },
     "tech-doc-writer": {
       "version": "1.0.0",
       "requires": [],
-      "enhances": [],
+      "enhances": [
+        "domain-modeling"
+      ],
       "transitive_requires": [],
-      "transitive_enhances": [],
+      "transitive_enhances": [
+        "architecture-auditor",
+        "context-gatherer",
+        "domain-modeling",
+        "graphify"
+      ],
       "path": "skills/tech-doc-writer"
     },
     "what-if-analysis": {
@@ -128,7 +152,9 @@
       "transitive_requires": [],
       "transitive_enhances": [
         "agent-council",
+        "architecture-auditor",
         "context-gatherer",
+        "domain-modeling",
         "graphify",
         "self-annealer",
         "tdd"
