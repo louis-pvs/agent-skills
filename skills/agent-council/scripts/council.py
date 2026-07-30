@@ -15,7 +15,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 SKILL_DIR = SCRIPT_DIR.parent
@@ -26,11 +26,33 @@ if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
 try:
-    from scripts._path_safety import get_repo_root
+    from scripts._path_safety import get_repo_root, safe_rmtree, sanitize_path
 
     REPO_ROOT = get_repo_root(__file__)
 except ImportError:
     REPO_ROOT = SKILL_DIR.parent.parent
+
+    def sanitize_path(input_path: Any, base_dir: Optional[Path] = None) -> Path:
+        base = base_dir.resolve() if base_dir else Path.cwd().resolve()
+        candidate = Path(input_path).resolve()
+        try:
+            candidate.relative_to(base)
+        except ValueError as err:
+            raise ValueError(f"Security Error: Path traversal attempt in '{input_path}'") from err
+        return candidate
+
+    def safe_rmtree(target_path: Any, base_dir: Path) -> bool:
+        try:
+            safe_p = sanitize_path(target_path, base_dir=base_dir)
+            if safe_p == base_dir.resolve() or not safe_p.exists():
+                return False
+            import shutil
+
+            shutil.rmtree(str(safe_p), ignore_errors=True)
+            return True
+        except ValueError:
+            return False
+
 
 SKILL_CONFIG_FILE = SKILL_DIR / "council.config.yaml"
 REPO_CONFIG_FILE = REPO_ROOT / "council.config.yaml"
@@ -300,18 +322,13 @@ def stop_job(job_dir: Path) -> None:
             pass
 
 
-def clean_job(job_dir: Path) -> None:
-    """Removes job directory."""
-    stop_job(job_dir)
-    resolved_dir = job_dir.resolve()
-    if not resolved_dir.exists():
-        return
-    safe_name = resolved_dir.name
-    if not safe_name or safe_name in (".", ".."):
-        return
-    import shutil
+def clean_job(job_dir: Path, jobs_base_dir: Optional[Path] = None) -> None:
+    """Removes job directory safely."""
+    if jobs_base_dir is None:
+        jobs_base_dir = SKILL_DIR / ".jobs"
 
-    shutil.rmtree(str(resolved_dir), ignore_errors=True)
+    stop_job(job_dir)
+    safe_rmtree(job_dir, base_dir=jobs_base_dir)
 
 
 def parse_args():
@@ -353,6 +370,16 @@ def parse_args():
     return parser.parse_args()
 
 
+def _resolve_job_arg(raw_job_dir: str, jobs_dir: Path) -> Optional[Path]:
+    """Safely resolves and validates user-supplied job directory argument within jobs_dir."""
+    safe_name = os.path.basename(raw_job_dir)
+    try:
+        return sanitize_path(jobs_dir / safe_name, base_dir=jobs_dir)
+    except ValueError as err:
+        sys.stderr.write(f"Security Error: Invalid job path '{raw_job_dir}': {err}\n")
+        return None
+
+
 def main() -> int:
     args = parse_args()
     jobs_dir = SKILL_DIR / ".jobs"
@@ -368,7 +395,9 @@ def main() -> int:
         return 0
 
     elif args.subcommand == "status":
-        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
+        job_dir = _resolve_job_arg(args.job_dir, jobs_dir)
+        if not job_dir:
+            return 1
         status = update_job_status(job_dir)
         if args.json:
             print(json.dumps(status, indent=2))
@@ -379,7 +408,9 @@ def main() -> int:
         return 0
 
     elif args.subcommand == "wait":
-        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
+        job_dir = _resolve_job_arg(args.job_dir, jobs_dir)
+        if not job_dir:
+            return 1
         while True:
             status = update_job_status(job_dir)
             if status.get("overallState") == "done":
@@ -389,18 +420,24 @@ def main() -> int:
         return 0
 
     elif args.subcommand == "results":
-        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
+        job_dir = _resolve_job_arg(args.job_dir, jobs_dir)
+        if not job_dir:
+            return 1
         print(get_results(job_dir, is_json=args.json))
         return 0
 
     elif args.subcommand == "stop":
-        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
+        job_dir = _resolve_job_arg(args.job_dir, jobs_dir)
+        if not job_dir:
+            return 1
         stop_job(job_dir)
         return 0
 
     elif args.subcommand == "clean":
-        job_dir = (jobs_dir / os.path.basename(args.job_dir)).resolve()
-        clean_job(job_dir)
+        job_dir = _resolve_job_arg(args.job_dir, jobs_dir)
+        if not job_dir:
+            return 1
+        clean_job(job_dir, jobs_base_dir=jobs_dir)
         return 0
 
     elif args.prompt:
@@ -412,7 +449,7 @@ def main() -> int:
                 break
             time.sleep(1)
         print(get_results(job_dir))
-        clean_job(job_dir)
+        clean_job(job_dir, jobs_base_dir=jobs_dir)
         return 0
 
     else:

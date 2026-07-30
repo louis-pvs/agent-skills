@@ -2,14 +2,14 @@
 """Comprehensive tests for the canonical path sanitization module (scripts/_path_safety.py).
 
 Covers: valid paths, traversal rejection, null-byte injection, strict char mode,
-directory validation, symlink resolution, and edge cases.
+directory validation, safe rmtree, symlink resolution, and edge cases.
 """
 
 import tempfile
 import unittest
 from pathlib import Path
 
-from scripts._path_safety import resolve_safe_dir, sanitize_path
+from scripts._path_safety import resolve_safe_dir, safe_rmtree, sanitize_path
 
 
 class TestSanitizePath(unittest.TestCase):
@@ -173,6 +173,40 @@ class TestResolveSafeDir(unittest.TestCase):
             base = Path(tmpdir)
             result = resolve_safe_dir(".", base_dir=base)
             self.assertEqual(result, base.resolve())
+
+
+class TestSafeRmtree(unittest.TestCase):
+    """Tests for safe_rmtree()."""
+
+    def test_safe_rmtree_valid_subfolder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            sub = base / "job-123"
+            sub.mkdir()
+            (sub / "log.txt").touch()
+
+            self.assertTrue(sub.exists())
+            success = safe_rmtree(sub, base_dir=base)
+            self.assertTrue(success)
+            self.assertFalse(sub.exists())
+
+    def test_safe_rmtree_rejects_base_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            success = safe_rmtree(base, base_dir=base)
+            self.assertFalse(success)
+            self.assertTrue(base.exists())
+
+    def test_safe_rmtree_rejects_traversal(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir) / "sandbox"
+            base.mkdir()
+            outside = Path(tmpdir) / "outside"
+            outside.mkdir()
+
+            success = safe_rmtree("../outside", base_dir=base)
+            self.assertFalse(success)
+            self.assertTrue(outside.exists())
 
 
 class TestGetRepoRoot(unittest.TestCase):

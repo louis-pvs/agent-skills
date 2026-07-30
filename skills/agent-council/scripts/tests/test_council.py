@@ -83,7 +83,7 @@ council:
                 self.assertGreater(len(res_text), 0)
 
                 # Cleanup
-                clean_job(job_dir)
+                clean_job(job_dir, jobs_base_dir=jobs_dir)
                 self.assertFalse(job_dir.exists())
 
 

@@ -11,6 +11,8 @@ Uses Python Standard Library only — no third-party dependencies.
 
 import os
 import re
+import shutil
+import sys
 from pathlib import Path
 from typing import Optional, Union
 
@@ -168,6 +170,32 @@ def resolve_safe_dir(
         raise ValueError(f"Error: Directory '{project_dir}' does not exist or is not a directory.")
 
     return project_dir
+
+
+def safe_rmtree(target_path: Union[str, Path], base_dir: Path) -> bool:
+    """Safely remove a directory tree after verifying containment within base_dir.
+
+    Guards against root directory deletion, base directory deletion, and path traversal escapes.
+
+    Args:
+        target_path: Path to directory to remove.
+        base_dir: Trusted base directory containing target_path.
+
+    Returns:
+        True if directory was successfully removed, False otherwise.
+    """
+    try:
+        safe_path = sanitize_path(target_path, base_dir=base_dir)
+    except ValueError as err:
+        sys.stderr.write(f"Security Error in safe_rmtree: {err}\n")
+        return False
+
+    base_resolved = base_dir.resolve()
+    if safe_path == base_resolved or not safe_path.exists():
+        return False
+
+    shutil.rmtree(str(safe_path), ignore_errors=True)
+    return True
 
 
 def get_repo_root(from_path: Optional[Union[str, Path]] = None) -> Path:

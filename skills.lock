@@ -4,6 +4,7 @@
   "topological_order": [
     "agent-council",
     "architecture-auditor",
+    "capability-gap-analyzer",
     "context-gatherer",
     "domain-modeling",
     "skill-creator",
@@ -57,6 +58,21 @@
         "self-annealer"
       ],
       "path": "skills/benchmarking"
+    },
+    "capability-gap-analyzer": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [
+        "skill-creator",
+        "context-gatherer"
+      ],
+      "transitive_requires": [],
+      "transitive_enhances": [
+        "context-gatherer",
+        "graphify",
+        "skill-creator"
+      ],
+      "path": "skills/capability-gap-analyzer"
     },
     "context-gatherer": {
       "version": "1.0.0",
