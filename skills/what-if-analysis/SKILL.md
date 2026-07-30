@@ -1,11 +1,22 @@
 ---
 name: what-if-analysis
 description: Prospective simulation, blast-radius calculation, AST call-graph parsing, counterfactual test generation, and pre-emptive failure risk analysis before refactoring or committing code changes.
+enhances:
+  - agent-council
+  - tdd
+  - self-annealer
+  - context-gatherer
+version: 1.0.0
 ---
 
 # What-If Analysis
 
 Perform prospective blast-radius calculation, symbol-reference dependency mapping, AST call-graph node traversal, sensitivity scenario modeling, counterfactual RED test case generation, and pre-emptive failure risk analysis before making code changes.
+
+## T-Shape Domain Scope & Boundary
+
+- **Predictive Domain (`what-if-analysis`)**: Forward-looking & simulation-driven. Focuses on predicting consequences before making code changes—blast-radius risk calculation (`impact_analyzer.py`), multi-option scenario tradeoff matrices (`scenario_runner.py`), AST call-graph node traversal (`ast_graph_parser.py`), adversarial RED counterfactual test generation (`counterfactual_generator.py`), and shift-left failure pre-emption (`failure_preemptor.py`).
+- **Descriptive Domain (`context-gatherer`)**: Backward-looking & exploratory. For mapping existing codebase structure, git history coupling, and architectural graph queries, use `context-gatherer`.
 
 ## Usage
 

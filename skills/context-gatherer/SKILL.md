@@ -19,6 +19,11 @@ Gather deep codebase context before making code changes. Orchestrates multiple c
 - After a merge/rebase: refresh your understanding of recently-changed areas
 - Entering unfamiliar code: build a mental map before making changes
 
+## T-Shape Domain Scope & Boundary
+
+- **Descriptive Domain (`context-gatherer`)**: Backward-looking & exploratory context mapping. Focuses on surfacing existing codebase state—git temporal coupling (`git_coupling.py`), symbol definitions/usages (`symbol_nav.py`), structural pattern matching (`ast_search.py`), and knowledge graph queries (`graphify`).
+- **Predictive Domain (`what-if-analysis`)**: Forward-looking & simulation-driven. For pre-commit simulations, blast radius risk calculation, scenario tradeoff matrices, counterfactual RED test synthesis, and shift-left failure pre-emption, use `what-if-analysis`.
+
 ## Sub-Skill Directory & Routing Map
 
 | Intent / Task | Script | Description |

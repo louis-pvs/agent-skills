@@ -103,9 +103,20 @@
     "what-if-analysis": {
       "version": "1.0.0",
       "requires": [],
-      "enhances": [],
+      "enhances": [
+        "agent-council",
+        "tdd",
+        "self-annealer",
+        "context-gatherer"
+      ],
       "transitive_requires": [],
-      "transitive_enhances": [],
+      "transitive_enhances": [
+        "agent-council",
+        "context-gatherer",
+        "graphify",
+        "self-annealer",
+        "tdd"
+      ],
       "path": "skills/what-if-analysis"
     }
   }
