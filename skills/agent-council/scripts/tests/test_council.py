@@ -16,6 +16,7 @@ from council import (  # noqa: E402
     create_job,
     generate_job_id,
     get_results,
+    load_config,
     parse_simple_yaml,
     update_job_status,
 )
@@ -32,10 +33,15 @@ council:
         parsed = parse_simple_yaml(sample_yaml)
         self.assertIn("council", parsed)
 
+    def test_load_config_adr0005(self) -> None:
+        config = load_config()
+        self.assertIn("council", config)
+        self.assertIn("members", config["council"])
+        self.assertGreater(len(config["council"]["members"]), 0)
+
     def test_generate_job_id(self) -> None:
         job_id = generate_job_id("Test question")
         self.assertTrue(job_id.startswith("council-"))
-        # Second call with same question should produce same hash suffix
         job_id2 = generate_job_id("Test question")
         self.assertEqual(job_id[-6:], job_id2[-6:])
 
@@ -44,7 +50,6 @@ council:
         with tempfile.TemporaryDirectory() as temp_dir:
             jobs_dir = Path(temp_dir)
 
-            # Mock Popen so no real subprocess is spawned during tests
             mock_proc = MagicMock()
             mock_proc.pid = 99999
 
@@ -71,18 +76,15 @@ council:
                 self.assertTrue((job_dir / "job.json").exists())
                 self.assertTrue((job_dir / "status.json").exists())
 
-                # Update status (mock process is not running, so it becomes 'done')
                 with patch("council.os.kill", side_effect=OSError("no such process")):
                     status = update_job_status(job_dir)
 
                 self.assertIn("overallState", status)
                 self.assertEqual(status["overallState"], "done")
 
-                # Get results should return non-empty text
                 res_text = get_results(job_dir, is_json=False)
                 self.assertGreater(len(res_text), 0)
 
-                # Cleanup
                 clean_job(job_dir, jobs_base_dir=jobs_dir)
                 self.assertFalse(job_dir.exists())
 

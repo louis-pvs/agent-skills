@@ -18,11 +18,17 @@ from domain_detector import detect_workspace_domains  # noqa: E402
 from gap_analyzer import (  # noqa: E402
     calculate_taxonomy_heatmap,
     generate_heatmap_markdown,
+    load_global_skill_paths,
     scan_skills_inventory,
 )
 
 
 class TestCapabilityGapAnalyzer(unittest.TestCase):
+    def test_load_global_skill_paths(self):
+        paths = load_global_skill_paths()
+        self.assertIsInstance(paths, list)
+        self.assertGreater(len(paths), 0)
+
     def test_scan_skills_inventory(self):
         inventory = scan_skills_inventory(_repo_root / "skills", include_global=False)
         self.assertIsInstance(inventory, list)

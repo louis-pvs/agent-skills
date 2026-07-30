@@ -26,6 +26,7 @@ if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
 try:
+    from scripts._config_safety import load_skill_config, parse_simple_yaml
     from scripts._path_safety import get_repo_root, safe_rmtree, sanitize_path
 
     REPO_ROOT = get_repo_root(__file__)
@@ -53,85 +54,83 @@ except ImportError:
         except ValueError:
             return False
 
+    def _parse_val(val: str) -> Any:
+        val = val.strip().strip("\"'")
+        if val.lower() == "true":
+            return True
+        if val.lower() == "false":
+            return False
+        if val.isdigit():
+            return int(val)
+        try:
+            return float(val)
+        except ValueError:
+            return val
 
-SKILL_CONFIG_FILE = SKILL_DIR / "council.config.yaml"
+    def parse_simple_yaml(content: str) -> Dict[str, Any]:
+        data: Dict[str, Any] = {}
+        current_section: Dict[str, Any] = {}
+        current_key = None
+        current_list_item: Dict[str, Any] = {}
+        lines = content.splitlines()
+        i = 0
+        while i < len(lines):
+            line = lines[i].split("#")[0].rstrip()
+            if not line:
+                i += 1
+                continue
+            indent = len(line) - len(line.lstrip(" "))
+            stripped = line.strip()
+            if stripped.endswith(":") and not stripped.startswith("-"):
+                key = stripped[:-1].strip()
+                if indent == 0:
+                    data[key] = {}
+                    current_section = data[key]
+                elif indent == 2 and isinstance(current_section, dict):
+                    if key == "members":
+                        current_section[key] = []
+                        current_key = "members"
+                    else:
+                        current_section[key] = {}
+                        current_key = key
+                i += 1
+                continue
+            if stripped.startswith("- ") and isinstance(current_section, dict):
+                rest = stripped[2:].strip()
+                if ":" in rest:
+                    k, v = rest.split(":", 1)
+                    item = {k.strip(): _parse_val(v.strip())}
+                    if current_key == "members":
+                        current_section["members"].append(item)
+                        current_list_item = item
+                i += 1
+                continue
+            if indent >= 6 and current_list_item and ":" in stripped:
+                k, v = stripped.split(":", 1)
+                current_list_item[k.strip()] = _parse_val(v.strip())
+            elif indent == 4 and current_key and current_key != "members" and ":" in stripped:
+                k, v = stripped.split(":", 1)
+                if isinstance(current_section.get(current_key), dict):
+                    current_section[current_key][k.strip()] = _parse_val(v.strip())
+            i += 1
+        return data
+
+    def load_skill_config(skill_name: str, skill_dir: Any = None, repo_root: Any = None) -> Dict[str, Any]:
+        p = (skill_dir or SKILL_DIR) / "config.yaml"
+        if not p.exists():
+            p = (skill_dir or SKILL_DIR) / "council.config.yaml"
+        if p.exists():
+            return {"skill_config": parse_simple_yaml(p.read_text(encoding="utf-8"))}
+        return {}
+
+
+SKILL_CONFIG_FILE = SKILL_DIR / "config.yaml"
+LEGACY_CONFIG_FILE = SKILL_DIR / "council.config.yaml"
 REPO_CONFIG_FILE = REPO_ROOT / "council.config.yaml"
 
 
-def _parse_val(val: str) -> Any:
-    val = val.strip().strip("\"'")
-    if val.lower() == "true":
-        return True
-    if val.lower() == "false":
-        return False
-    if val.isdigit():
-        return int(val)
-    try:
-        return float(val)
-    except ValueError:
-        return val
-
-
-def parse_simple_yaml(content: str) -> Dict[str, Any]:
-    """Lightweight zero-dependency YAML parser for council.config.yaml."""
-    data: Dict[str, Any] = {}
-    current_section: Dict[str, Any] = {}
-    current_key = None
-    current_list_item: Dict[str, Any] = {}
-
-    lines = content.splitlines()
-    i = 0
-    while i < len(lines):
-        line = lines[i].split("#")[0].rstrip()
-        if not line:
-            i += 1
-            continue
-
-        indent = len(line) - len(line.lstrip(" "))
-        stripped = line.strip()
-
-        if stripped.endswith(":") and not stripped.startswith("-"):
-            key = stripped[:-1].strip()
-            if indent == 0:
-                data[key] = {}
-                current_section = data[key]
-            elif indent == 2 and isinstance(current_section, dict):
-                if key == "members":
-                    current_section[key] = []
-                    current_key = "members"
-                else:
-                    current_section[key] = {}
-                    current_key = key
-            i += 1
-            continue
-
-        if stripped.startswith("- ") and isinstance(current_section, dict):
-            rest = stripped[2:].strip()
-            if ":" in rest:
-                k, v = rest.split(":", 1)
-                item = {k.strip(): _parse_val(v.strip())}
-                if current_key == "members":
-                    current_section["members"].append(item)
-                    current_list_item = item
-            i += 1
-            continue
-
-        if indent >= 6 and current_list_item and ":" in stripped:
-            k, v = stripped.split(":", 1)
-            current_list_item[k.strip()] = _parse_val(v.strip())
-
-        elif indent == 4 and current_key and current_key != "members" and ":" in stripped:
-            k, v = stripped.split(":", 1)
-            if isinstance(current_section.get(current_key), dict):
-                current_section[current_key][k.strip()] = _parse_val(v.strip())
-
-        i += 1
-
-    return data
-
-
 def load_config() -> Dict[str, Any]:
-    """Loads and parses council.config.yaml with robust defaults."""
+    """Loads and parses council configuration following ADR 0005 hierarchy."""
     default_config = {
         "council": {
             "chairman": {"role": "auto"},
@@ -145,19 +144,15 @@ def load_config() -> Dict[str, Any]:
         }
     }
 
-    config_path = SKILL_CONFIG_FILE if SKILL_CONFIG_FILE.exists() else REPO_CONFIG_FILE
-    if not config_path.exists():
-        return default_config
-
     try:
-        content = config_path.read_text(encoding="utf-8")
-        parsed = parse_simple_yaml(content)
-        if "council" in parsed and isinstance(parsed["council"], dict):
-            c = parsed["council"]
+        cfg = load_skill_config("agent-council", SKILL_DIR, REPO_ROOT)
+        skill_cfg = cfg.get("skill_config", {})
+        if "council" in skill_cfg and isinstance(skill_cfg["council"], dict):
+            c = skill_cfg["council"]
             if "members" in c and isinstance(c["members"], list) and len(c["members"]) > 0:
-                return parsed
+                return skill_cfg
     except Exception as err:
-        sys.stderr.write(f"Warning: Failed to parse {config_path}: {err}. Using defaults.\n")
+        sys.stderr.write(f"Warning: Failed to load council config: {err}. Using defaults.\n")
 
     return default_config
 

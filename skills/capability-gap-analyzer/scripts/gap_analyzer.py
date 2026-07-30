@@ -7,6 +7,7 @@ to build a structured inventory JSON and taxonomy coverage matrix for Tier 2 LLM
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -17,11 +18,15 @@ if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
 try:
+    from scripts._config_safety import load_skill_config
     from scripts._path_safety import resolve_safe_dir
 except ImportError:
 
     def resolve_safe_dir(raw_path: str, base_dir: Path | None = None) -> Path:
         return Path(raw_path).resolve()
+
+    def load_skill_config(name: str, s_dir: Any = None, r_root: Any = None) -> Dict[str, Any]:
+        return {}
 
 
 TAXONOMY_DOMAINS: Dict[str, Dict[str, Any]] = {
@@ -56,6 +61,33 @@ TAXONOMY_DOMAINS: Dict[str, Dict[str, Any]] = {
 }
 
 
+def load_global_skill_paths() -> List[Path]:
+    """Loads global skill lookup paths dynamically following ADR 0005 configuration hierarchy."""
+    home = Path.home()
+    default_paths = [
+        home / ".gemini" / "config" / "skills",
+        home / ".claude" / "skills",
+        home / ".copilot" / "skills",
+    ]
+
+    try:
+        cfg = load_skill_config("capability-gap-analyzer", _repo_root / "skills" / "capability-gap-analyzer", _repo_root)
+        repo_cfg = cfg.get("repo_config", {})
+        skill_cfg = cfg.get("skill_config", {})
+
+        custom_paths = skill_cfg.get("gap_analyzer", {}).get("custom_global_paths", [])
+        if custom_paths:
+            return [Path(os.path.expanduser(p)).resolve() for p in custom_paths]
+
+        targets = repo_cfg.get("targets", [])
+        if targets:
+            return [Path(os.path.expanduser(t.get("path", ""))).resolve() for t in targets if t.get("path")]
+    except Exception:
+        pass
+
+    return default_paths
+
+
 def parse_skill_frontmatter(skill_md_path: Path) -> Dict[str, Any]:
     """Extracts YAML frontmatter and title from a SKILL.md file."""
     if not skill_md_path.exists():
@@ -85,12 +117,7 @@ def scan_skills_inventory(skills_dir: Optional[Path] = None, include_global: boo
 
     roots = [(skills_dir, "workspace")]
     if include_global:
-        home = Path.home()
-        global_paths = [
-            home / ".gemini" / "config" / "skills",
-            home / ".claude" / "skills",
-            home / ".copilot" / "skills",
-        ]
+        global_paths = load_global_skill_paths()
         for gpath in global_paths:
             if gpath.exists() and gpath.is_dir() and gpath != skills_dir:
                 roots.append((gpath, "global"))

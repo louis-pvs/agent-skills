@@ -1,0 +1,31 @@
+# Agent Council Configuration
+# Defines participating member CLIs, chairman roles, and execution timeouts.
+
+council:
+  chairman:
+    role: "auto"
+
+  members:
+    - name: "claude"
+      command: "claude -p"
+      emoji: "🧠"
+      color: "CYAN"
+
+    - name: "codex"
+      command: "codex exec"
+      emoji: "🤖"
+      color: "BLUE"
+
+    - name: "gemini"
+      command: "agy -p"
+      emoji: "💎"
+      color: "GREEN"
+
+    - name: "copilot"
+      command: "copilot -p"
+      emoji: "✈️"
+      color: "BLUE"
+
+  settings:
+    exclude_chairman_from_members: true
+    timeout: 120

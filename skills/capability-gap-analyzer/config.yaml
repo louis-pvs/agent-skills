@@ -1,0 +1,11 @@
+# Capability Gap Analyzer Configuration
+# Defines custom target domain lookup settings and taxonomy exclusions.
+
+gap_analyzer:
+  settings:
+    include_global: true
+
+  custom_global_paths:
+    - "~/.gemini/config/skills"
+    - "~/.claude/skills"
+    - "~/.copilot/skills"
