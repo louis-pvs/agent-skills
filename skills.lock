@@ -8,6 +8,7 @@
     "capability-gap-analyzer",
     "context-gatherer",
     "domain-modeling",
+    "self-progress",
     "skill-creator",
     "tdd",
     "tech-doc-writer",
@@ -136,6 +137,22 @@
         "graphify"
       ],
       "path": "skills/self-annealer"
+    },
+    "self-progress": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [
+        "skill-creator",
+        "capability-gap-analyzer"
+      ],
+      "transitive_requires": [],
+      "transitive_enhances": [
+        "capability-gap-analyzer",
+        "context-gatherer",
+        "graphify",
+        "skill-creator"
+      ],
+      "path": "skills/self-progress"
     },
     "skill-creator": {
       "version": "1.0.0",
