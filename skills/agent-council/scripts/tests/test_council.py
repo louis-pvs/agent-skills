@@ -88,6 +88,49 @@ council:
                 clean_job(job_dir, jobs_base_dir=jobs_dir)
                 self.assertFalse(job_dir.exists())
 
+    def test_create_job_missing_cli(self) -> None:
+        """Tests that create_job handles missing binary gracefully without raising FileNotFoundError."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            jobs_dir = Path(temp_dir)
+            missing_config = {
+                "council": {
+                    "chairman": {"role": "auto"},
+                    "members": [
+                        {
+                            "name": "missing-tool",
+                            "command": "nonexistent_binary_xyz123 --flag",
+                            "emoji": "🚫",
+                            "color": "RED",
+                        },
+                    ],
+                    "settings": {"exclude_chairman_from_members": True, "timeout": 60},
+                }
+            }
+
+            with patch("council.load_config", return_value=missing_config):
+                job_dir = create_job("Question for missing CLI", jobs_dir)
+                self.assertTrue(job_dir.exists())
+
+                status_file = job_dir / "status.json"
+                self.assertTrue(status_file.exists())
+
+                import json
+
+                status = json.loads(status_file.read_text(encoding="utf-8"))
+                self.assertIn("members", status)
+                self.assertIn("missing-tool", status["members"])
+
+                member_info = status["members"]["missing-tool"]
+                self.assertEqual(member_info["state"], "missing_cli")
+                self.assertIn("CLI executable 'nonexistent_binary_xyz123' not found in PATH", member_info["error"])
+
+                err_file = job_dir / "missing-tool.err"
+                self.assertTrue(err_file.exists())
+                err_content = err_file.read_text(encoding="utf-8")
+                self.assertIn("nonexistent_binary_xyz123", err_content)
+
+                clean_job(job_dir, jobs_base_dir=jobs_dir)
+
 
 if __name__ == "__main__":
     unittest.main()

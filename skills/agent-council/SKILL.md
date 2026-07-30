@@ -28,6 +28,13 @@ For quick, synchronous query and result synthesis:
 python3 skills/agent-council/scripts/council.py "your question here"
 ```
 
+## Headless Execution & Prompt Guidelines
+
+> [!TIP]
+> **Pass Self-Contained Context in Prompts**: Member CLIs execute headlessly in background sub-shells without interactive user access. When formulating council questions, inline all critical context (such as code diffs, file snippets, or issue descriptions) directly into the prompt string so member agents do not fail on interactive permission prompts or remote repo auth limits.
+>
+> **Missing CLI Pre-checking**: Executables are pre-checked via `shutil.which`. If a configured CLI is absent, it is safely marked as `missing_cli` in status output without crashing the orchestrator.
+
 ## References
 
 - [overview.md](references/overview.md) — Workflow and multi-agent synthesis background.

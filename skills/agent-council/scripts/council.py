@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -47,7 +48,6 @@ except ImportError:
             safe_p = sanitize_path(target_path, base_dir=base_dir)
             if safe_p == base_dir.resolve() or not safe_p.exists():
                 return False
-            import shutil
 
             shutil.rmtree(str(safe_p), ignore_errors=True)
             return True
@@ -78,7 +78,6 @@ def load_config() -> Dict[str, Any]:
             "chairman": {"role": "auto"},
             "members": [
                 {"name": "claude", "command": "claude -p", "emoji": "🧠", "color": "CYAN"},
-                {"name": "codex", "command": "codex exec", "emoji": "🤖", "color": "BLUE"},
                 {"name": "gemini", "command": "agy -p", "emoji": "💎", "color": "GREEN"},
                 {"name": "copilot", "command": "copilot -p", "emoji": "✈️", "color": "BLUE"},
             ],
@@ -143,23 +142,45 @@ def create_job(question: str, jobs_dir: Path) -> Path:
         log_file = job_dir / f"{m_name}.log"
         err_file = job_dir / f"{m_name}.err"
 
-        status_data["members"][m_name] = {
-            "state": "running",
-            "emoji": member.get("emoji", "🤖"),
-            "color": member.get("color", "BLUE"),
-            "start_time": time.time(),
-        }
-
         cmd_args = shlex.split(cmd_str) + [question]
-        with open(log_file, "w", encoding="utf-8") as out_f, open(err_file, "w", encoding="utf-8") as err_f:
-            proc = subprocess.Popen(
-                cmd_args,
-                stdout=out_f,
-                stderr=err_f,
-                cwd=str(REPO_ROOT),
-            )
-            pid_file = job_dir / f"{m_name}.pid"
-            pid_file.write_text(str(proc.pid), encoding="utf-8")
+        binary = cmd_args[0]
+
+        if not shutil.which(binary):
+            status_data["members"][m_name] = {
+                "state": "missing_cli",
+                "emoji": member.get("emoji", "🤖"),
+                "color": member.get("color", "BLUE"),
+                "start_time": time.time(),
+                "error": f"CLI executable '{binary}' not found in PATH",
+            }
+            err_file.write_text(f"Error: Executable '{binary}' not found in system PATH.\n", encoding="utf-8")
+            continue
+
+        try:
+            with open(log_file, "w", encoding="utf-8") as out_f, open(err_file, "w", encoding="utf-8") as err_f:
+                proc = subprocess.Popen(
+                    cmd_args,
+                    stdout=out_f,
+                    stderr=err_f,
+                    cwd=str(REPO_ROOT),
+                )
+                pid_file = job_dir / f"{m_name}.pid"
+                pid_file.write_text(str(proc.pid), encoding="utf-8")
+                status_data["members"][m_name] = {
+                    "state": "running",
+                    "emoji": member.get("emoji", "🤖"),
+                    "color": member.get("color", "BLUE"),
+                    "start_time": time.time(),
+                }
+        except (FileNotFoundError, OSError) as err:
+            status_data["members"][m_name] = {
+                "state": "missing_cli",
+                "emoji": member.get("emoji", "🤖"),
+                "color": member.get("color", "BLUE"),
+                "start_time": time.time(),
+                "error": str(err),
+            }
+            err_file.write_text(f"Error: Failed to spawn '{binary}': {err}\n", encoding="utf-8")
 
     (job_dir / "status.json").write_text(json.dumps(status_data, indent=2), encoding="utf-8")
     return job_dir
