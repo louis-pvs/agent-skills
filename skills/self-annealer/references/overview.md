@@ -16,16 +16,16 @@ Self-Annealer eliminates this friction by binding the agent to an iterative repa
 
 ```mermaid
 flowchart TD
-    Start[Detect Error / Failure] --> CheckLimit{Attempts < Max?}
-    CheckLimit -- Yes --> RunDiagnosis[Inspect Error & Log Traceback]
-    RunDiagnosis --> FormHypothesis[Form Single Target Hypothesis]
-    FormHypothesis --> ApplyPatch[Apply Surgical Code Patch]
-    ApplyPatch --> RunVerification[Run Test / Linter Verification]
-    RunVerification -- Success --> SuccessEnd[Annealing Succeeded (Exit 0)]
-    RunVerification -- Failed --> IncrementAttempt[Increment Attempt Count]
+    Start["Detect Error / Failure"] --> CheckLimit{"Attempts < Max?"}
+    CheckLimit -- Yes --> RunDiagnosis["Inspect Error & Log Traceback"]
+    RunDiagnosis --> FormHypothesis["Form Single Target Hypothesis"]
+    FormHypothesis --> ApplyPatch["Apply Surgical Code Patch"]
+    ApplyPatch --> RunVerification["Run Test / Linter Verification"]
+    RunVerification -- Success --> SuccessEnd["Annealing Succeeded (Exit 0)"]
+    RunVerification -- Failed --> IncrementAttempt["Increment Attempt Count"]
     IncrementAttempt --> CheckLimit
-    CheckLimit -- No (Exceeded) --> GitRollback[Git Rollback to Baseline]
-    GitRollback --> FailEnd[Annealing Failed (Exit 1)]
+    CheckLimit -- No (Exceeded) --> GitRollback["Git Rollback to Baseline"]
+    GitRollback --> FailEnd["Annealing Failed (Exit 1)"]
 ```
 
 ---

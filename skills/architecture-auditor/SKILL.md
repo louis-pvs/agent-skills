@@ -28,6 +28,7 @@ flowchart TD
 ### 1. Scope & Input Target Resolution
 
 Determine what code to audit:
+
 - `--file <path>`: Single file audit.
 - `--dir <path>`: Directory or module audit.
 - `--diff`: Audit uncommitted git changes or target PR diff.
@@ -36,6 +37,7 @@ Determine what code to audit:
 ### 2. Inspect Code Context
 
 Read target files using `view_file` or inspect git diffs. Analyze:
+
 - Class line counts, method counts, and public API surface area.
 - Inheritance chains, interface implementations, and type checks.
 - Import statements (infrastructure vs domain layer boundaries).
@@ -44,6 +46,7 @@ Read target files using `view_file` or inspect git diffs. Analyze:
 ### 3. Dynamic Reference Loading (Progressive Disclosure)
 
 Only load relevant reference guides as needed to evaluate detected signals:
+
 - **SOLID Principles**: Read [references/solid.md](references/solid.md) for SRP, OCP, LSP, ISP, and DIP heuristics.
 - **DRY vs YAGNI**: Read [references/dry-yagni.md](references/dry-yagni.md) for knowledge duplication vs speculative generality.
 - **CUPID Properties**: Read [references/cupid.md](references/cupid.md) for Composability, Unix-like focus, Predictability, Idiomatic patterns, and Domain alignment.
@@ -53,6 +56,7 @@ Only load relevant reference guides as needed to evaluate detected signals:
 ### 4. Calibrate Severity & Confidence
 
 Calibrate findings according to [references/audit-report.md](references/audit-report.md):
+
 - **Severity**: `🚨 CRITICAL`, `⚠️ WARNING`, `💡 ADVISORY`.
 - **Confidence**: `CONFIRMED` (empirical proof) or `PLAUSIBLE` (heuristic pattern).
 - Avoid over-flagging minor stylistic choices as critical violations.

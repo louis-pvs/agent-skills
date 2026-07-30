@@ -42,7 +42,7 @@ We need a lightweight, deterministic dependency management architecture that fit
 
 **Selected Option 1: Frontmatter Declarations + Kahn's Algorithm + Tracked `skills.lock` Cache**
 
-### Rationale:
+### Rationale
 
 1. **Two-Tier Declaration in `SKILL.md`**:
    - `requires`: Hard execution dependency. Missing target fails loud at install/validation time.
