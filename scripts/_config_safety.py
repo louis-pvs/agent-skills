@@ -74,24 +74,29 @@ def parse_simple_yaml(content: str) -> Dict[str, Any]:
 
         if stripped.startswith("- "):
             rest = stripped[2:].strip()
-            item_dict: Dict[str, Any] = {}
+            item: Any = None
             if ":" in rest:
                 k, v = rest.split(":", 1)
-                item_dict[k.strip()] = _parse_val(v.strip())
+                item = {k.strip(): _parse_val(v.strip())}
+                current_list_item = item
+            else:
+                item = _parse_val(rest)
+                current_list_item = None
 
             if current_key:
                 val = data.get(current_key)
                 if isinstance(val, dict) and not val:
-                    data[current_key] = [item_dict]
+                    data[current_key] = [item]
                 elif isinstance(val, list):
-                    val.append(item_dict)
+                    val.append(item)
                 elif isinstance(val, dict):
                     sub_keys = list(val.keys())
-                    if sub_keys and isinstance(val[sub_keys[-1]], list):
-                        val[sub_keys[-1]].append(item_dict)
-                    elif sub_keys and isinstance(val[sub_keys[-1]], dict) and not val[sub_keys[-1]]:
-                        val[sub_keys[-1]] = [item_dict]
-            current_list_item = item_dict
+                    if sub_keys:
+                        last_k = sub_keys[-1]
+                        if isinstance(val[last_k], list):
+                            val[last_k].append(item)
+                        elif isinstance(val[last_k], dict) and not val[last_k]:
+                            val[last_k] = [item]
             continue
 
         if current_list_item is not None and ":" in stripped and indent >= 4:

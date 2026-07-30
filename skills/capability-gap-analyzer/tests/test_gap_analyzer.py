@@ -28,6 +28,9 @@ class TestCapabilityGapAnalyzer(unittest.TestCase):
         paths = load_global_skill_paths()
         self.assertIsInstance(paths, list)
         self.assertGreater(len(paths), 0)
+        # Verify all elements in paths are Path objects, not empty dicts
+        for p in paths:
+            self.assertIsInstance(p, Path)
 
     def test_scan_skills_inventory(self):
         inventory = scan_skills_inventory(_repo_root / "skills", include_global=False)

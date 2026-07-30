@@ -54,79 +54,21 @@ except ImportError:
         except ValueError:
             return False
 
-    def _parse_val(val: str) -> Any:
-        val = val.strip().strip("\"'")
-        if val.lower() == "true":
-            return True
-        if val.lower() == "false":
-            return False
-        if val.isdigit():
-            return int(val)
-        try:
-            return float(val)
-        except ValueError:
-            return val
-
     def parse_simple_yaml(content: str) -> Dict[str, Any]:
-        data: Dict[str, Any] = {}
-        current_section: Dict[str, Any] = {}
-        current_key = None
-        current_list_item: Dict[str, Any] = {}
-        lines = content.splitlines()
-        i = 0
-        while i < len(lines):
-            line = lines[i].split("#")[0].rstrip()
-            if not line:
-                i += 1
-                continue
-            indent = len(line) - len(line.lstrip(" "))
-            stripped = line.strip()
-            if stripped.endswith(":") and not stripped.startswith("-"):
-                key = stripped[:-1].strip()
-                if indent == 0:
-                    data[key] = {}
-                    current_section = data[key]
-                elif indent == 2 and isinstance(current_section, dict):
-                    if key == "members":
-                        current_section[key] = []
-                        current_key = "members"
-                    else:
-                        current_section[key] = {}
-                        current_key = key
-                i += 1
-                continue
-            if stripped.startswith("- ") and isinstance(current_section, dict):
-                rest = stripped[2:].strip()
-                if ":" in rest:
-                    k, v = rest.split(":", 1)
-                    item = {k.strip(): _parse_val(v.strip())}
-                    if current_key == "members":
-                        current_section["members"].append(item)
-                        current_list_item = item
-                i += 1
-                continue
-            if indent >= 6 and current_list_item and ":" in stripped:
-                k, v = stripped.split(":", 1)
-                current_list_item[k.strip()] = _parse_val(v.strip())
-            elif indent == 4 and current_key and current_key != "members" and ":" in stripped:
-                k, v = stripped.split(":", 1)
-                if isinstance(current_section.get(current_key), dict):
-                    current_section[current_key][k.strip()] = _parse_val(v.strip())
-            i += 1
-        return data
+        return {}
 
     def load_skill_config(skill_name: str, skill_dir: Any = None, repo_root: Any = None) -> Dict[str, Any]:
         p = (skill_dir or SKILL_DIR) / "config.yaml"
         if not p.exists():
             p = (skill_dir or SKILL_DIR) / "council.config.yaml"
         if p.exists():
-            return {"skill_config": parse_simple_yaml(p.read_text(encoding="utf-8"))}
+            try:
+                from scripts._config_safety import parse_simple_yaml as fallback_parser
+
+                return {"skill_config": fallback_parser(p.read_text(encoding="utf-8"))}
+            except ImportError:
+                return {}
         return {}
-
-
-SKILL_CONFIG_FILE = SKILL_DIR / "config.yaml"
-LEGACY_CONFIG_FILE = SKILL_DIR / "council.config.yaml"
-REPO_CONFIG_FILE = REPO_ROOT / "council.config.yaml"
 
 
 def load_config() -> Dict[str, Any]:

@@ -26,6 +26,21 @@ targets:
         self.assertEqual(len(parsed["targets"]), 2)
         self.assertEqual(parsed["targets"][0]["name"], "Gemini / Antigravity")
 
+    def test_parse_simple_yaml_scalar_list(self) -> None:
+        sample_yaml = """
+gap_analyzer:
+  custom_global_paths:
+    - "~/.gemini/config/skills"
+    - "~/.claude/skills"
+"""
+        parsed = parse_simple_yaml(sample_yaml)
+        self.assertIn("gap_analyzer", parsed)
+        self.assertIn("custom_global_paths", parsed["gap_analyzer"])
+        self.assertEqual(
+            parsed["gap_analyzer"]["custom_global_paths"],
+            ["~/.gemini/config/skills", "~/.claude/skills"],
+        )
+
     def test_parse_simple_yaml_nested_sections(self) -> None:
         sample_yaml = """
 council:

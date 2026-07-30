@@ -76,14 +76,28 @@ def load_global_skill_paths() -> List[Path]:
         skill_cfg = cfg.get("skill_config", {})
 
         custom_paths = skill_cfg.get("gap_analyzer", {}).get("custom_global_paths", [])
-        if custom_paths:
-            return [Path(os.path.expanduser(p)).resolve() for p in custom_paths]
+        if custom_paths and isinstance(custom_paths, list):
+            resolved = []
+            for p in custom_paths:
+                if isinstance(p, str):
+                    resolved.append(Path(os.path.expanduser(p)).resolve())
+                elif isinstance(p, dict) and "path" in p:
+                    resolved.append(Path(os.path.expanduser(str(p["path"]))).resolve())
+            if resolved:
+                return resolved
 
         targets = repo_cfg.get("targets", [])
-        if targets:
-            return [Path(os.path.expanduser(t.get("path", ""))).resolve() for t in targets if t.get("path")]
-    except Exception:
-        pass
+        if targets and isinstance(targets, list):
+            resolved_targets = []
+            for t in targets:
+                if isinstance(t, dict) and t.get("path"):
+                    resolved_targets.append(Path(os.path.expanduser(str(t["path"]))).resolve())
+                elif isinstance(t, str):
+                    resolved_targets.append(Path(os.path.expanduser(t)).resolve())
+            if resolved_targets:
+                return resolved_targets
+    except Exception as err:
+        sys.stderr.write(f"Warning: Failed to resolve global skill paths: {err}\n")
 
     return default_paths
 
