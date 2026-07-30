@@ -10,16 +10,24 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+try:
+    from scripts._path_safety import resolve_safe_dir
+except ImportError:
+    _repo_root = Path(__file__).resolve().parents[3]
+    if str(_repo_root) not in sys.path:
+        sys.path.insert(0, str(_repo_root))
+    from scripts._path_safety import resolve_safe_dir
 
 
-def resolve_project_dir(raw_path: str) -> Path:
-    """Resolves and validates a user-supplied directory path without stripping absolute path prefixes."""
-    project_dir = Path(raw_path).resolve()
-    if not project_dir.exists() or not project_dir.is_dir():
-        sys.stderr.write(f"Error: Directory '{project_dir}' does not exist or is not a directory.\n")
+def resolve_project_dir(raw_path: str, base_dir: Optional[Path] = None) -> Path:
+    """Resolves and validates a user-supplied directory path strictly within a trusted base."""
+    try:
+        return resolve_safe_dir(raw_path, base_dir=base_dir)
+    except ValueError as err:
+        sys.stderr.write(f"{err}\n")
         sys.exit(1)
-    return project_dir
 
 
 _HEURISTIC_PROFILES: List[tuple[set[str], Dict[str, Any]]] = [

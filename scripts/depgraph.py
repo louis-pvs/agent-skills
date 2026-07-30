@@ -13,37 +13,20 @@ import re
 import sys
 from collections import deque
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 REPO_DIR = Path(__file__).parent.parent.resolve()
 SKILLS_DIR = REPO_DIR / "skills"
 LOCKFILE_PATH = REPO_DIR / "skills.lock"
 CONFIG_FILE = REPO_DIR / "skills.config.yaml"
 
+if str(REPO_DIR) not in sys.path:
+    sys.path.insert(0, str(REPO_DIR))
 
-def sanitize_path(input_path: Union[str, Path], base_dir: Optional[Path] = None) -> Path:
-    """Sanitize and validate a file or directory path against path traversal attacks.
-
-    Resolves symlinks and relative elements ('..'). Validates that the resolved path
-    is located strictly within base_dir (or REPO_DIR if base_dir is None).
-    """
-    base = os.path.realpath(str(base_dir if base_dir is not None else REPO_DIR))
-    target = os.path.realpath(str(input_path))
-
-    if os.path.commonpath([base, target]) != base:
-        raise ValueError(
-            f"Security Error: Path traversal attempt detected. '{input_path}' is outside allowed base directory '{base}'"
-        )
-
-    resolved_path = Path(target)
-    try:
-        resolved_path.relative_to(Path(base))
-    except ValueError as err:
-        raise ValueError(
-            f"Security Error: Path traversal attempt detected. '{input_path}' is outside allowed base directory '{base}'"
-        ) from err
-
-    return resolved_path
+try:
+    from scripts._path_safety import sanitize_path  # ADR 0004: canonical path safety
+except ImportError:
+    from _path_safety import sanitize_path
 
 
 def load_global_skill_config(config_path: Path = CONFIG_FILE) -> List[Dict[str, str]]:

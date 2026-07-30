@@ -16,6 +16,15 @@ import unittest
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+try:
+    from scripts._path_safety import sanitize_path
+except ImportError:
+    _repo_root = Path(__file__).resolve().parents[3]
+    if str(_repo_root) not in sys.path:
+        sys.path.insert(0, str(_repo_root))
+    from scripts._path_safety import sanitize_path
+
+
 STDLIB_MODULES = getattr(sys, "stdlib_module_names", None) or {
     "argparse",
     "ast",
@@ -195,8 +204,9 @@ def scaffold_skill(
     if not valid:
         raise ValueError("Invalid skill metadata:\n" + "\n".join(f"- {e}" for e in errors))
 
+    safe_target_dir = sanitize_path(target_dir)
     safe_name = os.path.basename(name)
-    skill_path = target_dir / safe_name
+    skill_path = sanitize_path(safe_target_dir / safe_name, base_dir=safe_target_dir)
     if skill_path.exists():
         raise FileExistsError(f"Skill directory already exists: {skill_path}")
 
@@ -204,7 +214,7 @@ def scaffold_skill(
 
     title_words = [w.capitalize() for w in name.split("-")]
     skill_title = " ".join(title_words)
-    skill_md = skill_path / "SKILL.md"
+    skill_md = sanitize_path(skill_path / "SKILL.md", base_dir=skill_path)
 
     desc_str = description.strip()
     if ":" in desc_str or "'" in desc_str or '"' in desc_str or "#" in desc_str:
@@ -298,7 +308,7 @@ Overview of {skill_title}.
 
     skill_md.write_text(content, encoding="utf-8")
 
-    readme_md = skill_path / "README.md"
+    readme_md = sanitize_path(skill_path / "README.md", base_dir=skill_path)
     readme_content = f"""# {skill_title}
 
 {desc_str}
@@ -315,19 +325,21 @@ Overview of {skill_title}.
     readme_md.write_text(readme_content, encoding="utf-8")
 
     if skill_type == "complex":
-        (skill_path / "references").mkdir(exist_ok=True)
-        (skill_path / "templates").mkdir(exist_ok=True)
-        (skill_path / "examples").mkdir(exist_ok=True)
+        ref_dir = sanitize_path(skill_path / "references", base_dir=skill_path)
+        ref_dir.mkdir(exist_ok=True)
+        tmpl_dir = sanitize_path(skill_path / "templates", base_dir=skill_path)
+        tmpl_dir.mkdir(exist_ok=True)
+        ex_dir = sanitize_path(skill_path / "examples", base_dir=skill_path)
+        ex_dir.mkdir(exist_ok=True)
 
-        scripts_dir = skill_path / "scripts"
-        tests_dir = scripts_dir / "tests"
+        scripts_dir = sanitize_path(skill_path / "scripts", base_dir=skill_path)
+        tests_dir = sanitize_path(scripts_dir / "tests", base_dir=scripts_dir)
         tests_dir.mkdir(parents=True, exist_ok=True)
 
-        (skill_path / "references" / "overview.md").write_text(
-            f"# {skill_title} Overview\n\nExtended reference documentation.\n", encoding="utf-8"
-        )
+        overview_md = sanitize_path(ref_dir / "overview.md", base_dir=ref_dir)
+        overview_md.write_text(f"# {skill_title} Overview\n\nExtended reference documentation.\n", encoding="utf-8")
 
-        starter_script = scripts_dir / "main.py"
+        starter_script = sanitize_path(scripts_dir / "main.py", base_dir=scripts_dir)
         starter_script.write_text(
             f"""#!/usr/bin/env python3
 \"\"\"{skill_title} main automation script.\"\"\"
@@ -351,7 +363,7 @@ if __name__ == "__main__":
             encoding="utf-8",
         )
 
-        starter_test = tests_dir / "test_main.py"
+        starter_test = sanitize_path(tests_dir / "test_main.py", base_dir=tests_dir)
         starter_test.write_text(
             f"""#!/usr/bin/env python3
 \"\"\"Tests for {skill_title} main script.\"\"\"
@@ -439,10 +451,15 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     """Validates an existing skill directory against agentskills.io standard & design rules."""
     issues = []
 
-    if not skill_dir.is_dir():
-        return False, [f"Target path is not a directory: {skill_dir}"]
+    try:
+        resolved_skill_dir = sanitize_path(skill_dir)
+    except ValueError as err:
+        return False, [str(err)]
 
-    skill_md = skill_dir / "SKILL.md"
+    if not resolved_skill_dir.is_dir():
+        return False, [f"Target path is not a directory: {resolved_skill_dir}"]
+
+    skill_md = sanitize_path(resolved_skill_dir / "SKILL.md", base_dir=resolved_skill_dir)
     if not skill_md.exists():
         return False, [f"Missing required SKILL.md at: {skill_md}"]
 
@@ -468,16 +485,16 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
     if desc:
         issues.extend(check_scope_creep(desc))
 
-    if name and name != skill_dir.name:
-        issues.append(f"Frontmatter name ('{name}') does not match directory name ('{skill_dir.name}').")
+    if name and name != resolved_skill_dir.name:
+        issues.append(f"Frontmatter name ('{name}') does not match directory name ('{resolved_skill_dir.name}').")
 
     # Complex Skill Structural Completeness Audit
-    scripts_dir = skill_dir / "scripts"
-    references_dir = skill_dir / "references"
+    scripts_dir = sanitize_path(resolved_skill_dir / "scripts", base_dir=resolved_skill_dir)
+    references_dir = sanitize_path(resolved_skill_dir / "references", base_dir=resolved_skill_dir)
     is_complex_skill = scripts_dir.is_dir() or references_dir.is_dir()
 
     if is_complex_skill:
-        overview_md = references_dir / "overview.md"
+        overview_md = sanitize_path(references_dir / "overview.md", base_dir=references_dir)
         if not overview_md.exists():
             issues.append(f"Complex Skill Structure Warning: Missing mandatory 'references/overview.md' at: {overview_md}")
         if scripts_dir.is_dir():
@@ -520,7 +537,7 @@ def validate_skill(skill_dir: Path) -> Tuple[bool, List[str]]:
             )
 
     # Script Unit Tests Audit
-    tests_dir = skill_dir / "scripts" / "tests"
+    tests_dir = resolved_skill_dir / "scripts" / "tests"
     if tests_dir.is_dir():
         if str(tests_dir.parent) not in sys.path:
             sys.path.insert(0, str(tests_dir.parent))
@@ -569,18 +586,19 @@ def main() -> int:
 
     if args.dry_run:
         if args.validate:
-            print(f"[DRY-RUN] Would validate skill at: {Path(args.validate).resolve()}")
+            print(f"[DRY-RUN] Would validate skill at: {sanitize_path(args.validate)}")
             return 0
         if not args.name or not args.description:
             print("Error: Both --name and --description are required when scaffolding a skill.", file=sys.stderr)
             return 1
         skill_type = "complex" if args.complex else args.type
-        target_dir = Path(args.target_dir).resolve() / args.name
+        safe_target = sanitize_path(args.target_dir)
+        target_dir = sanitize_path(safe_target / os.path.basename(args.name), base_dir=safe_target)
         print(f"[DRY-RUN] Would scaffold skill '{args.name}' ({skill_type}) at: {target_dir}")
         return 0
 
     if args.validate:
-        target_path = Path(args.validate).resolve()
+        target_path = sanitize_path(args.validate)
         is_valid, issues = validate_skill(target_path)
         if is_valid:
             print(f"✅ Skill at '{target_path}' is VALID according to agentskills.io standard!")
@@ -595,8 +613,7 @@ def main() -> int:
         print("Error: Both --name and --description are required when scaffolding a skill.", file=sys.stderr)
         return 1
 
-    safe_target = os.path.basename(os.path.normpath(args.target_dir)) or "skills"
-    target_dir = (Path.cwd() / safe_target).resolve()
+    target_dir = sanitize_path(args.target_dir)
     skill_type = "complex" if args.complex else args.type
     try:
         created_path = scaffold_skill(

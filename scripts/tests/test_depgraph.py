@@ -5,13 +5,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from scripts._path_safety import sanitize_path
 from scripts.depgraph import (
     SkillNode,
     compute_transitive_deps,
     generate_lockfile,
     parse_yaml_frontmatter,
     resolve_topological_sort,
-    sanitize_path,
     verify_graph,
 )
 
@@ -22,18 +22,17 @@ class TestDepGraph(unittest.TestCase):
     def test_sanitize_path_valid(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             base = Path(tmpdir)
-            target = base / "sub" / "file.json"
-            sanitized = sanitize_path(target, base_dir=base)
-            self.assertEqual(sanitized, target.resolve())
+            (base / "sub").mkdir()
+            sanitized = sanitize_path("sub", base_dir=base)
+            self.assertEqual(sanitized, (base / "sub").resolve())
 
     def test_sanitize_path_traversal(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             base = Path(tmpdir) / "allowed"
             base.mkdir()
-            traversal_path = base / ".." / "outside.txt"
             with self.assertRaises(ValueError) as ctx:
-                sanitize_path(traversal_path, base_dir=base)
-            self.assertIn("Security Error: Path traversal attempt detected", str(ctx.exception))
+                sanitize_path("../outside.txt", base_dir=base)
+            self.assertIn("Security Error", str(ctx.exception))
 
     def test_parse_frontmatter(self) -> None:
         content = """---

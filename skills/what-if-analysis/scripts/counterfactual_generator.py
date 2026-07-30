@@ -6,10 +6,17 @@ before refactoring code (extending TDD).
 """
 
 import argparse
-import os
 import sys
 from pathlib import Path
 from typing import List, Optional
+
+try:
+    from scripts._path_safety import sanitize_path
+except ImportError:
+    _repo_root = Path(__file__).resolve().parents[3]
+    if str(_repo_root) not in sys.path:
+        sys.path.insert(0, str(_repo_root))
+    from scripts._path_safety import sanitize_path
 
 
 def generate_counterfactual_test(symbol: str, params: List[str], module_name: str = "module") -> str:
@@ -48,12 +55,11 @@ def generate_counterfactual_test(symbol: str, params: List[str], module_name: st
 
 def resolve_safe_path(raw_path: str, base_dir: Optional[Path] = None) -> Path:
     """Sanitizes user-supplied input paths against Path Traversal vulnerabilities."""
-    base = (base_dir if base_dir is not None else Path.cwd()).resolve()
-    target = Path(raw_path).expanduser().resolve()
-    if not str(target).startswith(str(base)) or os.path.commonpath([str(base), str(target)]) != str(base):
-        sys.stderr.write(f"Security Error: Path traversal attempt detected. '{raw_path}' escapes base directory '{base}'.\n")
+    try:
+        return sanitize_path(raw_path, base_dir=base_dir)
+    except ValueError as err:
+        sys.stderr.write(f"{err}\n")
         sys.exit(1)
-    return target
 
 
 def parse_args():

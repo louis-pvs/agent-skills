@@ -88,6 +88,11 @@ STDLIB_MODULES = getattr(sys, "stdlib_module_names", None) or {
     "zlib",
 }
 
+# Internal repo-level modules allowed for direct import by scripts/*.py
+# (repo tooling only — NOT allowed in skills/*/scripts/*.py skill scripts).
+# See ADR 0004: Common Path Sanitization Utility.
+INTERNAL_MODULES = {"scripts"}
+
 
 def discover_script_files(repo_dir: Path) -> List[Path]:
     """Finds all Python automation scripts subject to ADR 0001 and ADR 0003 audit."""
@@ -100,6 +105,10 @@ def discover_script_files(repo_dir: Path) -> List[Path]:
     for pattern in target_patterns:
         for path in repo_dir.glob(pattern):
             if "tests/" in str(path) or "__pycache__" in str(path) or path.name.startswith("__init__"):
+                continue
+            # Skip internal utility modules (prefixed with _) from ADR 0003
+            # CLI contract checks — they are library modules, not CLI scripts.
+            if path.name.startswith("_") and not path.name.startswith("__"):
                 continue
             files.append(path)
     return sorted(files)
@@ -183,18 +192,27 @@ def check_script_compliance(script_path: Path) -> List[str]:
 
     # 1. Check for non-stdlib PyPI imports (ADR 0001)
     # Ignore optional fallback imports enclosed inside try...except blocks
+    # Allow INTERNAL_MODULES for repo-level scripts (scripts/*.py) only
+    try:
+        rel_path = script_path.relative_to(REPO_ROOT)
+        is_repo_script = rel_path.parts[0] == "scripts"
+    except (ValueError, IndexError):
+        is_repo_script = False
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 mod = alias.name.split(".")[0]
                 if mod and mod not in STDLIB_MODULES and not mod.startswith(".") and not is_inside_try_block(node, parent_map):
+                    if is_repo_script and mod in INTERNAL_MODULES:
+                        continue
                     issues.append(f"ADR 0001 violation: Imports non-stdlib package '{mod}'.")
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 mod = node.module.split(".")[0]
                 if mod and mod not in STDLIB_MODULES and not mod.startswith(".") and not is_inside_try_block(node, parent_map):
+                    if is_repo_script and mod in INTERNAL_MODULES:
+                        continue
                     issues.append(f"ADR 0001 violation: Imports from non-stdlib package '{mod}'.")
-
     # 2. Check for argparse usage (ADR 0003)
     has_argparse = "argparse" in content
     if not has_argparse and script_path.name != "python-test-template.py":
