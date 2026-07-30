@@ -13,7 +13,7 @@ Comprehensive heuristics for balancing **Don't Repeat Yourself (DRY)** with **Yo
 - **True DRY Violation (Knowledge Duplication)**: The exact same business logic, calculation formula, validation rule, or domain constraint copied across multiple places. Changing the rule requires remembering to edit 5 separate files.
 - **Accidental Duplication (Coincidental Similarity)**: Two code blocks look syntactically similar today, but represent different domain concepts (e.g. formatting a customer billing address vs formatting a shipping warehouse address). Unifying them into a single function creates coupling across unrelated domains.
 
-### Detection Heuristics & Anti-Patterns
+### DRY Detection Heuristics & Anti-Patterns
 
 - **Magic Constant Repetition**: Hardcoded URLs, timeout numbers, SQL query strings, or regex patterns repeated across modules.
 - **Copy-Paste Business Rules**: Multi-step algorithm logic duplicated across endpoints.
@@ -25,7 +25,7 @@ Comprehensive heuristics for balancing **Don't Repeat Yourself (DRY)** with **Yo
 
 > **"Always implement things when you actually need them, never when you just foresee that you might need them."**
 
-### Detection Heuristics & Anti-Patterns
+### YAGNI Detection Heuristics & Anti-Patterns
 
 - **Speculative Generality**:
   - Abstract classes with only a single concrete subclass.
@@ -38,7 +38,7 @@ Comprehensive heuristics for balancing **Don't Repeat Yourself (DRY)** with **Yo
 
 ## 3. Balancing DRY and YAGNI
 
-```
+```text
                   ┌────────────────────────────────────────┐
                   │ Does this logic repeat 3+ times OR    │
                   │ represent a single authoritative rule? │
@@ -48,22 +48,11 @@ Comprehensive heuristics for balancing **Don't Repeat Yourself (DRY)** with **Yo
                          ▼                         ▼
                        [YES]                     [NO]
                          │                         │
-            ┌────────────┴────────────┐     ┌──────┴────────────────────┐
-            │ Do both sites share the │     │ Keep duplicated/separate; │
-            │ exact same domain boundary?│   │ Do NOT extract premature │
-            └────────────┬────────────┘     │ abstraction (YAGNI).      │
-                         │                  └───────────────────────────┘
-            ┌────────────┴────────────┐
-            ▼                         ▼
-          [YES]                     [NO]
-            │                         │
-   ┌────────┴─────────┐     ┌─────────┴────────┐
-   │ Extract Shared   │     │ Keep Separate   │
-   │ Function/Module  │     │ (Accidental DRY)│
-   └──────────────────┘     └──────────────────┘
+          ┌──────────────┴──────┐    ┌─────────────┴─────────────┐
+          ▼                     ▼    ▼                           ▼
+    Is it Knowledge       Is it Code  Keep duplicate code.       Do NOT add abstraction
+    Duplication?         Duplication? Wait for 3rd recurrence    until explicitly required.
+          │                     │     before extracting.          (YAGNI Enforcement)
+          ▼                     ▼
+    [EXTRACT IMMEDIATELY]  [DO NOT EXTRACT]
 ```
-
-### Heuristic Rule of Thumb
-
-- **0–2 Repetitions**: Duplication is cheaper than the wrong abstraction. Apply YAGNI.
-- **3+ Repetitions**: Extract shared function or module. Apply DRY.

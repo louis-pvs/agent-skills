@@ -1,46 +1,33 @@
-# Context Gatherer Overview & Decision Logic
+# Context Gatherer Architectural Overview
 
-Context Gatherer provides task-scoped, on-demand codebase context extraction. Unlike static knowledge graphs, it queries live git history, symbol definition call-sites, and AST structures to inform immediate refactoring decisions.
-
----
-
-## The Problem & Friction
-
-Refactoring code in complex projects often causes unintended side effects in coupled files or distant callers. Relying on manual grepping is slow and misses temporal coupling where files consistently change together in git history.
-
-Context Gatherer solves this friction by providing targeted extraction techniques depending on user intent.
+The **Context Gatherer** maps codebase topology, AST symbol references, temporal git coupling, and structural context across repositories.
 
 ---
 
-## Technique Triage & Decision Flow
+## Analysis Pipeline
 
 ```mermaid
 flowchart TD
-    Query[User Request / Context Needs] --> CheckGraphify{Graphify Graph Exists?}
-    CheckGraphify -- Yes & Architectural --> GraphifyQuery[Use graphify query]
-    CheckGraphify -- No / Live Code Intent --> TriageIntent{Determine Intent}
-    TriageIntent -- "What co-changes with X?" --> GitCoupling[git_coupling.py]
-    TriageIntent -- "Who calls symbol Y?" --> SymbolNav[symbol_nav.py]
-    TriageIntent -- "Match AST pattern Z?" --> ASTSearch[ast_search.py]
+    A[Codebase Exploration Request] --> B[AST Symbol Search]
+    B --> C[Git Temporal Coupling Analysis]
+    C --> D[Knowledge Graph Querying]
+    D --> E[Synthesize Context Map]
 ```
 
 ---
 
-## Tool Selection Matrix
+## Core Capabilities
 
-| Question Type | Best Tool | Rationale |
-| :--- | :--- | :--- |
-| Component architecture, dependency paths | `graphify` | Static graph with community detection already built |
-| What else changes when I modify this file? | `git_coupling` | Live git history, captures recent commit temporal coupling |
-| Who calls this function right now? | `symbol_nav` | Live code search, reflects current exact call sites |
-| Find all handler implementations | `ast_search` | Structural AST matching on current syntax tree |
+- **Symbol Navigation (`symbol_nav.py`)**: Traverses AST definitions, import targets, and call sites.
+- **AST Pattern Search (`ast_search.py`)**: Locates class definitions, decoratored handlers, and function signatures.
+- **Git Coupling Analysis (`git_coupling.py`)**: Identifies files that historically commit together.
 
 ---
 
-## Strategy & Principles
+## Key Invariants
 
 > [!NOTE]
-> **Detect-and-Degrade**: Fall back gracefully when optional external CLI tools (like `rg` or `ast-grep`) are not available, reverting to Python standard library parsers.
-
+> `context-gatherer` is purely exploratory and read-only; it makes zero mutating code edits.
+>
 > [!IMPORTANT]
-> Context Gatherer pays zero context load when idle because its trigger rules use `disable-model-invocation: true`.
+> Use `context-gatherer` to map existing codebase topology before running prospective refactoring simulations (`what-if-analysis`).

@@ -42,6 +42,55 @@ except ImportError:
     )
 
 
+SCAFFOLD_SUGGESTIONS = {
+    "Architecture & DDD": {
+        "name": "architecture-scaffold",
+        "description": "Draft ADRs, aggregate boundaries, and system design reviews.",
+    },
+    "Analysis & Refactoring": {
+        "name": "refactor-scaffold",
+        "description": "Analyze call graphs and blast radius before refactors.",
+    },
+    "Performance & Benchmark": {
+        "name": "perf-scaffold",
+        "description": "Benchmark latency, memory, and throughput regressions.",
+    },
+    "Frontend & UI/UX": {
+        "name": "frontend-ui-review",
+        "description": "Review and scaffold UI/UX, accessibility, and component design work.",
+    },
+    "Backend & Data Pipelines": {
+        "name": "backend-data-pipeline",
+        "description": "Design and review APIs, SQL schemas, and data pipeline code.",
+    },
+    "DevOps & Infrastructure": {
+        "name": "devops-infra-review",
+        "description": "Review and scaffold CI/CD, containerization, and infrastructure-as-code.",
+    },
+    "Security & Compliance": {
+        "name": "security-compliance-scan",
+        "description": "Scan for secrets, insecure code patterns, and vulnerable dependencies.",
+    },
+}
+
+
+def build_scaffold_suggestions(heatmap):
+    """Builds skill-creator scaffold commands for Zero-Zone taxonomy categories."""
+    suggestions = []
+    for category, meta in heatmap.items():
+        if meta["status"] != "Zero-Zone":
+            continue
+        suggestion = SCAFFOLD_SUGGESTIONS.get(category)
+        if not suggestion:
+            continue
+        command = (
+            "python3 skills/skill-creator/scripts/scaffold_skill.py "
+            f'--name {suggestion["name"]} --description "{suggestion["description"]}"'
+        )
+        suggestions.append({"category": category, "command": command, **suggestion})
+    return suggestions
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Capability Gap Analyzer CLI")
     parser.add_argument("--domain", type=str, help="Explicit target domain (e.g. frontend-web, devops-infra)")
@@ -76,6 +125,8 @@ def main() -> int:
             "skills_inventory": inventory,
             "taxonomy_heatmap": heatmap,
         }
+        if args.scaffold_missing:
+            result["suggested_scaffolds"] = build_scaffold_suggestions(heatmap)
         print(json.dumps(result, indent=2, default=list))
     else:
         print(generate_heatmap_markdown(heatmap, target_domain=target_domain))
@@ -84,6 +135,15 @@ def main() -> int:
             for d in detected_domains:
                 matches = f" (files: {', '.join(d.get('matches', []))})" if d.get("matches") else ""
                 print(f"- **{d['domain']}**: {d['confidence'] * 100:.0f}% confidence{matches}")
+
+        if args.scaffold_missing:
+            suggestions = build_scaffold_suggestions(heatmap)
+            if suggestions:
+                print("\n### 🛠️ Suggested Scaffolds")
+                for s in suggestions:
+                    print(f"- **{s['category']}**: `{s['command']}`")
+            else:
+                print("\n### 🛠️ Suggested Scaffolds\nNo zero-coverage gaps found.")
 
     return 0
 

@@ -24,17 +24,34 @@ from gap_analyzer import (  # noqa: E402
 
 class TestCapabilityGapAnalyzer(unittest.TestCase):
     def test_scan_skills_inventory(self):
-        inventory = scan_skills_inventory(_repo_root / "skills")
+        inventory = scan_skills_inventory(_repo_root / "skills", include_global=False)
         self.assertIsInstance(inventory, list)
         self.assertGreater(len(inventory), 0)
         names = [s.get("name") for s in inventory]
         self.assertIn("capability-gap-analyzer", names)
+        for s in inventory:
+            self.assertEqual(s.get("origin"), "workspace")
+
+    def test_scan_skills_inventory_with_global(self):
+        inventory = scan_skills_inventory(_repo_root / "skills", include_global=True)
+        self.assertIsInstance(inventory, list)
+        self.assertGreater(len(inventory), 0)
+        origins = {s.get("origin") for s in inventory}
+        self.assertTrue(origins.intersection({"workspace", "global"}))
 
     def test_calculate_taxonomy_heatmap(self):
         inventory = [
-            {"name": "domain-modeling", "description": "DDD domain entities aggregate root solid"},
-            {"name": "architecture-auditor", "description": "architecture solid cupid adr design"},
-            {"name": "what-if-analysis", "description": "AST call-graph blast-radius self-healing"},
+            {"name": "domain-modeling", "description": "DDD domain entities aggregate root solid", "origin": "workspace"},
+            {
+                "name": "architecture-auditor",
+                "description": "architecture solid cupid adr design",
+                "origin": "workspace",
+            },
+            {
+                "name": "what-if-analysis",
+                "description": "AST call-graph blast-radius self-healing",
+                "origin": "workspace",
+            },
         ]
         heatmap = calculate_taxonomy_heatmap(inventory)
         self.assertIn("Architecture & DDD", heatmap)
@@ -53,11 +70,11 @@ class TestCapabilityGapAnalyzer(unittest.TestCase):
             self.assertEqual(domains[0]["confidence"], 1.0)
 
     def test_generate_heatmap_markdown(self):
-        inventory = scan_skills_inventory(_repo_root / "skills")
+        inventory = scan_skills_inventory(_repo_root / "skills", include_global=True)
         heatmap = calculate_taxonomy_heatmap(inventory)
         md = generate_heatmap_markdown(heatmap, target_domain="Frontend")
         self.assertIn("Capability Gap Taxonomy Heatmap", md)
-        self.assertIn("Zero-Zone", md)
+        self.assertIn("Multi-Root Two-Tier Evaluation", md)
 
 
 if __name__ == "__main__":

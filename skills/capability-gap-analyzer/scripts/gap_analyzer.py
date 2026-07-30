@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Capability Gap Analyzer - Tier 1 Deterministic Manifest Inventory Scanner.
 
-Parses all skills/*/SKILL.md manifests on the fly to build a structured inventory JSON
-and taxonomy coverage matrix for Tier 2 LLM semantic evaluation.
+Parses all skills/*/SKILL.md manifests on the fly across workspace and global skill roots
+to build a structured inventory JSON and taxonomy coverage matrix for Tier 2 LLM semantic evaluation.
 """
 
 import argparse
@@ -10,7 +10,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 _repo_root = Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
@@ -78,18 +78,52 @@ def parse_skill_frontmatter(skill_md_path: Path) -> Dict[str, Any]:
     return data
 
 
-def scan_skills_inventory(skills_dir: Path) -> List[Dict[str, Any]]:
-    """Scans all skills/*/SKILL.md files on the fly."""
-    inventory = []
-    if not skills_dir.exists() or not skills_dir.is_dir():
-        return inventory
+def scan_skills_inventory(skills_dir: Optional[Path] = None, include_global: bool = True) -> List[Dict[str, Any]]:
+    """Scans workspace and global customization skill roots for SKILL.md manifests."""
+    if skills_dir is None:
+        skills_dir = _repo_root / "skills"
 
-    for child in sorted(skills_dir.iterdir()):
-        if child.is_dir():
-            skill_md = child / "SKILL.md"
-            if skill_md.exists():
-                fm = parse_skill_frontmatter(skill_md)
-                inventory.append(fm)
+    roots = [(skills_dir, "workspace")]
+    if include_global:
+        home = Path.home()
+        global_paths = [
+            home / ".gemini" / "config" / "skills",
+            home / ".claude" / "skills",
+            home / ".copilot" / "skills",
+        ]
+        for gpath in global_paths:
+            if gpath.exists() and gpath.is_dir() and gpath != skills_dir:
+                roots.append((gpath, "global"))
+
+    inventory = []
+    seen_canonical = set()
+    seen_names = set()
+
+    for root_path, origin in roots:
+        if not root_path.exists() or not root_path.is_dir():
+            continue
+
+        for child in sorted(root_path.iterdir()):
+            if child.is_dir():
+                skill_md = child / "SKILL.md"
+                if skill_md.exists():
+                    try:
+                        canonical = str(skill_md.resolve())
+                    except OSError:
+                        canonical = str(skill_md)
+
+                    if canonical in seen_canonical:
+                        continue
+                    seen_canonical.add(canonical)
+
+                    name = child.name
+                    if name in seen_names:
+                        continue
+                    seen_names.add(name)
+
+                    fm = parse_skill_frontmatter(skill_md)
+                    fm["origin"] = origin
+                    inventory.append(fm)
 
     return inventory
 
@@ -104,6 +138,7 @@ def calculate_taxonomy_heatmap(inventory: List[Dict[str, Any]]) -> Dict[str, Dic
     for skill in inventory:
         name = skill.get("name", "")
         desc = skill.get("description", "")
+        origin = skill.get("origin", "workspace")
         text = f"{name} {desc}".lower()
 
         for _cat, meta in heatmap.items():
@@ -113,8 +148,10 @@ def calculate_taxonomy_heatmap(inventory: List[Dict[str, Any]]) -> Dict[str, Dic
                 pattern = r"\b" + re.escape(kw.lower()) + r"\b"
                 if re.search(pattern, text) or name == kw:
                     matches.append(kw)
-            if matches and name not in meta["matched_skills"]:
-                meta["matched_skills"].append(name)
+
+            already_matched_names = {s["name"] for s in meta["matched_skills"]}
+            if matches and name not in already_matched_names:
+                meta["matched_skills"].append({"name": name, "origin": origin})
 
     for _cat, meta in heatmap.items():
         count = len(meta["matched_skills"])
@@ -143,7 +180,12 @@ def generate_heatmap_markdown(heatmap: Dict[str, Dict[str, Any]], target_domain:
     for cat, meta in heatmap.items():
         status = meta["status"]
         badge = "🟢 Strong" if status == "Strong" else ("🟡 Partial" if status == "Partial" else "🔴 Zero-Zone")
-        skills_str = ", ".join(f"`{s}`" for s in meta["matched_skills"]) if meta["matched_skills"] else "*None*"
+        matched_items = meta["matched_skills"]
+        if matched_items:
+            skills_str = ", ".join(f"`{s['name']}` [{s['origin']}]" for s in matched_items)
+        else:
+            skills_str = "*None*"
+
         gap_str = (
             "High priority missing capability" if status == "Zero-Zone" else ("Minor gap" if status == "Partial" else "None")
         )
@@ -152,7 +194,7 @@ def generate_heatmap_markdown(heatmap: Dict[str, Dict[str, Any]], target_domain:
     lines.append("")
     lines.append("> [!NOTE]")
     lines.append(
-        "> **Two-Tier Evaluation**: Tier 1 manifest inventory baseline scanned on-the-fly. Tier 2 LLM semantic evaluation active."
+        "> **Multi-Root Two-Tier Evaluation**: Tier 1 manifest inventory baseline scanned across workspace & global skill roots."
     )
 
     return "\n".join(lines)
@@ -161,13 +203,16 @@ def generate_heatmap_markdown(heatmap: Dict[str, Dict[str, Any]], target_domain:
 def parse_args():
     parser = argparse.ArgumentParser(description="Capability Gap Analyzer Tier 1 Manifest Scanner")
     parser.add_argument("--json", action="store_true", help="Output raw JSON data")
+    parser.add_argument("--no-global", action="store_true", help="Exclude global pre-builtin skills from scan")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     skills_dir = _repo_root / "skills"
-    inventory = scan_skills_inventory(skills_dir)
+    include_global = not getattr(args, "no_global", False)
+
+    inventory = scan_skills_inventory(skills_dir, include_global=include_global)
     heatmap = calculate_taxonomy_heatmap(inventory)
 
     if getattr(args, "json", False):
