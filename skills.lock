@@ -5,6 +5,7 @@
     "agent-council",
     "architecture-auditor",
     "context-gatherer",
+    "domain-modeling",
     "skill-creator",
     "tdd",
     "tech-doc-writer",
@@ -59,6 +60,21 @@
         "graphify"
       ],
       "path": "skills/context-gatherer"
+    },
+    "domain-modeling": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [
+        "architecture-auditor",
+        "context-gatherer"
+      ],
+      "transitive_requires": [],
+      "transitive_enhances": [
+        "architecture-auditor",
+        "context-gatherer",
+        "graphify"
+      ],
+      "path": "skills/domain-modeling"
     },
     "self-annealer": {
       "version": "1.0.0",
