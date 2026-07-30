@@ -19,7 +19,7 @@ The **Architecture Decision Records** skill provides CLI automation and procedur
 1. **Sequential ID & File Generation**: Automatically assigns next integer IDs (`0001`, `0002`) and scaffolds slugified Markdown files.
 2. **Status State Machine**: Handles lifecycle status changes (`Proposed`, `Accepted`, `Rejected`, `Deprecated`, `Superseded by ADR-YYYY`).
 3. **Automated Indexing**: Rebuilds the `docs/adr/README.md` catalog table after every decision change.
-4. **Validation & Auditing**: Verifies filename formats, metadata headers, and link integrity, seamlessly delegating final GFM layout audits to [tech-doc-writer](file:///home/phalou/github/louis-pvs/agent-skills/skills/tech-doc-writer/SKILL.md).
+4. **Validation & Auditing**: Verifies filename formats, metadata headers, and link integrity, seamlessly delegating final GFM layout audits to [tech-doc-writer](../tech-doc-writer/SKILL.md).
 
 ---
 
@@ -37,8 +37,8 @@ flowchart TD
 ### 1. Context & Trade-off Discovery
 
 - Collect decision drivers, constraints, considered alternatives, and consequences.
-- If domain boundaries or aggregate concepts are affected, refer to [domain-modeling](file:///home/phalou/github/louis-pvs/agent-skills/skills/domain-modeling/SKILL.md).
-- If evaluating design principles (SOLID/DRY/YAGNI), refer to [architecture-auditor](file:///home/phalou/github/louis-pvs/agent-skills/skills/architecture-auditor/SKILL.md).
+- If domain boundaries or aggregate concepts are affected, refer to [domain-modeling](../domain-modeling/SKILL.md).
+- If evaluating design principles (SOLID/DRY/YAGNI), refer to [architecture-auditor](../architecture-auditor/SKILL.md).
 
 ### 2. Scaffold Next Sequential ADR
 

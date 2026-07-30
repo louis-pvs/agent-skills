@@ -112,7 +112,7 @@ flowchart TD
 - If missing skills are identified — and are actually relevant to this
   project's real domain, not just a Zero-Zone baseline category that doesn't
   apply — generate scaffold suggestions via
-  [skill-creator](file:///home/phalou/github/louis-pvs/agent-skills/skills/skill-creator/SKILL.md):
+  [skill-creator](../skill-creator/SKILL.md):
 
   ```bash
   python3 skills/capability-gap-analyzer/scripts/main.py --scaffold-missing

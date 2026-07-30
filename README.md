@@ -10,14 +10,19 @@ Instead of relying on unguided AI generation, these skills provide structured pr
 
 | Skill | Description | Path |
 | :--- | :--- | :--- |
-| **`agent-council`** | Collect and synthesize opinions from multiple AI agents (Gemini, Claude, Copilot) into a unified recommendation. | [`skills/agent-council`](skills/agent-council/SKILL.md) |
+| **`agent-council`** | Collect and synthesize opinions from multiple AI agents into a unified recommendation. | [`skills/agent-council`](skills/agent-council/SKILL.md) |
 | **`architecture-auditor`** | Audit codebases against software design principles (SOLID, DRY, YAGNI, KISS, CUPID) and resolve principle tensions. | [`skills/architecture-auditor`](skills/architecture-auditor/SKILL.md) |
+| **`architecture-decision-records`** | Log, index, supersede, and audit Architectural Decision Records (ADRs) following MADR standards. | [`skills/architecture-decision-records`](skills/architecture-decision-records/SKILL.md) |
 | **`benchmarking`** | Empirical performance benchmarking, baseline differential analysis, and expandable metric evaluations. | [`skills/benchmarking`](skills/benchmarking/SKILL.md) |
+| **`capability-gap-analyzer`** | Measure capability distance between registered agent skills and target project domains with sub-capability scans. | [`skills/capability-gap-analyzer`](skills/capability-gap-analyzer/SKILL.md) |
 | **`context-gatherer`** | Gather deep codebase context: git temporal coupling, symbol navigation, and AST-based structural search. | [`skills/context-gatherer`](skills/context-gatherer/SKILL.md) |
+| **`domain-modeling`** | Design and model business domain entities, aggregate boundaries, value objects, and DDD lifecycles. | [`skills/domain-modeling`](skills/domain-modeling/SKILL.md) |
 | **`self-annealer`** | Enforce bounded self-healing repair loops with strict convergence limits and automated git rollback safeguards. | [`skills/self-annealer`](skills/self-annealer/SKILL.md) |
+| **`self-progress`** | Identify session capability gaps, user corrections, tool failures, and growth opportunities from conversation sessions. | [`skills/self-progress`](skills/self-progress/SKILL.md) |
 | **`skill-creator`** | Create, scaffold, format, and audit new Agent Skills adhering to the agentskills.io standard and Python stdlib standards. | [`skills/skill-creator`](skills/skill-creator/SKILL.md) |
 | **`tdd`** | Enforce Test-Driven Development (TDD) workflows: write failing test (RED), write minimal code (GREEN), and refactor. | [`skills/tdd`](skills/tdd/SKILL.md) |
 | **`tech-doc-writer`** | Generate, refactor, and audit human-facing technical documentation using technical writing directives and GFM conventions. | [`skills/tech-doc-writer`](skills/tech-doc-writer/SKILL.md) |
+| **`what-if-analysis`** | Prospective blast-radius simulation, AST call-graph parsing, counterfactual test generation, and pre-emptive failure risk analysis. | [`skills/what-if-analysis`](skills/what-if-analysis/SKILL.md) |
 
 ---
 

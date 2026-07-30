@@ -19,12 +19,12 @@ flowchart TD
 
 ## Key Components
 
-- **[scripts/main.py](file:///home/phalou/github/louis-pvs/agent-skills/skills/what-if-analysis/scripts/main.py)**: Unified CLI orchestrator.
-- **[scripts/impact_analyzer.py](file:///home/phalou/github/louis-pvs/agent-skills/skills/what-if-analysis/scripts/impact_analyzer.py)**: Static call-site search, test classification (`_is_test_file`), and doc drift detection (`_is_doc_file`).
-- **[scripts/scenario_runner.py](file:///home/phalou/github/louis-pvs/agent-skills/skills/what-if-analysis/scripts/scenario_runner.py)**: Tradeoff matrix generator with `agent-council` integration and single-agent fallback heuristics.
-- **[scripts/ast_graph_parser.py](file:///home/phalou/github/louis-pvs/agent-skills/skills/what-if-analysis/scripts/ast_graph_parser.py)**: AST NodeVisitor node-level call site parser.
-- **[scripts/counterfactual_generator.py](file:///home/phalou/github/louis-pvs/agent-skills/skills/what-if-analysis/scripts/counterfactual_generator.py)**: Auto-writes adversarial failing (`RED`) unit tests (`--dry-run` compliant).
-- **[scripts/failure_preemptor.py](file:///home/phalou/github/louis-pvs/agent-skills/skills/what-if-analysis/scripts/failure_preemptor.py)**: Shift-left runtime failure risk interceptor.
+- **[`scripts/main.py`](../scripts/main.py)**: Unified CLI orchestrator.
+- **[`scripts/impact_analyzer.py`](../scripts/impact_analyzer.py)**: Static call-site search, test classification (`_is_test_file`), and doc drift detection (`_is_doc_file`).
+- **[`scripts/scenario_runner.py`](../scripts/scenario_runner.py)**: Tradeoff matrix generator with `agent-council` integration and single-agent fallback heuristics.
+- **[`scripts/ast_graph_parser.py`](../scripts/ast_graph_parser.py)**: AST NodeVisitor node-level call site parser.
+- **[`scripts/counterfactual_generator.py`](../scripts/counterfactual_generator.py)**: Auto-writes adversarial failing (`RED`) unit tests (`--dry-run` compliant).
+- **[`scripts/failure_preemptor.py`](../scripts/failure_preemptor.py)**: Shift-left runtime failure risk interceptor.
 
 ## Inter-Skill Dependencies
 
