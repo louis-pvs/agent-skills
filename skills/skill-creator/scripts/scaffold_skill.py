@@ -450,7 +450,7 @@ def check_python_stdlib_compliance(scripts_dir: Path) -> List[str]:
                         imported_mods.append(node.module.split(".")[0])
 
                 for mod in imported_mods:
-                    if mod and mod not in STDLIB_MODULES and not mod.startswith("."):
+                    if mod and mod not in STDLIB_MODULES and not mod.startswith(".") and not (scripts_dir / f"{mod}.py").exists():
                         issues.append(f"Non-stdlib import detected in {py_file.name}: '{mod}' (violates ADR 0001).")
         except Exception as err:
             issues.append(f"Failed to parse AST for {py_file.name}: {err}")

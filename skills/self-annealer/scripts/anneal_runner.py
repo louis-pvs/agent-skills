@@ -22,7 +22,7 @@ def run_cmd(cmd_str: str, cwd: Optional[Path] = None) -> Tuple[int, str, str]:
     """Executes shell command and returns exit code, stdout, and stderr."""
     try:
         tokens = shlex.split(cmd_str) if isinstance(cmd_str, str) else list(cmd_str)
-        if not tokens or tokens[0] not in ALLOWED_COMMANDS:
+        if not tokens or Path(tokens[0]).name not in ALLOWED_COMMANDS:
             return 1, "", f"Command not permitted: {tokens[0] if tokens else ''}"
         safe_tokens = [str(t) for t in tokens]
         proc = subprocess.run(

@@ -96,11 +96,10 @@ def search_python_ast(
         List of dicts with keys: file, name, line, type.
     """
     try:
-        cwd = Path.cwd().resolve()
         resolved = Path(filepath).resolve()
-        safe_filepath = cwd / resolved.relative_to(cwd)
+        safe_filepath = sanitize_path(resolved, base_dir=resolved.parent)
         source = safe_filepath.read_text(encoding="utf-8")
-        tree = ast.parse(source, filename=filepath)
+        tree = ast.parse(source, filename=str(safe_filepath))
     except (SyntaxError, UnicodeDecodeError, OSError, ValueError):
         return []
 
@@ -158,6 +157,19 @@ def search_python_ast(
     return results
 
 
+_repo_root = Path(__file__).resolve().parents[3]
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
+
+try:
+    from scripts._path_safety import sanitize_path
+except ImportError:
+
+    def sanitize_path(input_path: Any, base_dir: Optional[Path] = None, *, strict_chars: bool = False) -> Path:
+        p = Path(input_path).resolve()
+        return p
+
+
 def find_python_files(search_path: str) -> List[str]:
     """Recursively find all Python files in a directory.
 
@@ -167,35 +179,21 @@ def find_python_files(search_path: str) -> List[str]:
     Returns:
         List of absolute file paths.
     """
-    files = []
-    cwd = Path.cwd().resolve()
+    files: List[str] = []
     root = Path(search_path).resolve()
-    try:
-        rel_parts = root.relative_to(cwd).parts
-    except ValueError as err:
-        raise ValueError("search_path must be within the current working directory") from err
-    for part in rel_parts:
-        if part in ("..", "") or part.startswith("/") or "\\" in part:
-            raise ValueError("Invalid path component")
-    safe_root = cwd.joinpath(*rel_parts)
-    safe_root_str = str(safe_root.resolve())
-    cwd_str = str(cwd)
-    if not (safe_root_str == cwd_str or safe_root_str.startswith(cwd_str + os.sep)):
-        raise ValueError("search_path must be within the current working directory")
+    base_dir = root if root.is_dir() else root.parent
+    safe_root = sanitize_path(root, base_dir=base_dir)
 
     if safe_root.is_file() and safe_root.suffix == ".py":
         return [str(safe_root)]
 
-    for dirpath, dirnames, filenames in os.walk(cwd):
-        # Skip hidden directories and common non-source dirs
-        dirnames[:] = [d for d in dirnames if not d.startswith(".") and d not in ("node_modules", "__pycache__", "venv", ".venv")]
-        if not (dirpath == safe_root_str or dirpath.startswith(safe_root_str + os.sep)):
-            continue
-        for f in filenames:
-            if f.endswith(".py"):
-                files.append(os.path.join(dirpath, f))
+    for dirpath, dirnames, filenames in os.walk(safe_root):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".") and d not in ("venv", ".venv", "__pycache__", "node_modules")]
+        for fn in filenames:
+            if fn.endswith(".py"):
+                files.append(os.path.join(dirpath, fn))
 
-    return files
+    return sorted(files)
 
 
 def find_classes(

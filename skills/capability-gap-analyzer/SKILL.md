@@ -1,6 +1,6 @@
 ---
 name: capability-gap-analyzer
-description: Measures capability distance between registered agent skills and target project domains, using a deterministic sub-capability checklist scan across workspace and global skill roots plus calling-agent domain-relevance judgment, and automated domain auto-detection for non-specific prompts.
+description: "Measure capability distance between registered agent skills and project domains using deterministic sub-capability checklist scans."
 enhances:
   - skill-creator
   - context-gatherer

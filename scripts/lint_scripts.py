@@ -205,12 +205,16 @@ def check_script_compliance(script_path: Path) -> List[str]:
                 if mod and mod not in STDLIB_MODULES and not mod.startswith(".") and not is_inside_try_block(node, parent_map):
                     if is_repo_script and mod in INTERNAL_MODULES:
                         continue
+                    if (script_path.parent / f"{mod}.py").exists():
+                        continue
                     issues.append(f"ADR 0001 violation: Imports non-stdlib package '{mod}'.")
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 mod = node.module.split(".")[0]
                 if mod and mod not in STDLIB_MODULES and not mod.startswith(".") and not is_inside_try_block(node, parent_map):
                     if is_repo_script and mod in INTERNAL_MODULES:
+                        continue
+                    if (script_path.parent / f"{mod}.py").exists():
                         continue
                     issues.append(f"ADR 0001 violation: Imports from non-stdlib package '{mod}'.")
     # 2. Check for argparse usage (ADR 0003)
