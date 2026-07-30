@@ -75,13 +75,75 @@ SCAFFOLD_SUGGESTIONS = {
 }
 
 
-def build_scaffold_suggestions(heatmap):
+# Maps auto-detected domains to the taxonomy categories that are actually relevant.
+# Categories absent from this set are out-of-scope for the project and must NOT be
+# flagged as gaps, preventing domain-misclassification false positives (e.g. suggesting
+# "frontend-ui-review" for a Python-only skill framework that has zero frontend code).
+DOMAIN_RELEVANT_TAXONOMY: dict = {
+    "python-backend": {
+        "Architecture & DDD",
+        "Analysis & Refactoring",
+        "Performance & Benchmark",
+        "Backend & Data Pipelines",
+        "Security & Compliance",
+        "DevOps & Infrastructure",
+    },
+    "frontend-web": {
+        "Architecture & DDD",
+        "Analysis & Refactoring",
+        "Frontend & UI/UX",
+        "Performance & Benchmark",
+        "Security & Compliance",
+    },
+    "devops-infra": {
+        "Architecture & DDD",
+        "DevOps & Infrastructure",
+        "Security & Compliance",
+    },
+    "data-engineering": {
+        "Architecture & DDD",
+        "Analysis & Refactoring",
+        "Backend & Data Pipelines",
+        "Performance & Benchmark",
+        "Security & Compliance",
+    },
+    "rust-systems": {
+        "Architecture & DDD",
+        "Analysis & Refactoring",
+        "Performance & Benchmark",
+        "Backend & Data Pipelines",
+        "Security & Compliance",
+        "DevOps & Infrastructure",
+    },
+    "go-microservices": {
+        "Architecture & DDD",
+        "Analysis & Refactoring",
+        "Performance & Benchmark",
+        "Backend & Data Pipelines",
+        "Security & Compliance",
+        "DevOps & Infrastructure",
+    },
+    "general-software": {
+        "Architecture & DDD",
+        "Analysis & Refactoring",
+        "Performance & Benchmark",
+        "Backend & Data Pipelines",
+        "Security & Compliance",
+        "DevOps & Infrastructure",
+        "Frontend & UI/UX",
+    },
+}
+
+
+def build_scaffold_suggestions(heatmap, relevant_categories=None):
     """Builds skill-creator scaffold commands for Zero-Zone taxonomy categories,
     incorporating Tier 2 LLM prompt suggestions for emergent dynamic domains.
     """
     suggestions = []
     for category, meta in heatmap.items():
         if meta["status"] != "Zero-Zone":
+            continue
+        if relevant_categories is not None and category not in relevant_categories:
             continue
         suggestion = SCAFFOLD_SUGGESTIONS.get(category)
         if suggestion:
@@ -126,6 +188,11 @@ def main() -> int:
     inventory = scan_skills_inventory(skills_dir)
     heatmap = calculate_taxonomy_heatmap(inventory)
 
+    relevant_categories = None
+    if detected_domains:
+        top_detected = detected_domains[0]["domain"]
+        relevant_categories = DOMAIN_RELEVANT_TAXONOMY.get(top_detected)
+
     if args.json:
         result = {
             "target_domain": target_domain,
@@ -134,7 +201,7 @@ def main() -> int:
             "taxonomy_heatmap": heatmap,
         }
         if args.scaffold_missing:
-            result["suggested_scaffolds"] = build_scaffold_suggestions(heatmap)
+            result["suggested_scaffolds"] = build_scaffold_suggestions(heatmap, relevant_categories=relevant_categories)
         print(json.dumps(result, indent=2, default=list))
     else:
         print(generate_heatmap_markdown(heatmap, target_domain=target_domain))
@@ -145,7 +212,7 @@ def main() -> int:
                 print(f"- **{d['domain']}**: {d['confidence'] * 100:.0f}% confidence{matches}")
 
         if args.scaffold_missing:
-            suggestions = build_scaffold_suggestions(heatmap)
+            suggestions = build_scaffold_suggestions(heatmap, relevant_categories=relevant_categories)
             if suggestions:
                 print("\n### 🛠️ Suggested Scaffolds")
                 for s in suggestions:

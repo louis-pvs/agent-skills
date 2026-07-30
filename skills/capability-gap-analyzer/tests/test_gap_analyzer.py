@@ -138,6 +138,70 @@ class TestCapabilityGapAnalyzer(unittest.TestCase):
         self.assertIn("Capability Gap Taxonomy Heatmap", md)
         self.assertIn("Multi-Root Two-Tier Evaluation", md)
 
+    def test_origin_aware_scoring_workspace_only(self):
+        """Global skills must NOT inflate workspace coverage scores."""
+        inventory = [
+            {"name": "gcp-backend", "description": "bigquery pipeline data sql api", "origin": "global"},
+            {"name": "gcp-infra", "description": "cloud gcloud kubernetes docker infra", "origin": "global"},
+        ]
+        heatmap = calculate_taxonomy_heatmap(inventory)
+        # Even though global skills keyword-matched, workspace_count must be 0 → Zero-Zone
+        backend = heatmap["Backend & Data Pipelines"]
+        self.assertEqual(backend["workspace_count"], 0)
+        self.assertGreaterEqual(backend["global_count"], 1)  # at least one global matched
+        self.assertEqual(backend["status"], "Zero-Zone")
+        self.assertEqual(backend["score"], 0.0)
+
+    def test_origin_aware_scoring_mixed(self):
+        """One workspace skill + global skills: workspace_count drives partial status."""
+        inventory = [
+            {"name": "my-api", "description": "backend api pipeline data", "origin": "workspace"},
+            {"name": "gcp-backend", "description": "bigquery pipeline data", "origin": "global"},
+        ]
+        heatmap = calculate_taxonomy_heatmap(inventory)
+        backend = heatmap["Backend & Data Pipelines"]
+        self.assertEqual(backend["workspace_count"], 1)
+        self.assertEqual(backend["status"], "Partial")
+
+    def test_domain_relevance_filters_frontend_for_python_backend(self):
+        """Frontend scaffold must NOT be suggested for a python-backend project."""
+        from main import DOMAIN_RELEVANT_TAXONOMY, build_scaffold_suggestions
+
+        heatmap = {
+            cat: {
+                "keywords": set(),
+                "matched_skills": [],
+                "score": 0.0,
+                "status": "Zero-Zone",
+                "workspace_count": 0,
+                "global_count": 0,
+            }
+            for cat in ["Frontend & UI/UX", "Backend & Data Pipelines", "DevOps & Infrastructure"]
+        }
+        relevant = DOMAIN_RELEVANT_TAXONOMY.get("python-backend")
+        suggestions = build_scaffold_suggestions(heatmap, relevant_categories=relevant)
+        suggested_names = {s["category"] for s in suggestions}
+        self.assertNotIn("Frontend & UI/UX", suggested_names)
+        self.assertIn("Backend & Data Pipelines", suggested_names)
+
+    def test_domain_relevance_none_returns_all_zero_zone(self):
+        """When relevant_categories=None (no domain detected), all Zero-Zone emit scaffolds."""
+        from main import build_scaffold_suggestions
+
+        heatmap = {
+            cat: {
+                "keywords": set(),
+                "matched_skills": [],
+                "score": 0.0,
+                "status": "Zero-Zone",
+                "workspace_count": 0,
+                "global_count": 0,
+            }
+            for cat in ["Frontend & UI/UX", "Backend & Data Pipelines"]
+        }
+        suggestions = build_scaffold_suggestions(heatmap, relevant_categories=None)
+        self.assertEqual(len(suggestions), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

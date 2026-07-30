@@ -236,11 +236,21 @@ def calculate_taxonomy_heatmap(inventory: List[Dict[str, Any]]) -> Dict[str, Dic
                 meta["matched_skills"].append({"name": name, "origin": origin})
 
     for _cat, meta in heatmap.items():
-        count = len(meta["matched_skills"])
-        if count >= 2:
-            meta["score"] = min(100.0, 50.0 + count * 25.0)
+        workspace_count = sum(1 for s in meta["matched_skills"] if s.get("origin") == "workspace")
+        global_count = len(meta["matched_skills"]) - workspace_count
+        meta["workspace_count"] = workspace_count
+        meta["global_count"] = global_count
+
+        # Score is driven exclusively by workspace coverage.
+        # Conflating global skills with workspace capability is a category error:
+        # global skills reflect what the AI ecosystem offers, not what this workspace owns.
+        if workspace_count >= 3:
+            meta["score"] = min(100.0, 50.0 + workspace_count * 25.0)
             meta["status"] = "Strong"
-        elif count == 1:
+        elif workspace_count == 2:
+            meta["score"] = 75.0
+            meta["status"] = "Strong"
+        elif workspace_count == 1:
             meta["score"] = 50.0
             meta["status"] = "Partial"
         else:
@@ -268,9 +278,15 @@ def generate_heatmap_markdown(heatmap: Dict[str, Dict[str, Any]], target_domain:
         else:
             skills_str = "*None*"
 
-        gap_str = (
-            "High priority missing capability" if status == "Zero-Zone" else ("Minor gap" if status == "Partial" else "None")
-        )
+        global_count = meta.get("global_count", 0)
+        if status == "Zero-Zone" and global_count > 0:
+            gap_str = f"Workspace gap (global-only: {global_count} skill(s) — not workspace coverage)"
+        elif status == "Zero-Zone":
+            gap_str = "High priority missing capability"
+        elif status == "Partial":
+            gap_str = "Minor gap"
+        else:
+            gap_str = "None"
         lines.append(f"| **{cat}** | {badge} | `{meta['score']:.0f}%` | {skills_str} | {gap_str} |")
 
     lines.append("")
