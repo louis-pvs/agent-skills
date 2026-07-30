@@ -205,7 +205,9 @@ def main() -> int:
     args = parse_args()
 
     try:
-        transcript_path = sanitize_path(args.transcript, base_dir=Path.cwd())
+        raw_p = Path(args.transcript).resolve()
+        base_dir = raw_p.parent if raw_p.exists() else Path.cwd()
+        transcript_path = sanitize_path(args.transcript, base_dir=base_dir)
     except ValueError as err:
         sys.stderr.write(f"Error resolving path: {err}\n")
         return 1
