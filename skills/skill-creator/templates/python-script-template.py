@@ -11,6 +11,16 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
+# Dynamic root resolution to support clean internal imports when invoked directly
+_REPO_ROOT = Path(__file__).resolve().parents[3] if len(Path(__file__).resolve().parents) > 3 else Path.cwd()
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+try:
+    from scripts._path_safety import sanitize_path
+except ImportError:
+    pass
+
 
 def process_data(input_path: Optional[Path] = None, dry_run: bool = False, verbose: bool = False) -> Dict[str, Any]:
     """Processes input file and returns structured metadata result dictionary."""
@@ -74,7 +84,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except SystemExit as exc:
         return exc.code if isinstance(exc.code, int) else 2
 
-    input_path = Path(args.input).resolve() if args.input else None
+    if args.input:
+        try:
+            input_path = sanitize_path(args.input)
+        except (ValueError, NameError):
+            input_path = Path(args.input).resolve()
+    else:
+        input_path = None
 
     try:
         result = process_data(input_path=input_path, dry_run=args.dry_run, verbose=args.verbose)
