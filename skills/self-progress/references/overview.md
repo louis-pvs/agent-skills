@@ -28,11 +28,6 @@ flowchart LR
 
 ## 2. Distinction & Boundary Matrix
 
-```mermaid
-matrix
-    title Skill Ecosystem Boundaries
-```
-
 | Skill | Focus | Scope | Persistence |
 | :--- | :--- | :--- | :--- |
 | `/learn` | Mandatory user preferences & formatting rules | Global or workspace AGENTS.md | Persistent |
