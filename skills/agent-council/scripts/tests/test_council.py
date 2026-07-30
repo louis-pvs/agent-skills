@@ -11,6 +11,7 @@ SCRIPTS_DIR = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from council import (  # noqa: E402
+    REPO_ROOT,
     clean_job,
     create_job,
     generate_job_id,
@@ -59,8 +60,12 @@ council:
 
             with patch("council.load_config", return_value=minimal_config), patch(
                 "council.subprocess.Popen", return_value=mock_proc
-            ):
+            ) as mock_popen:
                 job_dir = create_job("Unit test question", jobs_dir)
+
+                mock_popen.assert_called_once()
+                _, kwargs = mock_popen.call_args
+                self.assertEqual(kwargs.get("cwd"), str(REPO_ROOT))
 
                 self.assertTrue(job_dir.exists())
                 self.assertTrue((job_dir / "job.json").exists())
