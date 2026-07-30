@@ -70,6 +70,63 @@ class TestCapabilityGapAnalyzer(unittest.TestCase):
         self.assertEqual(heatmap["Architecture & DDD"]["status"], "Strong")
         self.assertEqual(heatmap["Frontend & UI/UX"]["status"], "Zero-Zone")
 
+    def test_checklist_score_is_real_fraction_not_a_lookup_table(self):
+        """Score must be covered/total, not a step function saturating at 3 matched skills."""
+        inventory = [
+            {"name": "s1", "description": "adr documentation", "origin": "workspace"},
+            {"name": "s2", "description": "aggregate entity value-object ddd", "origin": "workspace"},
+        ]
+        heatmap = calculate_taxonomy_heatmap(inventory)
+        arch = heatmap["Architecture & DDD"]
+        self.assertEqual(arch["total_count"], 4)
+        self.assertEqual(arch["covered_count"], 2)
+        self.assertAlmostEqual(arch["score"], 50.0)
+        self.assertEqual(arch["status"], "Partial")
+        # A single additional skill covering the remaining 2 items should reach 100%,
+        # not saturate early regardless of how many *skills* (vs sub-capabilities) matched.
+        inventory.append({"name": "s3", "description": "solid cupid dry yagni kiss architecture-review", "origin": "workspace"})
+        heatmap2 = calculate_taxonomy_heatmap(inventory)
+        arch2 = heatmap2["Architecture & DDD"]
+        self.assertEqual(arch2["covered_count"], 4)
+        self.assertAlmostEqual(arch2["score"], 100.0)
+
+    def test_matches_full_body_not_just_description(self):
+        """Keyword evidence must come from the full SKILL.md body, not the one-line description."""
+        inventory = [
+            {
+                "name": "verbose-skill",
+                "description": "A skill that does things.",
+                "body": "\n## Workflow\nRuns a SAST scan and checks for cve entries via dependency-scan.\n",
+                "origin": "workspace",
+            }
+        ]
+        heatmap = calculate_taxonomy_heatmap(inventory)
+        sec = heatmap["Security & Compliance"]
+        covered_caps = {entry["capability"] for entry in sec["checklist"] if entry["covered"]}
+        self.assertIn("Static application security testing (SAST)", covered_caps)
+        self.assertIn("Dependency / supply-chain vulnerability scanning", covered_caps)
+
+    def test_generic_keyword_does_not_inflate_unrelated_category(self):
+        """A skill whose description merely contains 'audit' must not count as Security & Compliance coverage."""
+        inventory = [
+            {
+                "name": "architecture-auditor",
+                "description": "architectural audit of design principles",
+                "origin": "workspace",
+            },
+            {
+                "name": "skill-creator",
+                "description": "audit new Agent Skills for spec compliance-review-x",
+                "origin": "workspace",
+            },
+        ]
+        heatmap = calculate_taxonomy_heatmap(inventory)
+        sec = heatmap["Security & Compliance"]
+        # "audit" alone is not a keyword for any Security & Compliance sub-capability.
+        covered_caps = {entry["capability"] for entry in sec["checklist"] if entry["covered"]}
+        self.assertNotIn("Static application security testing (SAST)", covered_caps)
+        self.assertLess(sec["score"], 100.0)
+
     def test_dynamic_domain_harvesting(self):
         inventory = [
             {
@@ -82,7 +139,11 @@ class TestCapabilityGapAnalyzer(unittest.TestCase):
         ]
         heatmap = calculate_taxonomy_heatmap(inventory)
         self.assertIn("Quantum Computing", heatmap)
-        self.assertEqual(heatmap["Quantum Computing"]["status"], "Partial")
+        # Dynamic/emergent domains have no fixed sub-capability checklist to divide by, so
+        # they report presence/absence rather than a fabricated percentage.
+        self.assertEqual(heatmap["Quantum Computing"]["type"], "dynamic")
+        self.assertEqual(heatmap["Quantum Computing"]["status"], "Detected")
+        self.assertIsNone(heatmap["Quantum Computing"]["score"])
         matched = [s["name"] for s in heatmap["Quantum Computing"]["matched_skills"]]
         self.assertIn("quantum-sim", matched)
 
@@ -135,8 +196,8 @@ class TestCapabilityGapAnalyzer(unittest.TestCase):
         inventory = scan_skills_inventory(_repo_root / "skills", include_global=True)
         heatmap = calculate_taxonomy_heatmap(inventory)
         md = generate_heatmap_markdown(heatmap, target_domain="Frontend")
-        self.assertIn("Capability Gap Taxonomy Heatmap", md)
-        self.assertIn("Multi-Root Two-Tier Evaluation", md)
+        self.assertIn("Capability Gap Checklist", md)
+        self.assertIn("sub-capabilities covered by a workspace skill", md)
 
     def test_origin_aware_scoring_workspace_only(self):
         """Global skills must NOT inflate workspace coverage scores."""
@@ -201,6 +262,30 @@ class TestCapabilityGapAnalyzer(unittest.TestCase):
         }
         suggestions = build_scaffold_suggestions(heatmap, relevant_categories=None)
         self.assertEqual(len(suggestions), 2)
+
+    def test_filter_heatmap_by_relevance_drops_out_of_scope_categories_from_report(self):
+        """Out-of-scope baseline categories (e.g. Frontend for python-backend) must not appear
+        in the displayed report at all, not just be excluded from scaffold suggestions."""
+        from main import DOMAIN_RELEVANT_TAXONOMY, filter_heatmap_by_relevance
+
+        inventory = scan_skills_inventory(_repo_root / "skills", include_global=True)
+        heatmap = calculate_taxonomy_heatmap(inventory)
+        relevant = DOMAIN_RELEVANT_TAXONOMY.get("python-backend")
+        filtered = filter_heatmap_by_relevance(heatmap, relevant_categories=relevant)
+        self.assertNotIn("Frontend & UI/UX", filtered)
+        self.assertIn("Backend & Data Pipelines", filtered)
+
+    def test_filter_heatmap_by_relevance_keeps_dynamic_domains(self):
+        """Dynamic/emergent domains aren't part of the baseline relevance map and must survive filtering."""
+        from main import filter_heatmap_by_relevance
+
+        heatmap = {
+            "Frontend & UI/UX": {"status": "Zero-Zone"},
+            "Quantum Computing": {"type": "dynamic", "status": "Not Detected"},
+        }
+        filtered = filter_heatmap_by_relevance(heatmap, relevant_categories={"Backend & Data Pipelines"})
+        self.assertNotIn("Frontend & UI/UX", filtered)
+        self.assertIn("Quantum Computing", filtered)
 
 
 if __name__ == "__main__":

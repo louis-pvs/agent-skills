@@ -30,6 +30,7 @@ except ImportError:
 try:
     from domain_detector import detect_workspace_domains
     from gap_analyzer import (
+        TAXONOMY_DOMAINS,
         calculate_taxonomy_heatmap,
         generate_heatmap_markdown,
         scan_skills_inventory,
@@ -37,6 +38,7 @@ try:
 except ImportError:
     from .domain_detector import detect_workspace_domains  # type: ignore
     from .gap_analyzer import (  # type: ignore
+        TAXONOMY_DOMAINS,
         calculate_taxonomy_heatmap,
         generate_heatmap_markdown,
         scan_skills_inventory,
@@ -135,15 +137,35 @@ DOMAIN_RELEVANT_TAXONOMY: dict = {
 }
 
 
+def filter_heatmap_by_relevance(heatmap, relevant_categories=None):
+    """Drops baseline taxonomy categories that are out-of-scope for the detected project domain.
+
+    Only filters categories that are part of the fixed TAXONOMY_DOMAINS checklist (e.g. don't
+    flag "Frontend & UI/UX" as a gap for a project with no frontend). Dynamic/emergent domains
+    harvested from a skill's `domain:` frontmatter are always kept, since they aren't part of
+    the baseline taxonomy relevance map to begin with.
+    """
+    if relevant_categories is None:
+        return heatmap
+    return {
+        category: meta
+        for category, meta in heatmap.items()
+        if category not in TAXONOMY_DOMAINS or category in relevant_categories
+    }
+
+
 def build_scaffold_suggestions(heatmap, relevant_categories=None):
-    """Builds skill-creator scaffold commands for Zero-Zone taxonomy categories,
-    incorporating Tier 2 LLM prompt suggestions for emergent dynamic domains.
+    """Builds skill-creator scaffold commands for uncovered taxonomy categories.
+
+    A category needs a scaffold if it's Zero-Zone (checklist categories with 0% coverage) or
+    Not Detected (dynamic/emergent domains with no matching skill at all).
     """
     suggestions = []
     for category, meta in heatmap.items():
-        if meta["status"] != "Zero-Zone":
+        if meta["status"] not in {"Zero-Zone", "Not Detected"}:
             continue
-        if relevant_categories is not None and category not in relevant_categories:
+        is_baseline = category in TAXONOMY_DOMAINS
+        if relevant_categories is not None and is_baseline and category not in relevant_categories:
             continue
         suggestion = SCAFFOLD_SUGGESTIONS.get(category)
         if suggestion:
@@ -192,6 +214,10 @@ def main() -> int:
     if detected_domains:
         top_detected = detected_domains[0]["domain"]
         relevant_categories = DOMAIN_RELEVANT_TAXONOMY.get(top_detected)
+
+    # Drop out-of-scope baseline categories (e.g. Frontend for a project with no frontend)
+    # from the report itself, not just from scaffold suggestions.
+    heatmap = filter_heatmap_by_relevance(heatmap, relevant_categories=relevant_categories)
 
     if args.json:
         result = {

@@ -1,6 +1,6 @@
 ---
 name: capability-gap-analyzer
-description: Measures capability distance between registered agent skills and target project domains, using a Two-Tier Hybrid Architecture (Deterministic Multi-Root Inventory Scan + Dynamic LLM Semantic Evaluation) and automated domain auto-detection for non-specific prompts.
+description: Measures capability distance between registered agent skills and target project domains, using a deterministic sub-capability checklist scan across workspace and global skill roots plus calling-agent domain-relevance judgment, and automated domain auto-detection for non-specific prompts.
 enhances:
   - skill-creator
   - context-gatherer
@@ -16,17 +16,32 @@ scaffold draft `SKILL.md` specifications for unhandled domain areas.
 
 ## Overview
 
-The **Capability Gap Analyzer** uses a **Multi-Root Two-Tier Hybrid Architecture**:
+The **Capability Gap Analyzer** has one deterministic script layer and one
+judgment layer supplied by the calling agent — not two algorithmic layers in
+code:
 
-1. **Tier 1 (Deterministic Multi-Root Inventory Scan)**: On-the-fly parsing
-   of all workspace (`skills/`, `.agents/skills/`) and global
+1. **Tier 1 (Deterministic Sub-Capability Checklist Scan)** — `gap_analyzer.py`
+   parses all workspace (`skills/`, `.agents/skills/`) and global
    (`~/.gemini/config/skills/`, `~/.claude/skills/`, `~/.copilot/skills/`)
-   `SKILL.md` manifests to build a structured inventory JSON with source origin
-   tags (`[workspace]` vs `[global]`).
-2. **Tier 2 (Dynamic LLM Semantic Evaluation)**: AI agent semantic reasoning
-   that compares workspace + global skill capabilities against any target
-   domain (even custom or unlisted ones like WebAssembly or Quantum Computing)
-   without relying on rigid hardcoded keyword lists.
+   `SKILL.md` manifests, then checks each skill's name/description/tags/**full
+   body text** against a fixed list of concrete sub-capabilities per taxonomy
+   category (e.g. Security & Compliance decomposes into leaked-secret
+   detection, static application security testing, dependency risk auditing,
+   permission-boundary review, and governance review). Coverage
+   is `covered sub-capabilities / total sub-capabilities` — a real fraction
+   with a real denominator, not a lookup table over raw skill-match counts.
+   Emergent/custom domains (harvested via `domain:` frontmatter, e.g.
+   WebAssembly or Quantum Computing) have no predefined checklist, so they're
+   reported as Detected/Not Detected rather than given a fabricated
+   percentage.
+2. **Calling-agent judgment (applied on top, not a second code tier)** — the
+   agent running this skill must sanity-check the Tier 1 output before
+   presenting it: does a "covered" item's matched skill actually do that
+   thing, or did it just keyword-hit generic prose? Is a Zero-Zone category
+   even relevant to this project's real domain (e.g. Frontend for a CLI-only
+   repo isn't a gap)? `main.py`'s `DOMAIN_RELEVANT_TAXONOMY` filter handles
+   the coarse version of this automatically, but the agent should still
+   verify against project reality before reporting a "gap" as real.
 
 ---
 
@@ -37,7 +52,7 @@ When executing a capability gap analysis request, follow this 4-step workflow:
 ```mermaid
 flowchart TD
     A["1. Resolve Target Domain Intent"] --> B["2. Multi-Root Inventory Scan"]
-    B --> C["3. Perform LLM & Matrix Gap Scoring"]
+    B --> C["3. Compute Checklist Coverage"]
     C --> D["4. Output Gap Report & Scaffold Missing Skills"]
 ```
 
@@ -67,10 +82,10 @@ flowchart TD
 - This parses all `SKILL.md` files across workspace and global customization
   directories, attributing origin tags (`[workspace]` vs `[global]`).
 
-### 3. Perform LLM & Matrix Gap Scoring (Tier 2)
+### 3. Compute Checklist Coverage
 
-- Combine the Tier 1 inventory dataset with Tier 2 LLM semantic evaluation.
-- Dynamically harvest explicit taxonomy domains declared via `domain:` and `tags:` in `SKILL.md` frontmatter headers alongside baseline domains:
+- `calculate_taxonomy_heatmap()` checks every skill against a fixed
+  sub-capability checklist for each baseline domain:
   - **Architecture & DDD**
   - **Analysis & Refactoring**
   - **Performance & Benchmarking**
@@ -78,15 +93,25 @@ flowchart TD
   - **Backend & Data Pipelines**
   - **DevOps & Infrastructure**
   - **Security & Compliance**
-  - *(Emergent custom domains like Quantum Computing or Bioinformatics)*
-- Assign coverage levels: **Strong** (75-100%), **Partial** (25-74%), or
-  **Zero-Zone** (0-24%).
+  - *(Emergent custom domains like Quantum Computing or Bioinformatics,
+    harvested from `domain:`/`tags:` frontmatter — reported as
+    Detected/Not Detected, no percentage)*
+- Coverage levels for baseline domains are computed from the real fraction:
+  **Strong** (≥75% of sub-capabilities covered), **Partial** (25-74%), or
+  **Zero-Zone** (<25%). Only *workspace* skills count toward the score —
+  global skills matching a sub-capability are shown as evidence but don't
+  count as workspace coverage.
+- Before presenting results, apply judgment: a matched skill is only real
+  evidence if its documented behavior actually does that sub-capability, not
+  just because a keyword happened to appear in unrelated prose.
 
 ### 4. Output Gap Report & Scaffold Missing Skills
 
-- Render the GFM Taxonomy Heatmap matrix with origin annotations
-  (`[workspace]`, `[global]`).
-- If missing skills are identified, generate Tier 2 LLM prompt scaffold suggestions via
+- Render the GFM checklist report with origin annotations (`[workspace]`,
+  `[global]`) and per-sub-capability evidence.
+- If missing skills are identified — and are actually relevant to this
+  project's real domain, not just a Zero-Zone baseline category that doesn't
+  apply — generate scaffold suggestions via
   [skill-creator](file:///home/phalou/github/louis-pvs/agent-skills/skills/skill-creator/SKILL.md):
 
   ```bash
@@ -126,8 +151,10 @@ python3 skills/capability-gap-analyzer/scripts/main.py --json
       without errors.
 - [ ] Workspace domain auto-detector correctly identifies project manifest
       markers (`package.json`, `pyproject.toml`, `Dockerfile`, etc.).
-- [ ] Taxonomy heatmap matrix accurately categorizes Strong, Partial, and
-      Zero-Zone domain coverages with `[workspace]` and `[global]` tags.
+- [ ] Checklist report categorizes each baseline domain as Strong, Partial, or
+      Zero-Zone from a real `covered/total` sub-capability fraction (not a
+      raw skill-match count), with `[workspace]` and `[global]` evidence tags
+      and out-of-scope categories filtered from the report.
 - [ ] CLI exit codes pass cleanly with `--domain`, `--auto-detect`, and
       `--json`.
 - [ ] All Python code passes `ruff check .` and `ruff format --check .`
