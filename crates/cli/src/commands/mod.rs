@@ -10,6 +10,7 @@ pub mod domain_modeling;
 pub mod git_conflict_resolver;
 pub mod install;
 pub mod lint_scripts;
+pub mod self_annealer;
 pub mod self_progress;
 pub mod skill_creator;
 pub mod tdd;

@@ -35,7 +35,7 @@ git status --porcelain
 Run `anneal_runner.py` with your test command and iteration cap (default max 3 attempts):
 
 ```bash
-python3 skills/self-annealer/scripts/anneal_runner.py --cmd "python3 skills/tdd/scripts/tdd_runner.py --verify-green" --max-iterations 3
+cargo run -p agent-skills -- self-annealer run --cmd "cargo test" --max-iterations 3
 ```
 
 ### 3. Iterative Refinement
@@ -50,16 +50,16 @@ For each iteration up to `--max-iterations`:
 ### 4. Convergence & Escalation
 
 - **GREEN (Converged)**: All tests/linters pass within 3 iterations. Commit changes.
-- **RED (Failed)**: If 3 iterations expire without reaching GREEN status, `anneal_runner.py` automatically triggers `git checkout -- .` to revert uncommitted changes and output a structured failure report for human escalation.
+- **RED (Failed)**: If 3 iterations expire without reaching GREEN status, `self-annealer` automatically triggers `git checkout -- .` to revert uncommitted changes and output a structured failure report for human escalation.
 
-## Automation CLI (`anneal_runner.py`)
+## Automation CLI (`self-annealer`)
 
 ```bash
 # Run self-annealing loop with default test runner (3 iterations max + auto rollback)
-python3 skills/self-annealer/scripts/anneal_runner.py
+cargo run -p agent-skills -- self-annealer run
 
 # Custom command with JSON output
-python3 skills/self-annealer/scripts/anneal_runner.py --cmd "pytest tests/" --max-iterations 3 --json
+cargo run -p agent-skills -- self-annealer run --cmd "cargo test" --max-iterations 3 --json
 ```
 
 ## Completion Criteria

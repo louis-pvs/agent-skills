@@ -12,6 +12,18 @@ Self-Annealer prevents token drain and codebase corruption by enforcing a strict
 
 ---
 
+## Quickstart
+
+```bash
+# Verify health of self-annealer skill files
+cargo run -p agent-skills -- self-annealer check
+
+# Run bounded self-healing repair loop
+cargo run -p agent-skills -- self-annealer run --cmd "cargo test" --max-iterations 3
+```
+
+---
+
 ## Documentation Entry Points
 
 - **AI Agent Protocol**: See [SKILL.md](SKILL.md) (used automatically by Antigravity, Claude Code, and Copilot).
