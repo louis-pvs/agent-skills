@@ -20,14 +20,14 @@ Discovered gaps are classified into actionable next steps, with missing skill pr
 ## Quick Usage
 
 ```bash
+# Verify health of self-progress skill files
+cargo run -p agent-skills -- self-progress check
+
 # Analyze a conversation transcript log file
-python3 skills/self-progress/scripts/retrospective.py --transcript /path/to/transcript.jsonl
+cargo run -p agent-skills -- self-progress analyze --transcript /path/to/transcript.jsonl
 
 # Output JSON signals for automated processing
-python3 skills/self-progress/scripts/retrospective.py --transcript /path/to/transcript.jsonl --json
-
-# Run unit tests
-python3 -m unittest discover -s skills/self-progress/scripts/tests
+cargo run -p agent-skills -- self-progress analyze --transcript /path/to/transcript.jsonl --json
 ```
 
 ---

@@ -44,13 +44,13 @@ The agent performs a hybrid reflection:
 2. Optionally, parse the log transcript JSONL file for programmatic evidence:
 
    ```bash
-   python3 skills/self-progress/scripts/retrospective.py --transcript <appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript.jsonl
+   cargo run -p agent-skills -- self-progress analyze --transcript <appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript.jsonl
    ```
 
    For JSON output:
 
    ```bash
-   python3 skills/self-progress/scripts/retrospective.py --transcript <path-to-transcript.jsonl> --json
+   cargo run -p agent-skills -- self-progress analyze --transcript <path-to-transcript.jsonl> --json
    ```
 
 ### 2. Classify & Present Retrospective Report

@@ -20,6 +20,7 @@ use commands::git_conflict_resolver::{
 };
 use commands::install::{run_installer, InstallArgs};
 use commands::lint_scripts::{run_lint_scripts, LintScriptsArgs};
+use commands::self_progress::{run_self_progress_command, SelfProgressSubcommand};
 use commands::skill_creator::{scaffold_skill, validate_skill, SkillCreatorSubcommand};
 use commands::tdd::{run_tdd_command, TddArgs};
 use commands::tech_doc_writer::{run_tech_doc_writer_audit, TechDocWriterSubcommand};
@@ -82,6 +83,11 @@ enum Commands {
     GitConflictResolver {
         #[command(subcommand)]
         subcommand: GitConflictResolverSubcommand,
+    },
+    /// Self Progress session retrospective tool (check, analyze)
+    SelfProgress {
+        #[command(subcommand)]
+        subcommand: SelfProgressSubcommand,
     },
     /// Test-Driven Development (TDD) runner and state verifier (--detect, --verify-red, --verify-green)
     Tdd(TddArgs),
@@ -198,6 +204,15 @@ fn main() -> ExitCode {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(err) => {
                     eprintln!("❌ Git conflict resolver failed: {err}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        Commands::SelfProgress { subcommand } => {
+            match run_self_progress_command(&subcommand, &repo_root) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("❌ Self progress failed: {err}");
                     ExitCode::FAILURE
                 }
             }
