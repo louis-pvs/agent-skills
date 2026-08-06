@@ -24,6 +24,7 @@ use commands::self_progress::{run_self_progress_command, SelfProgressSubcommand}
 use commands::skill_creator::{scaffold_skill, validate_skill, SkillCreatorSubcommand};
 use commands::tdd::{run_tdd_command, TddArgs};
 use commands::tech_doc_writer::{run_tech_doc_writer_audit, TechDocWriterSubcommand};
+use commands::what_if_analysis::{run_what_if_analysis_command, WhatIfAnalysisSubcommand};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -88,6 +89,11 @@ enum Commands {
     SelfProgress {
         #[command(subcommand)]
         subcommand: SelfProgressSubcommand,
+    },
+    /// What-If Analysis blast radius & sensitivity modeling tool (check, impact)
+    WhatIfAnalysis {
+        #[command(subcommand)]
+        subcommand: WhatIfAnalysisSubcommand,
     },
     /// Test-Driven Development (TDD) runner and state verifier (--detect, --verify-red, --verify-green)
     Tdd(TddArgs),
@@ -213,6 +219,15 @@ fn main() -> ExitCode {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(err) => {
                     eprintln!("❌ Self progress failed: {err}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        Commands::WhatIfAnalysis { subcommand } => {
+            match run_what_if_analysis_command(&subcommand, &repo_root) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("❌ What-if analysis failed: {err}");
                     ExitCode::FAILURE
                 }
             }

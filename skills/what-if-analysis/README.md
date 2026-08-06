@@ -26,12 +26,14 @@ flowchart TD
 ## 🛠 Usage & Quickstart
 
 ```bash
-# Primary CLI Entrypoint (Unified Orchestrator)
-python3 skills/what-if-analysis/scripts/main.py impact --symbol calculate_score --dir .
-python3 skills/what-if-analysis/scripts/main.py scenario --symbol council.py --scenarios "Option A: Async, Option B: Subprocess"
-python3 skills/what-if-analysis/scripts/main.py ast --symbol calculate_score --file src/core.py
-python3 skills/what-if-analysis/scripts/main.py counterfactual --symbol calculate_score --module src.core --out tests/test_cf.py
-python3 skills/what-if-analysis/scripts/main.py preempt --symbol calculate_score --dir .
+# Verify health of what-if-analysis skill files
+cargo run -p agent-skills -- what-if-analysis check
+
+# Calculate symbol blast radius and prospective impact
+cargo run -p agent-skills -- what-if-analysis impact --symbol calculate_score
+
+# Output JSON structured metadata
+cargo run -p agent-skills -- what-if-analysis impact --symbol calculate_score --json
 ```
 
 ---

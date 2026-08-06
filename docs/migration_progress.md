@@ -21,7 +21,7 @@ This document tracks the ongoing migration of Agent Skills automation scripts an
 
 ## 🛠️ Skill Refactoring Status (Topological Order)
 
-Total Skills: **15** | Completed: **12** | Remaining: **3** | Progress: **80.0%**
+Total Skills: **15** | Completed: **13** | Remaining: **2** | Progress: **86.7%**
 
 ```mermaid
 gantt
@@ -40,9 +40,9 @@ gantt
     capability-gap-analyzer        :done, 2026-08-06, 1d
     git-conflict-resolver         :done, 2026-08-06, 1d
     self-progress                  :done, 2026-08-06, 1d
+    what-if-analysis               :done, 2026-08-06, 1d
     section In Queue
-    what-if-analysis               :active, 2026-08-06, 1d
-    benchmarking                   :2026-08-06, 1d
+    benchmarking                   :active, 2026-08-06, 1d
     self-annealer                  :2026-08-06, 1d
 ```
 
@@ -62,8 +62,8 @@ gantt
 | 10 | `capability-gap-analyzer` | `agent-skills capability-gap-analyzer check \| analyze` | ✅ 2 Tests | ✅ 2 Files | ✅ Completed |
 | 11 | `git-conflict-resolver` | `agent-skills git-conflict-resolver check \| analyze` | ✅ 2 Tests | ✅ 2 Files | ✅ Completed |
 | 12 | `self-progress` | `agent-skills self-progress check \| analyze` | ✅ 2 Tests | ✅ 2 Files | ✅ Completed |
-| 13 | `what-if-analysis` | `agent-skills what-if-analysis` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
-| 14 | `benchmarking` | `agent-skills benchmarking` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
+| 13 | `what-if-analysis` | `agent-skills what-if-analysis check \| impact` | ✅ 2 Tests | ✅ 2 Files | ✅ Completed |
+| 14 | `benchmarking` | `agent-skills benchmarking` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
 | 15 | `self-annealer` | `agent-skills self-annealer` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
 
 ---

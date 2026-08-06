@@ -32,13 +32,13 @@ python3 skills/what-if-analysis/scripts/main.py [impact|scenario|ast|counterfact
 To calculate the blast radius of a target function, class, or symbol:
 
 ```bash
-python3 skills/what-if-analysis/scripts/impact_analyzer.py --symbol <symbol_name>
+cargo run -p agent-skills -- what-if-analysis impact --symbol <symbol_name>
 ```
 
 Output raw JSON metadata:
 
 ```bash
-python3 skills/what-if-analysis/scripts/impact_analyzer.py --symbol <symbol_name> --json
+cargo run -p agent-skills -- what-if-analysis impact --symbol <symbol_name> --json
 ```
 
 ### 2. Scenario Tradeoff Matrix & Sensitivity Probes (Phase 2)
