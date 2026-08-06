@@ -151,10 +151,8 @@ pub fn run_tdd_command(args: &TddArgs, repo_root: &Path) -> Result<(), String> {
     }
 
     let (runner_name, cmd) = if let Some(custom_cmd_str) = &args.cmd {
-        let parts: Vec<String> = custom_cmd_str
-            .split_whitespace()
-            .map(|s| s.to_string())
-            .collect();
+        let parts = shlex::split(custom_cmd_str)
+            .ok_or_else(|| "Error: Custom command string could not be parsed.".to_string())?;
         if parts.is_empty() {
             return Err("Error: Custom command string is empty.".to_string());
         }
@@ -286,5 +284,34 @@ mod tests {
         let (runner, cmd) = detect_test_runner(&base).expect("Pytest runner must be detected");
         assert_eq!(runner, "pytest");
         assert_eq!(cmd, vec!["pytest".to_string()]);
+    }
+
+    #[test]
+    fn test_verify_red_gate_logic_strict_assertions() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+
+        let red_args = TddArgs {
+            path: base.display().to_string(),
+            cmd: Some("python3 -c \"import sys; sys.exit(1)\"".to_string()),
+            detect: false,
+            verify_red: true,
+            verify_green: false,
+            json: false,
+        };
+        let res = run_tdd_command(&red_args, &base);
+        assert!(res.is_ok());
+
+        let red_violation_args = TddArgs {
+            path: base.display().to_string(),
+            cmd: Some("python3 -c \"import sys; sys.exit(0)\"".to_string()),
+            detect: false,
+            verify_red: true,
+            verify_green: false,
+            json: false,
+        };
+        let res_violation = run_tdd_command(&red_violation_args, &base);
+        assert!(res_violation.is_err());
+        assert!(res_violation.unwrap_err().contains("RED Violation"));
     }
 }

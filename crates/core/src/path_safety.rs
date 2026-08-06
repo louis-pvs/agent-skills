@@ -147,6 +147,19 @@ pub fn resolve_safe_dir(
     Ok(safe_path)
 }
 
+/// Safely remove a directory tree after verifying path traversal containment.
+pub fn safe_rmtree(target_path: impl AsRef<Path>, base_dir: &Path) -> bool {
+    let target = target_path.as_ref();
+    if let Ok(safe_p) = sanitize_path(target, Some(base_dir)) {
+        if safe_p == base_dir || !safe_p.exists() {
+            return false;
+        }
+        std::fs::remove_dir_all(safe_p).is_ok()
+    } else {
+        false
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

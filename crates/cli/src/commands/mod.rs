@@ -1,4 +1,5 @@
 pub mod adr;
+pub mod agent_council;
 pub mod context_gatherer;
 pub mod depgraph;
 pub mod domain_modeling;

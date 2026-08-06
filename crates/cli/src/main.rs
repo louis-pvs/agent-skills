@@ -4,6 +4,7 @@ use std::process::ExitCode;
 
 mod commands;
 use commands::adr::{run_adr_command, AdrSubcommand};
+use commands::agent_council::{run_agent_council_command, AgentCouncilSubcommand};
 use commands::context_gatherer::{run_context_gatherer_command, ContextGathererSubcommand};
 use commands::depgraph::{run_depgraph, DepgraphArgs};
 use commands::domain_modeling::{run_domain_modeling_command, DomainModelingSubcommand};
@@ -36,6 +37,11 @@ enum Commands {
     Adr {
         #[command(subcommand)]
         subcommand: AdrSubcommand,
+    },
+    /// Agent Council multi-agent prompt synthesis (start, wait, results, clean)
+    AgentCouncil {
+        #[command(subcommand)]
+        subcommand: AgentCouncilSubcommand,
     },
     /// Context Gatherer extraction tools (git-coupling, symbol-nav, ast-search)
     ContextGatherer {
@@ -103,6 +109,15 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        Commands::AgentCouncil { subcommand } => {
+            match run_agent_council_command(&subcommand, &repo_root) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("❌ Agent council failed: {err}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
         Commands::ContextGatherer { subcommand } => {
             match run_context_gatherer_command(&subcommand, &repo_root) {
                 Ok(_) => ExitCode::SUCCESS,

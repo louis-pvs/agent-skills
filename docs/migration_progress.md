@@ -21,7 +21,7 @@ This document tracks the ongoing migration of Agent Skills automation scripts an
 
 ## 🛠️ Skill Refactoring Status (Topological Order)
 
-Total Skills: **15** | Completed: **6** | Remaining: **9** | Progress: **40.0%**
+Total Skills: **15** | Completed: **7** | Remaining: **8** | Progress: **46.7%**
 
 ```mermaid
 gantt
@@ -34,9 +34,9 @@ gantt
     tdd                            :done, 2026-08-06, 1d
     context-gatherer               :done, 2026-08-06, 1d
     domain-modeling                :done, 2026-08-06, 1d
+    agent-council                  :done, 2026-08-06, 1d
     section In Queue
-    agent-council                  :active, 2026-08-06, 1d
-    architecture-auditor           :2026-08-06, 1d
+    architecture-auditor           :active, 2026-08-06, 1d
     code-janitor                   :2026-08-06, 1d
     capability-gap-analyzer        :2026-08-06, 1d
     git-conflict-resolver         :2026-08-06, 1d
@@ -56,8 +56,8 @@ gantt
 | 4 | `tdd` | `agent-skills tdd --detect \| --verify-red \| --verify-green` | ✅ 2 Tests | ✅ 4 Files | ✅ Completed |
 | 5 | `context-gatherer` | `agent-skills context-gatherer git-coupling \| symbol-nav \| ast-search` | ✅ 2 Tests | ✅ 4 Files | ✅ Completed |
 | 6 | `domain-modeling` | `agent-skills domain-modeling check \| scaffold-entity` | ✅ 2 Tests | ✅ 5 Files | ✅ Completed |
-| 7 | `agent-council` | `agent-skills agent-council` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
-| 8 | `architecture-auditor` | `agent-skills architecture-auditor` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
+| 7 | `agent-council` | `agent-skills agent-council start \| wait \| results \| clean` | ✅ 2 Tests | ✅ 3 Files | ✅ Completed |
+| 8 | `architecture-auditor` | `agent-skills architecture-auditor` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
 | 9 | `code-janitor` | `agent-skills code-janitor` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
 | 10 | `capability-gap-analyzer` | `agent-skills capability-gap-analyzer` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
 | 11 | `git-conflict-resolver` | `agent-skills git-conflict-resolver` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |

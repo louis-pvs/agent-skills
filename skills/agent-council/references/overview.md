@@ -8,13 +8,13 @@ The **Agent Council** orchestrates multiple AI agent CLIs (`claude`, `codex`, `g
 
 ```mermaid
 flowchart TD
-    A[User Request] --> B[council.py start]
+    A[User Request] --> B[agent-skills agent-council start]
     B --> C[Spawn Subprocess CLIs in Parallel]
-    C --> D[Write job.json & status.json]
-    D --> E[council.py wait / status]
+    C --> D[Write meta.json & prompt.txt]
+    D --> E[agent-skills agent-council wait]
     E --> F[Collect Member Logs & Output]
     F --> G[Synthesize Chairman Response]
-    G --> H[council.py clean]
+    G --> H[agent-skills agent-council clean]
 ```
 
 ---
