@@ -72,10 +72,16 @@ flowchart TD
 - Run CLI validation:
 
   ```bash
-  python3 skills/domain-modeling/scripts/main.py --check
+  cargo run -p agent-skills -- domain-modeling check
   ```
 
-- Synthesize pure domain code stubs (Python `dataclass`, TypeScript types, or Pydantic domain models) containing self-validating invariant constructors.
+- Scaffold a pure domain aggregate root stub:
+
+  ```bash
+  cargo run -p agent-skills -- domain-modeling scaffold-entity Order
+  ```
+
+- Synthesize pure domain code stubs containing self-validating invariant constructors.
 
 ---
 
@@ -93,5 +99,5 @@ flowchart TD
 - [ ] Bounded Context and Aggregate Root boundaries explicitly defined.
 - [ ] Entities vs. Value Objects clearly categorized with invariant validation rules.
 - [ ] Mermaid state machine diagram generated for stateful domain entities.
-- [ ] CLI validation script (`main.py`) executed with exit code 0.
+- [ ] CLI health check (`cargo run -p agent-skills -- domain-modeling check`) executed with exit code 0.
 - [ ] Pure domain code stubs free of ORM or transport framework dependencies.

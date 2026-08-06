@@ -6,6 +6,7 @@ mod commands;
 use commands::adr::{run_adr_command, AdrSubcommand};
 use commands::context_gatherer::{run_context_gatherer_command, ContextGathererSubcommand};
 use commands::depgraph::{run_depgraph, DepgraphArgs};
+use commands::domain_modeling::{run_domain_modeling_command, DomainModelingSubcommand};
 use commands::install::{run_installer, InstallArgs};
 use commands::lint_scripts::{run_lint_scripts, LintScriptsArgs};
 use commands::skill_creator::{scaffold_skill, validate_skill, SkillCreatorSubcommand};
@@ -40,6 +41,11 @@ enum Commands {
     ContextGatherer {
         #[command(subcommand)]
         subcommand: ContextGathererSubcommand,
+    },
+    /// Domain Modeling DDD tools (check, scaffold-entity)
+    DomainModeling {
+        #[command(subcommand)]
+        subcommand: DomainModelingSubcommand,
     },
     /// Test-Driven Development (TDD) runner and state verifier (--detect, --verify-red, --verify-green)
     Tdd(TddArgs),
@@ -102,6 +108,15 @@ fn main() -> ExitCode {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(err) => {
                     eprintln!("❌ Context gatherer failed: {err}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        Commands::DomainModeling { subcommand } => {
+            match run_domain_modeling_command(&subcommand, &repo_root) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("❌ Domain modeling failed: {err}");
                     ExitCode::FAILURE
                 }
             }

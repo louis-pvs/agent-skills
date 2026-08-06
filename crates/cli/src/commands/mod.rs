@@ -1,6 +1,7 @@
 pub mod adr;
 pub mod context_gatherer;
 pub mod depgraph;
+pub mod domain_modeling;
 pub mod install;
 pub mod lint_scripts;
 pub mod skill_creator;

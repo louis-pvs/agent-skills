@@ -21,7 +21,7 @@ This document tracks the ongoing migration of Agent Skills automation scripts an
 
 ## 🛠️ Skill Refactoring Status (Topological Order)
 
-Total Skills: **15** | Completed: **5** | Remaining: **10** | Progress: **33.3%**
+Total Skills: **15** | Completed: **6** | Remaining: **9** | Progress: **40.0%**
 
 ```mermaid
 gantt
@@ -33,9 +33,9 @@ gantt
     architecture-decision-records  :done, 2026-08-06, 1d
     tdd                            :done, 2026-08-06, 1d
     context-gatherer               :done, 2026-08-06, 1d
+    domain-modeling                :done, 2026-08-06, 1d
     section In Queue
-    domain-modeling                :active, 2026-08-06, 1d
-    agent-council                  :2026-08-06, 1d
+    agent-council                  :active, 2026-08-06, 1d
     architecture-auditor           :2026-08-06, 1d
     code-janitor                   :2026-08-06, 1d
     capability-gap-analyzer        :2026-08-06, 1d
@@ -55,8 +55,8 @@ gantt
 | 3 | `architecture-decision-records` | `agent-skills adr init \| new \| supersede \| reindex \| validate` | ✅ 2 Tests | ✅ 5 Files | ✅ Completed |
 | 4 | `tdd` | `agent-skills tdd --detect \| --verify-red \| --verify-green` | ✅ 2 Tests | ✅ 4 Files | ✅ Completed |
 | 5 | `context-gatherer` | `agent-skills context-gatherer git-coupling \| symbol-nav \| ast-search` | ✅ 2 Tests | ✅ 4 Files | ✅ Completed |
-| 6 | `domain-modeling` | `agent-skills domain-modeling` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
-| 7 | `agent-council` | `agent-skills agent-council` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
+| 6 | `domain-modeling` | `agent-skills domain-modeling check \| scaffold-entity` | ✅ 2 Tests | ✅ 5 Files | ✅ Completed |
+| 7 | `agent-council` | `agent-skills agent-council` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
 | 8 | `architecture-auditor` | `agent-skills architecture-auditor` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
 | 9 | `code-janitor` | `agent-skills code-janitor` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
 | 10 | `capability-gap-analyzer` | `agent-skills capability-gap-analyzer` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
