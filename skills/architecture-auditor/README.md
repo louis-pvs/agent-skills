@@ -4,6 +4,18 @@ Audit codebases against modern software design principles (SOLID, DRY, YAGNI, KI
 
 ---
 
+## Quickstart
+
+```bash
+# Verify health of architecture-auditor skill files
+cargo run -p agent-skills -- architecture-auditor check
+
+# Analyze structural metrics for a single file
+cargo run -p agent-skills -- architecture-auditor analyze --file path/to/file.rs
+```
+
+---
+
 ## Documentation Entry Points
 
 - **AI Agent Protocol**: See [SKILL.md](SKILL.md) (used automatically by Antigravity, Claude Code, and Copilot).

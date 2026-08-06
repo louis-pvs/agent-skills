@@ -31,10 +31,8 @@ flowchart TD
 
 Determine what code to audit:
 
-- `--file <path>`: Single file audit.
-- `--dir <path>`: Directory or module audit.
-- `--diff`: Audit uncommitted git changes or target PR diff.
-- `--principles <list>`: Filter principles (e.g. `--principles solid,dry` or default to all).
+- `--file <path>`: Single file metric analysis (`cargo run -p agent-skills -- architecture-auditor analyze --file path/to/file.rs`).
+- `--check`: Health check audit (`cargo run -p agent-skills -- architecture-auditor check`).
 
 ### 2. Inspect Code Context
 

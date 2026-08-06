@@ -5,6 +5,9 @@ use std::process::ExitCode;
 mod commands;
 use commands::adr::{run_adr_command, AdrSubcommand};
 use commands::agent_council::{run_agent_council_command, AgentCouncilSubcommand};
+use commands::architecture_auditor::{
+    run_architecture_auditor_command, ArchitectureAuditorSubcommand,
+};
 use commands::context_gatherer::{run_context_gatherer_command, ContextGathererSubcommand};
 use commands::depgraph::{run_depgraph, DepgraphArgs};
 use commands::domain_modeling::{run_domain_modeling_command, DomainModelingSubcommand};
@@ -42,6 +45,11 @@ enum Commands {
     AgentCouncil {
         #[command(subcommand)]
         subcommand: AgentCouncilSubcommand,
+    },
+    /// Architecture Auditor design principle audit tool (check, analyze)
+    ArchitectureAuditor {
+        #[command(subcommand)]
+        subcommand: ArchitectureAuditorSubcommand,
     },
     /// Context Gatherer extraction tools (git-coupling, symbol-nav, ast-search)
     ContextGatherer {
@@ -114,6 +122,15 @@ fn main() -> ExitCode {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(err) => {
                     eprintln!("❌ Agent council failed: {err}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        Commands::ArchitectureAuditor { subcommand } => {
+            match run_architecture_auditor_command(&subcommand, &repo_root) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("❌ Architecture auditor failed: {err}");
                     ExitCode::FAILURE
                 }
             }
