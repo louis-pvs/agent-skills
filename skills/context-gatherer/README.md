@@ -8,13 +8,13 @@ Gather deep codebase context before making refactoring changes using git tempora
 
 ```bash
 # Git Temporal Coupling (find co-changing files)
-python3 skills/context-gatherer/scripts/git_coupling.py --file path/to/file.py
+cargo run -p agent-skills -- context-gatherer git-coupling --file path/to/file.py
 
 # Symbol Navigation (find caller references & definitions)
-python3 skills/context-gatherer/scripts/symbol_nav.py --symbol "MyClass" --path src/
+cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "MyClass" --path src/
 
 # AST Structural Search
-python3 skills/context-gatherer/scripts/ast_search.py --pattern "def test_*" --path tests/
+cargo run -p agent-skills -- context-gatherer ast-search --pattern "def test_.*" --path tests/
 ```
 
 ---

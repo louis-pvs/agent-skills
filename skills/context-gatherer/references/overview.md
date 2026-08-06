@@ -18,9 +18,9 @@ flowchart TD
 
 ## Core Capabilities
 
-- **Symbol Navigation (`symbol_nav.py`)**: Traverses AST definitions, import targets, and call sites.
-- **AST Pattern Search (`ast_search.py`)**: Locates class definitions, decoratored handlers, and function signatures.
-- **Git Coupling Analysis (`git_coupling.py`)**: Identifies files that historically commit together.
+- **Symbol Navigation (`agent-skills context-gatherer symbol-nav`)**: Traverses AST definitions, import targets, and call sites.
+- **AST Pattern Search (`agent-skills context-gatherer ast-search`)**: Locates class definitions, decorated handlers, and function signatures.
+- **Git Coupling Analysis (`agent-skills context-gatherer git-coupling`)**: Identifies files that historically commit together.
 
 ---
 

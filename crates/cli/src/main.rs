@@ -4,6 +4,7 @@ use std::process::ExitCode;
 
 mod commands;
 use commands::adr::{run_adr_command, AdrSubcommand};
+use commands::context_gatherer::{run_context_gatherer_command, ContextGathererSubcommand};
 use commands::depgraph::{run_depgraph, DepgraphArgs};
 use commands::install::{run_installer, InstallArgs};
 use commands::lint_scripts::{run_lint_scripts, LintScriptsArgs};
@@ -34,6 +35,11 @@ enum Commands {
     Adr {
         #[command(subcommand)]
         subcommand: AdrSubcommand,
+    },
+    /// Context Gatherer extraction tools (git-coupling, symbol-nav, ast-search)
+    ContextGatherer {
+        #[command(subcommand)]
+        subcommand: ContextGathererSubcommand,
     },
     /// Test-Driven Development (TDD) runner and state verifier (--detect, --verify-red, --verify-green)
     Tdd(TddArgs),
@@ -91,6 +97,15 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        Commands::ContextGatherer { subcommand } => {
+            match run_context_gatherer_command(&subcommand, &repo_root) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("❌ Context gatherer failed: {err}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
         Commands::Tdd(args) => match run_tdd_command(&args, &repo_root) {
             Ok(_) => ExitCode::SUCCESS,
             Err(err) => {

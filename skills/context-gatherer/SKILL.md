@@ -21,25 +21,25 @@ Gather deep codebase context before making code changes. Orchestrates multiple c
 
 ## T-Shape Domain Scope & Boundary
 
-- **Descriptive Domain (`context-gatherer`)**: Backward-looking & exploratory context mapping. Focuses on surfacing existing codebase state—git temporal coupling (`git_coupling.py`), symbol definitions/usages (`symbol_nav.py`), structural pattern matching (`ast_search.py`), and knowledge graph queries (`graphify`).
+- **Descriptive Domain (`context-gatherer`)**: Backward-looking & exploratory context mapping. Focuses on surfacing existing codebase state—git temporal coupling (`git-coupling`), symbol definitions/usages (`symbol-nav`), structural pattern matching (`ast-search`), and knowledge graph queries (`graphify`).
 - **Predictive Domain (`what-if-analysis`)**: Forward-looking & simulation-driven. For pre-commit simulations, blast radius risk calculation, scenario tradeoff matrices, counterfactual RED test synthesis, and shift-left failure pre-emption, use `what-if-analysis`.
 
 ## Sub-Skill Directory & Routing Map
 
-| Intent / Task | Script | Description |
+| Intent / Task | Subcommand | Description |
 | :--- | :--- | :--- |
-| Files that change together / impact analysis | `scripts/git_coupling.py` | Parse git history to find temporally coupled files |
-| Who calls this / find all references | `scripts/symbol_nav.py` | Find definitions and usages of symbols via regex search |
-| Structural code pattern matching | `scripts/ast_search.py` | AST-based search for code structures (detect-and-degrade) |
+| Files that change together / impact analysis | `agent-skills context-gatherer git-coupling` | Parse git history to find temporally coupled files |
+| Who calls this / find all references | `agent-skills context-gatherer symbol-nav` | Find definitions and usages of symbols |
+| Structural code pattern matching | `agent-skills context-gatherer ast-search` | AST-based pattern matching across source files |
 | Architecture / relationship questions | → **graphify** | Use existing graphify skill if `graphify-out/` exists |
 
 ## Guidance for Agent
 
 1. **Check graphify first**: If `graphify-out/graph.json` exists and the question is architectural (component relationships, dependency paths), use `/graphify query` instead.
 2. **Select technique by intent**:
-   - "What else changes when I modify X?" → `git_coupling.py`
-   - "Who calls function Y?" / "Where is Z defined?" → `symbol_nav.py`
-   - "Find all classes that implement X" / "Match this code pattern" → `ast_search.py`
+   - "What else changes when I modify X?" → `git-coupling`
+   - "Who calls function Y?" / "Where is Z defined?" → `symbol-nav`
+   - "Find all classes that implement X" / "Match this code pattern" → `ast-search`
 3. **Combine techniques** when the question spans multiple dimensions (e.g., find all callers of X AND what files co-change with them).
 
 ## Usage
@@ -49,8 +49,8 @@ Gather deep codebase context before making code changes. Orchestrates multiple c
 Find files that frequently change together with a target file:
 
 ```bash
-python3 skills/context-gatherer/scripts/git_coupling.py --file path/to/file.py
-python3 skills/context-gatherer/scripts/git_coupling.py --file path/to/file.py --min-commits 3 --limit 20
+cargo run -p agent-skills -- context-gatherer git-coupling --file path/to/file.py
+cargo run -p agent-skills -- context-gatherer git-coupling --file path/to/file.py --min-commits 3 --limit 20
 ```
 
 ### Symbol Navigation
@@ -58,9 +58,9 @@ python3 skills/context-gatherer/scripts/git_coupling.py --file path/to/file.py -
 Find definitions and references of a symbol:
 
 ```bash
-python3 skills/context-gatherer/scripts/symbol_nav.py --symbol "MyClass" --path src/
-python3 skills/context-gatherer/scripts/symbol_nav.py --symbol "my_function" --path src/ --type definition
-python3 skills/context-gatherer/scripts/symbol_nav.py --symbol "my_function" --path src/ --type reference
+cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "MyClass" --path src/
+cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "my_function" --path src/ --type definition
+cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "my_function" --path src/ --type reference
 ```
 
 ### AST Search
@@ -68,8 +68,8 @@ python3 skills/context-gatherer/scripts/symbol_nav.py --symbol "my_function" --p
 Find structural code patterns:
 
 ```bash
-python3 skills/context-gatherer/scripts/ast_search.py --pattern "class * (BaseHandler)" --path src/
-python3 skills/context-gatherer/scripts/ast_search.py --pattern "def test_*" --path tests/
+cargo run -p agent-skills -- context-gatherer ast-search --pattern "class .* \(BaseHandler\)" --path src/
+cargo run -p agent-skills -- context-gatherer ast-search --pattern "def test_.*" --path tests/
 ```
 
 ## Completion Criteria
