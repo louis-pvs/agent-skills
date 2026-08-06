@@ -1,0 +1,17 @@
+# Git Conflict Resolver Skill Configuration
+# Defines default operational parameters for conflict detection, analysis, and resolution.
+
+conflict_resolver:
+  analysis:
+    max_commit_history: 10
+    extract_base_version: true
+    parse_ast_context: true
+
+  verification:
+    require_zero_markers: true
+    run_linter_post_resolution: true
+    run_tests_post_resolution: true
+
+  reporting:
+    verbose: true
+    generate_summary_report: true

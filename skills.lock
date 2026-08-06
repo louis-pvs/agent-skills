@@ -8,6 +8,7 @@
     "capability-gap-analyzer",
     "context-gatherer",
     "domain-modeling",
+    "git-conflict-resolver",
     "self-progress",
     "skill-creator",
     "tdd",
@@ -121,6 +122,14 @@
         "graphify"
       ],
       "path": "skills/domain-modeling"
+    },
+    "git-conflict-resolver": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [],
+      "transitive_requires": [],
+      "transitive_enhances": [],
+      "path": "skills/git-conflict-resolver"
     },
     "self-annealer": {
       "version": "1.0.0",

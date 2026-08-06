@@ -97,7 +97,7 @@ def search_python_ast(
     """
     try:
         resolved = Path(filepath).resolve()
-        safe_filepath = sanitize_path(resolved, base_dir=resolved.parent)
+        safe_filepath = sanitize_path(resolved)
         source = safe_filepath.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(safe_filepath))
     except (SyntaxError, UnicodeDecodeError, OSError, ValueError):
@@ -166,26 +166,33 @@ try:
 except ImportError:
 
     def sanitize_path(input_path: Any, base_dir: Optional[Path] = None, *, strict_chars: bool = False) -> Path:
-        p = Path(input_path).resolve()
-        return p
+        base = (base_dir if base_dir is not None else Path.cwd()).resolve()
+        candidate = Path(input_path).resolve()
+        try:
+            candidate.relative_to(base)
+        except ValueError as err:
+            raise ValueError(f"Security Error: Path '{input_path}' is outside allowed base directory '{base}'") from err
+        return candidate
 
 
-def find_python_files(search_path: str) -> List[str]:
+def find_python_files(search_path: str, base_dir: Optional[Path] = None) -> List[str]:
     """Recursively find all Python files in a directory.
 
     Args:
         search_path: Root directory to search.
+        base_dir: Optional trusted base directory boundary.
 
     Returns:
         List of absolute file paths.
     """
     files: List[str] = []
-    root = Path(search_path).resolve()
-    base_dir = root if root.is_dir() else root.parent
-    safe_root = sanitize_path(root, base_dir=base_dir)
+    safe_root = sanitize_path(search_path, base_dir=base_dir)
 
     if safe_root.is_file() and safe_root.suffix == ".py":
         return [str(safe_root)]
+
+    if not safe_root.is_dir():
+        return []
 
     for dirpath, dirnames, filenames in os.walk(safe_root):
         dirnames[:] = [d for d in dirnames if not d.startswith(".") and d not in ("venv", ".venv", "__pycache__", "node_modules")]

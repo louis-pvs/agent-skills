@@ -18,6 +18,20 @@ if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
 
 try:
+    from scripts._path_safety import sanitize_path
+except ImportError:
+
+    def sanitize_path(input_path, base_dir=None, *, strict_chars=False):
+        import os
+
+        base = os.path.realpath(str(base_dir if base_dir is not None else Path.cwd()))
+        candidate = os.path.realpath(str(input_path))
+        if os.path.commonpath([base, candidate]) != base:
+            raise ValueError(f"Security Error: Path '{input_path}' is outside allowed base directory '{base}'")
+        return Path(candidate)
+
+
+try:
     from scripts._config_safety import load_skill_config
 except ImportError:
 
@@ -43,7 +57,7 @@ def get_adr_config(repo_dir: Path) -> Tuple[Path, str]:
     adr_rel_path = skill_cfg.get("adr_dir", "docs/adr")
     adr_prefix = skill_cfg.get("prefix", "ADR")
 
-    adr_dir = repo_dir / adr_rel_path
+    adr_dir = sanitize_path(repo_dir / adr_rel_path, base_dir=repo_dir)
     return adr_dir, adr_prefix
 
 
