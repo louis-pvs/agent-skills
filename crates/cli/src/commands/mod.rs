@@ -6,6 +6,7 @@ pub mod code_janitor;
 pub mod context_gatherer;
 pub mod depgraph;
 pub mod domain_modeling;
+pub mod git_conflict_resolver;
 pub mod install;
 pub mod lint_scripts;
 pub mod skill_creator;

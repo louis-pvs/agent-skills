@@ -21,12 +21,12 @@ Intelligently resolve Git rebase or merge conflicts using repository context, co
 ## CLI Usage
 
 ```bash
-# Check if repo is in conflict state
-python3 skills/git-conflict-resolver/scripts/conflict_analyzer.py --check
+# Check health of git-conflict-resolver skill files
+cargo run -p agent-skills -- git-conflict-resolver check
 
 # Deep analysis of all unmerged files
-python3 skills/git-conflict-resolver/scripts/conflict_analyzer.py --analyze --json
+cargo run -p agent-skills -- git-conflict-resolver analyze --json
 
 # Verify zero conflict markers remain
-python3 skills/git-conflict-resolver/scripts/conflict_analyzer.py --verify
+cargo run -p agent-skills -- git-conflict-resolver analyze --verify
 ```

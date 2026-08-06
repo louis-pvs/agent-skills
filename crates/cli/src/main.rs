@@ -15,6 +15,9 @@ use commands::code_janitor::{run_code_janitor_command, CodeJanitorSubcommand};
 use commands::context_gatherer::{run_context_gatherer_command, ContextGathererSubcommand};
 use commands::depgraph::{run_depgraph, DepgraphArgs};
 use commands::domain_modeling::{run_domain_modeling_command, DomainModelingSubcommand};
+use commands::git_conflict_resolver::{
+    run_git_conflict_resolver_command, GitConflictResolverSubcommand,
+};
 use commands::install::{run_installer, InstallArgs};
 use commands::lint_scripts::{run_lint_scripts, LintScriptsArgs};
 use commands::skill_creator::{scaffold_skill, validate_skill, SkillCreatorSubcommand};
@@ -74,6 +77,11 @@ enum Commands {
     DomainModeling {
         #[command(subcommand)]
         subcommand: DomainModelingSubcommand,
+    },
+    /// Git Conflict Resolver 3-way merge/rebase analysis tool (check, analyze)
+    GitConflictResolver {
+        #[command(subcommand)]
+        subcommand: GitConflictResolverSubcommand,
     },
     /// Test-Driven Development (TDD) runner and state verifier (--detect, --verify-red, --verify-green)
     Tdd(TddArgs),
@@ -181,6 +189,15 @@ fn main() -> ExitCode {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(err) => {
                     eprintln!("❌ Domain modeling failed: {err}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        Commands::GitConflictResolver { subcommand } => {
+            match run_git_conflict_resolver_command(&subcommand, &repo_root) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("❌ Git conflict resolver failed: {err}");
                     ExitCode::FAILURE
                 }
             }
