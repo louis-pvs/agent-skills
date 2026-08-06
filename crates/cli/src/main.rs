@@ -8,6 +8,7 @@ use commands::agent_council::{run_agent_council_command, AgentCouncilSubcommand}
 use commands::architecture_auditor::{
     run_architecture_auditor_command, ArchitectureAuditorSubcommand,
 };
+use commands::benchmarking::{run_benchmarking_command, BenchmarkingSubcommand};
 use commands::capability_gap_analyzer::{
     run_capability_gap_analyzer_command, CapabilityGapAnalyzerSubcommand,
 };
@@ -59,6 +60,11 @@ enum Commands {
     ArchitectureAuditor {
         #[command(subcommand)]
         subcommand: ArchitectureAuditorSubcommand,
+    },
+    /// Benchmarking empirical performance verification tool (check, run)
+    Benchmarking {
+        #[command(subcommand)]
+        subcommand: BenchmarkingSubcommand,
     },
     /// Capability Gap Analyzer checklist & domain matrix scanner (check, analyze)
     CapabilityGapAnalyzer {
@@ -165,6 +171,15 @@ fn main() -> ExitCode {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(err) => {
                     eprintln!("❌ Architecture auditor failed: {err}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        Commands::Benchmarking { subcommand } => {
+            match run_benchmarking_command(&subcommand, &repo_root) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("❌ Benchmarking failed: {err}");
                     ExitCode::FAILURE
                 }
             }

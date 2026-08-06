@@ -32,9 +32,8 @@ Follow these 4 steps when evaluating performance or verifying code changes:
 Determine the command to benchmark (e.g. test runner, script, CLI entrypoint) and optional baseline command:
 
 ```bash
-python3 skills/benchmarking/scripts/benchmark_runner.py \
-  --cmd "python3 -m unittest discover -s scripts/tests" \
-  --baseline-cmd "python3 -m unittest discover -s scripts/tests" \
+cargo run -p agent-skills -- benchmarking run \
+  --cmd "cargo test" \
   --iterations 5
 ```
 
@@ -44,8 +43,8 @@ Execute benchmark runs with target assertion thresholds:
 
 ```bash
 # Verify max runtime threshold (< 500 ms) and 100% pass ratio
-python3 skills/benchmarking/scripts/benchmark_runner.py \
-  --cmd "pytest tests/" \
+cargo run -p agent-skills -- benchmarking run \
+  --cmd "cargo test" \
   --assert-max-duration-ms 500 \
   --assert-min-pass-ratio 1.0 \
   --json

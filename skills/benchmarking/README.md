@@ -7,11 +7,11 @@ Empirical performance benchmarking, baseline differential analysis, and expandab
 ## Quickstart
 
 ```bash
-# Run baseline benchmark
-python3 skills/benchmarking/scripts/benchmark_runner.py --cmd "python3 main.py" --save-baseline
+# Verify health of benchmarking skill files
+cargo run -p agent-skills -- benchmarking check
 
-# Run differential analysis post-patch
-python3 skills/benchmarking/scripts/benchmark_runner.py --cmd "python3 main.py" --compare-baseline
+# Run empirical performance benchmark
+cargo run -p agent-skills -- benchmarking run --cmd "cargo test" --iterations 5
 ```
 
 ---
