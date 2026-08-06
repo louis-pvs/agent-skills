@@ -20,4 +20,4 @@ Without explicit `--verify-red` gates, AI models frequently:
 2. Jump directly to writing implementation code without proving the bug/feature gap existed.
 3. Swallow errors silently to report a fake success.
 
-The `tdd_runner.py` tool provides a deterministic check on external exit codes to prevent these failure modes.
+The `agent-skills tdd` CLI tool provides a deterministic check on external exit codes to prevent these failure modes.

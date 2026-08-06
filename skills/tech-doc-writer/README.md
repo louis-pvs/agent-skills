@@ -8,7 +8,7 @@ A specialized Agent Skill for generating, refactoring, and auditing human-centri
 
 Technical documentation is often either too brief or diluted with marketing hyperbole. Furthermore, providing extensive writing guidelines directly inside an AI agent's prompt taxes token limits on every single message.
 
-`tech-doc-writer` solves this by separating **agent execution protocols (`SKILL.md`)** from **on-demand writing directives (`references/writing-directives.md`)** and **automated Markdown linting (`scripts/doc_auditor.py`)**.
+`tech-doc-writer` solves this by separating **agent execution protocols (`SKILL.md`)** from **on-demand writing directives (`references/writing-directives.md`)** and **automated Markdown linting (`agent-skills tech-doc-writer audit`)**.
 
 ---
 
@@ -17,7 +17,7 @@ Technical documentation is often either too brief or diluted with marketing hype
 Run the document auditor against your Markdown files:
 
 ```bash
-python3 skills/tech-doc-writer/scripts/doc_auditor.py README.md ARCHITECTURE.md
+cargo run -p agent-skills -- tech-doc-writer audit --path README.md ARCHITECTURE.md
 ```
 
 ### Audited Rules

@@ -1,19 +1,29 @@
 #!/bin/sh
-# Mirrors the ruff, lint_scripts, depgraph, and unit test checks run in CI.
+# Mirrors the Rust compilation, clippy, depgraph, script linting, markdownlint, and test checks.
 set -e
 
-echo "Running ruff check..."
-ruff check .
+export PATH="$HOME/.cargo/bin:$PATH"
 
-echo "Running ruff format --check..."
-ruff format --check .
+echo "Running Cargo check..."
+cargo check --workspace
 
-echo "Running script compliance check..."
-python3 scripts/lint_scripts.py
+echo "Running Cargo fmt check..."
+cargo fmt --check
 
-echo "Running skill dependency graph verification..."
-python3 scripts/depgraph.py --verify
+echo "Running Cargo clippy..."
+cargo clippy --workspace --all-targets -- -D warnings
 
-echo "Running unit test suite..."
+echo "Running Cargo unit test suite..."
+cargo test --workspace
+
+echo "Running Rust agent-skills depgraph verification..."
+cargo run -p agent-skills -- depgraph --verify
+
+echo "Running Rust agent-skills lint-scripts compliance check..."
+cargo run -p agent-skills -- lint-scripts
+
+echo "Running markdownlint check..."
+npx markdownlint-cli --ignore "graphify-out/**" "**/*.md"
+
+echo "Running python backward-compatibility test suite..."
 python3 -m unittest discover -s scripts/tests
-

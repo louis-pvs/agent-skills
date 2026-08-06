@@ -45,13 +45,13 @@ flowchart TD
 - Run the ADR CLI generator:
 
   ```bash
-  python3 skills/architecture-decision-records/scripts/adr_cli.py --new "Adopt PostgreSQL for Persistence"
+  cargo run -p agent-skills -- adr new "Adopt PostgreSQL for Persistence"
   ```
 
 - Or initialize the ADR repository directory if it does not yet exist:
 
   ```bash
-  python3 skills/architecture-decision-records/scripts/adr_cli.py --init
+  cargo run -p agent-skills -- adr init
   ```
 
 ### 3. State Transition & Indexing
@@ -59,13 +59,13 @@ flowchart TD
 - When a new decision supersedes a previous one, run:
 
   ```bash
-  python3 skills/architecture-decision-records/scripts/adr_cli.py --supersede 1 2
+  cargo run -p agent-skills -- adr supersede --old 0001 --by 0002
   ```
 
 - Rebuild or update the Markdown index table in `docs/adr/README.md`:
 
   ```bash
-  python3 skills/architecture-decision-records/scripts/adr_cli.py --reindex
+  cargo run -p agent-skills -- adr reindex
   ```
 
 ### 4. Format Audit & Validation
@@ -73,7 +73,7 @@ flowchart TD
 - Validate ADR structural integrity:
 
   ```bash
-  python3 skills/architecture-decision-records/scripts/adr_cli.py --validate
+  cargo run -p agent-skills -- adr validate
   ```
 
 ---
@@ -84,19 +84,19 @@ Unified CLI commands:
 
 ```bash
 # Initialize docs/adr directory with 0000 ADR and README index
-python3 skills/architecture-decision-records/scripts/adr_cli.py --init
+cargo run -p agent-skills -- adr init
 
 # Create a new MADR formatted decision record
-python3 skills/architecture-decision-records/scripts/adr_cli.py --new "Use Redis for Session Caching"
+cargo run -p agent-skills -- adr new "Use Redis for Session Caching"
 
 # Create a Nygard formatted decision record
-python3 skills/architecture-decision-records/scripts/adr_cli.py --new "Use Redis" --template nygard
+cargo run -p agent-skills -- adr new "Use Redis" --template nygard
 
 # Supersede ADR 0001 with ADR 0002
-python3 skills/architecture-decision-records/scripts/adr_cli.py --supersede 1 2
+cargo run -p agent-skills -- adr supersede --old 0001 --by 0002
 
 # Validate all ADRs in project
-python3 skills/architecture-decision-records/scripts/adr_cli.py --validate
+cargo run -p agent-skills -- adr validate
 ```
 
 ---

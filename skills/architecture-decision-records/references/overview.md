@@ -17,7 +17,8 @@ flowchart TD
 
 ## CLI Automation
 
-- `main.py --new "<title>"`: Scaffolds next sequential ADR.
-- `main.py --accept <id>`: Sets status to Accepted and updates index.
-- `main.py --supersede <id> --by <new_id>`: Updates superseded state.
-- `main.py --reindex`: Rebuilds catalog index table in `docs/adr/README.md`.
+- `agent-skills adr new "<title>"`: Scaffolds next sequential ADR.
+- `agent-skills adr accept <id>`: Sets status to Accepted and updates index.
+- `agent-skills adr supersede --old <id> --by <new_id>`: Updates superseded state and bidirectional links.
+- `agent-skills adr reindex`: Rebuilds catalog index table in `docs/adr/README.md`.
+- `agent-skills adr validate`: Validates ADR titles, sequential numbering, and status headers.

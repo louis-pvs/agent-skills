@@ -55,7 +55,7 @@ Read the required reference documents before drafting content:
 Run the document auditor to verify GFM compliance, single H1, alert syntax, and path privacy:
 
 ```bash
-python3 skills/tech-doc-writer/scripts/doc_auditor.py path/to/document.md
+cargo run -p agent-skills -- tech-doc-writer audit --path path/to/document.md
 ```
 
 ## Completion Criteria
@@ -63,7 +63,7 @@ python3 skills/tech-doc-writer/scripts/doc_auditor.py path/to/document.md
 - [ ] Target document drafted or updated.
 - [ ] On-demand references (`writing-directives.md`, `gfm-conventions.md`) applied.
 - [ ] Visual diagrams use standard GFM `mermaid` syntax (no ASCII art).
-- [ ] `doc_auditor.py` executed with exit code 0.
+- [ ] `agent-skills tech-doc-writer audit` executed with exit code 0.
 - [ ] Privacy check passed (no hardcoded absolute user home paths).
 
 ## References

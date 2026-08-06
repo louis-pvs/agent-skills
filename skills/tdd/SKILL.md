@@ -33,10 +33,10 @@ Follow these 4 steps sequentially:
 
 1. Identify or create the appropriate test file in the project.
 2. Write a minimal unit test asserting the expected behavior/contract for the new feature or bug fix. (For domain logic, check `domain-modeling` for aggregate invariants, value object rules, and state transition guards to use directly as test specifications).
-3. Run `tdd_runner.py` with `--verify-red` to verify that the test fails as expected:
+3. Run `agent-skills tdd` with `--verify-red` to verify that the test fails as expected:
 
    ```bash
-   python3 skills/tdd/scripts/tdd_runner.py --verify-red
+   cargo run -p agent-skills -- tdd --verify-red
    ```
 
    > [!IMPORTANT]
@@ -45,10 +45,10 @@ Follow these 4 steps sequentially:
 ### 2. Implement & GREEN (Verify Pass)
 
 1. Write the minimal production code necessary to make the failing test pass. Avoid over-engineering.
-2. Run `tdd_runner.py` with `--verify-green` to confirm that all tests pass:
+2. Run `agent-skills tdd` with `--verify-green` to confirm that all tests pass:
 
    ```bash
-   python3 skills/tdd/scripts/tdd_runner.py --verify-green
+   cargo run -p agent-skills -- tdd --verify-green
    ```
 
 3. If tests fail, adjust implementation code (maximum 3 iterations) before seeking user guidance.
@@ -59,7 +59,7 @@ Follow these 4 steps sequentially:
 2. Re-verify the GREEN state to ensure no regressions were introduced:
 
    ```bash
-   python3 skills/tdd/scripts/tdd_runner.py --verify-green
+   cargo run -p agent-skills -- tdd --verify-green
    ```
 
 ### 4. Boundary & Edge Case Coverage
@@ -69,22 +69,22 @@ Follow these 4 steps sequentially:
 
 ---
 
-## Automation CLI (`tdd_runner.py`)
+## Automation CLI (`agent-skills tdd`)
 
-The helper script handles test runner auto-detection (`pytest`, `unittest`, `npm test`, `jest`, `go test`, `cargo test`):
+The CLI handles test runner auto-detection (`pytest`, `unittest`, `npm test`, `jest`, `go test`, `cargo test`):
 
 ```bash
 # Auto-detect project test runner
-python3 skills/tdd/scripts/tdd_runner.py --detect
+cargo run -p agent-skills -- tdd --detect
 
 # Assert RED state (fails if tests pass)
-python3 skills/tdd/scripts/tdd_runner.py --verify-red
+cargo run -p agent-skills -- tdd --verify-red
 
 # Assert GREEN state (fails if tests fail)
-python3 skills/tdd/scripts/tdd_runner.py --verify-green
+cargo run -p agent-skills -- tdd --verify-green
 
 # Custom command override
-python3 skills/tdd/scripts/tdd_runner.py --cmd "pytest tests/test_feature.py" --verify-green
+cargo run -p agent-skills -- tdd --cmd "pytest tests/test_feature.py" --verify-green
 ```
 
 ---

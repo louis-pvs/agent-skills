@@ -8,8 +8,8 @@ Comprehensive architectural overview and reference documentation for `skill-crea
 
 ## Core Capabilities
 
-- **Scaffolding (`scaffold_skill.py`)**: Generates directory structure, YAML frontmatter, `SKILL.md`, `README.md`, and standard test suites.
-- **Validation (`scaffold_skill.py --validate`)**: Audits skills against frontmatter syntax, context load limits (<= 500 lines), checkable completion criteria, path privacy rules, and stdlib script compliance.
+- **Scaffolding (`agent-skills skill-creator scaffold`)**: Generates directory structure, YAML frontmatter, `SKILL.md`, `README.md`, and standard test suites.
+- **Validation (`agent-skills skill-creator validate`)**: Audits skills against frontmatter syntax, context load limits (<= 500 lines), checkable completion criteria, path privacy rules, and script compliance.
 
 ## Reference Guides
 

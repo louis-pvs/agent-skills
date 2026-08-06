@@ -1,6 +1,6 @@
 # Supported Test Runners & Detection Matrix
 
-The `tdd_runner.py` tool automatically inspects the target directory for framework configuration files and test patterns.
+The `agent-skills tdd` CLI tool automatically inspects the target directory for framework configuration files and test patterns.
 
 | Language / Environment | Trigger Indicators | Auto-Detected Command |
 | :--- | :--- | :--- |
@@ -16,5 +16,5 @@ The `tdd_runner.py` tool automatically inspects the target directory for framewo
 If a project uses custom test paths, non-standard arguments, or flags, specify `--cmd`:
 
 ```bash
-python3 skills/tdd/scripts/tdd_runner.py --cmd "pytest tests/unit/test_api.py -v" --verify-green
+cargo run -p agent-skills -- tdd --cmd "pytest tests/unit/test_api.py -v" --verify-green
 ```

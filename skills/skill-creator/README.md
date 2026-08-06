@@ -7,14 +7,14 @@ Guide and automate the creation of high-quality, standardized, predictable Agent
 ## Quickstart
 
 ```bash
-# Scaffold a complex model-invoked skill
-python3 skills/skill-creator/scripts/scaffold_skill.py \
+# Scaffold a complex model-invoked skill (Rust CLI)
+cargo run -p agent-skills -- skill-creator scaffold \
   --name "my-new-skill" \
   --description "Description of when to trigger this skill." \
   --type complex
 
 # Validate an existing skill directory
-python3 skills/skill-creator/scripts/scaffold_skill.py --validate skills/my-new-skill
+cargo run -p agent-skills -- skill-creator validate --path skills/my-new-skill
 ```
 
 ---

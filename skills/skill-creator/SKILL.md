@@ -30,17 +30,17 @@ Determine the scope, invocation mode, and architecture of the skill:
 
 ### 2. Scaffold Skill Directory
 
-Use the included automation script:
+Use the Rust CLI (or python fallback script):
 
 ```bash
-# Model-invoked complex skill
-python3 skills/skill-creator/scripts/scaffold_skill.py \
+# Model-invoked complex skill (Native Rust CLI)
+cargo run -p agent-skills -- skill-creator scaffold \
   --name "my-new-skill" \
   --description "Description of when to trigger this skill." \
   --type complex
 
 # User-invoked router skill (zero context load)
-python3 skills/skill-creator/scripts/scaffold_skill.py \
+cargo run -p agent-skills -- skill-creator scaffold \
   --name "my-router-skill" \
   --description "Short human summary." \
   --type router \
@@ -84,7 +84,7 @@ Optimize context and cognitive load:
 
 ### 5. Audit & Validate
 
-Run `scaffold_skill.py --validate skills/<skill-name>` to verify:
+Run `cargo run -p agent-skills -- skill-creator validate --path skills/<skill-name>` to verify:
 
 - **YAML Frontmatter Syntax**: Ensure valid YAML formatting. If `description` or any string field contains colons (`:`), quotes, or special characters, enclose the value in single quotes (`'...'`) or double quotes (`"..."`).
 - **Invocation Mode Compliance**: Validate name, description, and invocation mode flag (`disable-model-invocation`).
