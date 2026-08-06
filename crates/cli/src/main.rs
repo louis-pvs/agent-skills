@@ -8,6 +8,9 @@ use commands::agent_council::{run_agent_council_command, AgentCouncilSubcommand}
 use commands::architecture_auditor::{
     run_architecture_auditor_command, ArchitectureAuditorSubcommand,
 };
+use commands::capability_gap_analyzer::{
+    run_capability_gap_analyzer_command, CapabilityGapAnalyzerSubcommand,
+};
 use commands::code_janitor::{run_code_janitor_command, CodeJanitorSubcommand};
 use commands::context_gatherer::{run_context_gatherer_command, ContextGathererSubcommand};
 use commands::depgraph::{run_depgraph, DepgraphArgs};
@@ -51,6 +54,11 @@ enum Commands {
     ArchitectureAuditor {
         #[command(subcommand)]
         subcommand: ArchitectureAuditorSubcommand,
+    },
+    /// Capability Gap Analyzer checklist & domain matrix scanner (check, analyze)
+    CapabilityGapAnalyzer {
+        #[command(subcommand)]
+        subcommand: CapabilityGapAnalyzerSubcommand,
     },
     /// Code Janitor automated code hygiene scanner (check, scan)
     CodeJanitor {
@@ -137,6 +145,15 @@ fn main() -> ExitCode {
                 Ok(_) => ExitCode::SUCCESS,
                 Err(err) => {
                     eprintln!("❌ Architecture auditor failed: {err}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
+        Commands::CapabilityGapAnalyzer { subcommand } => {
+            match run_capability_gap_analyzer_command(&subcommand, &repo_root) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(err) => {
+                    eprintln!("❌ Capability gap analyzer failed: {err}");
                     ExitCode::FAILURE
                 }
             }

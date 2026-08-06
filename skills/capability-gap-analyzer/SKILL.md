@@ -115,7 +115,7 @@ flowchart TD
   [skill-creator](../skill-creator/SKILL.md):
 
   ```bash
-  python3 skills/capability-gap-analyzer/scripts/main.py --scaffold-missing
+  cargo run -p agent-skills -- capability-gap-analyzer analyze --auto-detect
   ```
 
 ---
@@ -126,13 +126,13 @@ Unified CLI entrypoint:
 
 ```bash
 # Analyze explicit domain across workspace and global skills
-python3 skills/capability-gap-analyzer/scripts/main.py --domain frontend-web
+cargo run -p agent-skills -- capability-gap-analyzer analyze --domain frontend-web
 
 # Auto-detect workspace domain mix for non-specific prompts
-python3 skills/capability-gap-analyzer/scripts/main.py --auto-detect
+cargo run -p agent-skills -- capability-gap-analyzer analyze --auto-detect
 
 # Output JSON structured inventory for agent consumption
-python3 skills/capability-gap-analyzer/scripts/main.py --json
+cargo run -p agent-skills -- capability-gap-analyzer analyze --json
 ```
 
 ---

@@ -15,17 +15,17 @@ It computes real coverage fractions (`covered sub-capabilities / total sub-capab
 ## Quick Usage
 
 ```bash
+# Verify health of capability-gap-analyzer skill files
+cargo run -p agent-skills -- capability-gap-analyzer check
+
 # Auto-detect project domain mix and analyze skill coverage
-python3 skills/capability-gap-analyzer/scripts/main.py --auto-detect
+cargo run -p agent-skills -- capability-gap-analyzer analyze --auto-detect
 
 # Analyze an explicit target domain (e.g. frontend-web, devops-infra)
-python3 skills/capability-gap-analyzer/scripts/main.py --domain frontend-web
+cargo run -p agent-skills -- capability-gap-analyzer analyze --domain frontend-web
 
-# Output structured JSON metadata and suggest missing skill scaffolds
-python3 skills/capability-gap-analyzer/scripts/main.py --json --scaffold-missing
-
-# Run unit tests
-python3 -m unittest discover -s skills/capability-gap-analyzer/scripts/tests
+# Output structured JSON metadata
+cargo run -p agent-skills -- capability-gap-analyzer analyze --json
 ```
 
 ---

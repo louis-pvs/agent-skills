@@ -1,6 +1,7 @@
 pub mod adr;
 pub mod agent_council;
 pub mod architecture_auditor;
+pub mod capability_gap_analyzer;
 pub mod code_janitor;
 pub mod context_gatherer;
 pub mod depgraph;

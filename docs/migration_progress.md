@@ -21,7 +21,7 @@ This document tracks the ongoing migration of Agent Skills automation scripts an
 
 ## 🛠️ Skill Refactoring Status (Topological Order)
 
-Total Skills: **15** | Completed: **9** | Remaining: **6** | Progress: **60.0%**
+Total Skills: **15** | Completed: **10** | Remaining: **5** | Progress: **66.7%**
 
 ```mermaid
 gantt
@@ -37,9 +37,9 @@ gantt
     agent-council                  :done, 2026-08-06, 1d
     architecture-auditor           :done, 2026-08-06, 1d
     code-janitor                   :done, 2026-08-06, 1d
+    capability-gap-analyzer        :done, 2026-08-06, 1d
     section In Queue
-    capability-gap-analyzer        :active, 2026-08-06, 1d
-    git-conflict-resolver         :2026-08-06, 1d
+    git-conflict-resolver         :active, 2026-08-06, 1d
     self-progress                  :2026-08-06, 1d
     what-if-analysis               :2026-08-06, 1d
     benchmarking                   :2026-08-06, 1d
@@ -59,8 +59,8 @@ gantt
 | 7 | `agent-council` | `agent-skills agent-council start \| wait \| results \| clean` | ✅ 2 Tests | ✅ 3 Files | ✅ Completed |
 | 8 | `architecture-auditor` | `agent-skills architecture-auditor check \| analyze` | ✅ 2 Tests | ✅ 2 Files | ✅ Completed |
 | 9 | `code-janitor` | `agent-skills code-janitor check \| scan` | ✅ 2 Tests | ✅ 2 Files | ✅ Completed |
-| 10 | `capability-gap-analyzer` | `agent-skills capability-gap-analyzer` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
-| 11 | `git-conflict-resolver` | `agent-skills git-conflict-resolver` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
+| 10 | `capability-gap-analyzer` | `agent-skills capability-gap-analyzer check \| analyze` | ✅ 2 Tests | ✅ 2 Files | ✅ Completed |
+| 11 | `git-conflict-resolver` | `agent-skills git-conflict-resolver` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
 | 12 | `self-progress` | `agent-skills self-progress` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
 | 13 | `what-if-analysis` | `agent-skills what-if-analysis` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
 | 14 | `benchmarking` | `agent-skills benchmarking` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
