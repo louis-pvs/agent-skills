@@ -40,10 +40,10 @@ Determine what code to clean:
 
 ### 2. AST & Static Scan
 
-Run the `janitor_runner.py` CLI scanner:
+Run the `agent-skills code-janitor` CLI scanner:
 
 ```bash
-python3 skills/code-janitor/scripts/janitor_runner.py --file <path> --json
+cargo run -p agent-skills -- code-janitor scan --file <path> --json
 ```
 
 The scanner detects the following smell categories:

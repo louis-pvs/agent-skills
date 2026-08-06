@@ -11,26 +11,26 @@ Automated code hygiene: detect and fix dead code, unused imports, code smells, o
 
 ## Quick Start
 
+### Verify health of code-janitor skill files
+
+```bash
+cargo run -p agent-skills -- code-janitor check
+```
+
 ### Scan a single file
 
 ```bash
-python3 skills/code-janitor/scripts/janitor_runner.py --file path/to/file.py
+cargo run -p agent-skills -- code-janitor scan --file path/to/file.py
 ```
 
 ### Scan an entire directory
 
 ```bash
-python3 skills/code-janitor/scripts/janitor_runner.py --dir path/to/module/
+cargo run -p agent-skills -- code-janitor scan --dir path/to/module/
 ```
 
 ### JSON output for programmatic consumption
 
 ```bash
-python3 skills/code-janitor/scripts/janitor_runner.py --file path/to/file.py --json
-```
-
-## Running Tests
-
-```bash
-python3 -m unittest discover -s skills/code-janitor/scripts/tests
+cargo run -p agent-skills -- code-janitor scan --file path/to/file.py --json
 ```

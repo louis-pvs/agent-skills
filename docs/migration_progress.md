@@ -21,7 +21,7 @@ This document tracks the ongoing migration of Agent Skills automation scripts an
 
 ## 🛠️ Skill Refactoring Status (Topological Order)
 
-Total Skills: **15** | Completed: **8** | Remaining: **7** | Progress: **53.3%**
+Total Skills: **15** | Completed: **9** | Remaining: **6** | Progress: **60.0%**
 
 ```mermaid
 gantt
@@ -36,9 +36,9 @@ gantt
     domain-modeling                :done, 2026-08-06, 1d
     agent-council                  :done, 2026-08-06, 1d
     architecture-auditor           :done, 2026-08-06, 1d
+    code-janitor                   :done, 2026-08-06, 1d
     section In Queue
-    code-janitor                   :active, 2026-08-06, 1d
-    capability-gap-analyzer        :2026-08-06, 1d
+    capability-gap-analyzer        :active, 2026-08-06, 1d
     git-conflict-resolver         :2026-08-06, 1d
     self-progress                  :2026-08-06, 1d
     what-if-analysis               :2026-08-06, 1d
@@ -58,8 +58,8 @@ gantt
 | 6 | `domain-modeling` | `agent-skills domain-modeling check \| scaffold-entity` | ✅ 2 Tests | ✅ 5 Files | ✅ Completed |
 | 7 | `agent-council` | `agent-skills agent-council start \| wait \| results \| clean` | ✅ 2 Tests | ✅ 3 Files | ✅ Completed |
 | 8 | `architecture-auditor` | `agent-skills architecture-auditor check \| analyze` | ✅ 2 Tests | ✅ 2 Files | ✅ Completed |
-| 9 | `code-janitor` | `agent-skills code-janitor` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
-| 10 | `capability-gap-analyzer` | `agent-skills capability-gap-analyzer` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
+| 9 | `code-janitor` | `agent-skills code-janitor check \| scan` | ✅ 2 Tests | ✅ 2 Files | ✅ Completed |
+| 10 | `capability-gap-analyzer` | `agent-skills capability-gap-analyzer` | ⏳ Pending | ⏳ Pending | 🔄 Next Up |
 | 11 | `git-conflict-resolver` | `agent-skills git-conflict-resolver` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
 | 12 | `self-progress` | `agent-skills self-progress` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
 | 13 | `what-if-analysis` | `agent-skills what-if-analysis` | ⏳ Pending | ⏳ Pending | ⏹️ Queued |
