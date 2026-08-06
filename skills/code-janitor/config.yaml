@@ -1,0 +1,28 @@
+# Code Janitor Skill Configuration
+# Defines default operational parameters for code smell detection and cleanup.
+
+code_janitor:
+  thresholds:
+    max_function_lines: 30
+    max_parameters: 5
+    max_nesting_depth: 4
+    max_cyclomatic_complexity: 10
+
+  detection:
+    unused_imports: true
+    dead_code: true
+    oversized_functions: true
+    deep_nesting: true
+    missing_docstrings: true
+    missing_type_annotations: true
+    stale_todos: true
+    too_many_parameters: true
+
+  safety:
+    run_tests_before_fix: true
+    run_tests_after_fix: true
+    rollback_on_failure: true
+
+  reporting:
+    verbose: true
+    generate_summary_report: true

@@ -6,6 +6,7 @@
     "architecture-auditor",
     "architecture-decision-records",
     "capability-gap-analyzer",
+    "code-janitor",
     "context-gatherer",
     "domain-modeling",
     "git-conflict-resolver",
@@ -94,6 +95,14 @@
         "skill-creator"
       ],
       "path": "skills/capability-gap-analyzer"
+    },
+    "code-janitor": {
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [],
+      "transitive_requires": [],
+      "transitive_enhances": [],
+      "path": "skills/code-janitor"
     },
     "context-gatherer": {
       "version": "1.0.0",
