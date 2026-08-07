@@ -107,17 +107,21 @@ pub fn validate_skill_metadata(name: &str, description: &str) -> Vec<String> {
     errors
 }
 
-pub fn scaffold_skill(args: &ScaffoldArgs, base_dir: Option<&Path>) -> Result<PathBuf, String> {
+pub fn scaffold_skill(args: &ScaffoldArgs, base_dir: Option<&Path>) -> anyhow::Result<PathBuf> {
     let name = args.name.as_deref().ok_or_else(|| {
-        "Error: Both --name and --description are required when scaffolding a skill.".to_string()
+        anyhow::anyhow!(
+            "Error: Both --name and --description are required when scaffolding a skill."
+        )
     })?;
     let description = args.description.as_deref().ok_or_else(|| {
-        "Error: Both --name and --description are required when scaffolding a skill.".to_string()
+        anyhow::anyhow!(
+            "Error: Both --name and --description are required when scaffolding a skill."
+        )
     })?;
 
     let meta_errors = validate_skill_metadata(name, description);
     if !meta_errors.is_empty() {
-        return Err(format!(
+        return Err(anyhow::anyhow!(
             "Invalid skill metadata:\n- {}",
             meta_errors.join("\n- ")
         ));
@@ -133,7 +137,7 @@ pub fn scaffold_skill(args: &ScaffoldArgs, base_dir: Option<&Path>) -> Result<Pa
     let skill_path = target_base.join(name);
 
     if skill_path.exists() {
-        return Err(format!(
+        return Err(anyhow::anyhow!(
             "Skill directory already exists: {}",
             skill_path.display()
         ));
@@ -147,7 +151,8 @@ pub fn scaffold_skill(args: &ScaffoldArgs, base_dir: Option<&Path>) -> Result<Pa
         return Ok(skill_path);
     }
 
-    fs::create_dir_all(&skill_path).map_err(|e| format!("Failed to create directory: {e}"))?;
+    fs::create_dir_all(&skill_path)
+        .map_err(|e| anyhow::anyhow!("Failed to create directory: {e}"))?;
 
     let title_words: Vec<String> = name
         .split('-')
@@ -222,7 +227,7 @@ pub fn scaffold_skill(args: &ScaffoldArgs, base_dir: Option<&Path>) -> Result<Pa
     };
 
     fs::write(skill_path.join("SKILL.md"), skill_md_content)
-        .map_err(|e| format!("Failed to write SKILL.md: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to write SKILL.md: {e}"))?;
 
     let mut readme_content = format!(
         "# {skill_title}\n\n{desc_str}\n\n---\n\n## Documentation Entry Points\n\n- **AI Agent Protocol**: See [SKILL.md](SKILL.md) (used automatically by Antigravity, Claude Code, and Copilot).\n"
@@ -232,7 +237,7 @@ pub fn scaffold_skill(args: &ScaffoldArgs, base_dir: Option<&Path>) -> Result<Pa
     }
 
     fs::write(skill_path.join("README.md"), readme_content)
-        .map_err(|e| format!("Failed to write README.md: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to write README.md: {e}"))?;
 
     if skill_type == SkillType::Complex {
         let ref_dir = skill_path.join("references");
@@ -242,17 +247,19 @@ pub fn scaffold_skill(args: &ScaffoldArgs, base_dir: Option<&Path>) -> Result<Pa
         let tests_dir = scripts_dir.join("tests");
 
         fs::create_dir_all(&ref_dir)
-            .map_err(|e| format!("Failed to create references dir: {e}"))?;
+            .map_err(|e| anyhow::anyhow!("Failed to create references dir: {e}"))?;
         fs::create_dir_all(&tmpl_dir)
-            .map_err(|e| format!("Failed to create templates dir: {e}"))?;
-        fs::create_dir_all(&ex_dir).map_err(|e| format!("Failed to create examples dir: {e}"))?;
-        fs::create_dir_all(&tests_dir).map_err(|e| format!("Failed to create tests dir: {e}"))?;
+            .map_err(|e| anyhow::anyhow!("Failed to create templates dir: {e}"))?;
+        fs::create_dir_all(&ex_dir)
+            .map_err(|e| anyhow::anyhow!("Failed to create examples dir: {e}"))?;
+        fs::create_dir_all(&tests_dir)
+            .map_err(|e| anyhow::anyhow!("Failed to create tests dir: {e}"))?;
 
         fs::write(
             ref_dir.join("overview.md"),
             format!("# {skill_title} Overview\n\nExtended reference documentation.\n"),
         )
-        .map_err(|e| format!("Failed to write overview.md: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to write overview.md: {e}"))?;
 
         fs::write(
             scripts_dir.join("main.py"),
@@ -260,10 +267,39 @@ pub fn scaffold_skill(args: &ScaffoldArgs, base_dir: Option<&Path>) -> Result<Pa
                 "#!/usr/bin/env python3\n\"\"\"{skill_title} main script.\"\"\"\nimport sys\n\ndef main() -> int:\n    print(\"{skill_title} script running\")\n    return 0\n\nif __name__ == '__main__':\n    sys.exit(main())\n"
             ),
         )
-        .map_err(|e| format!("Failed to write main.py: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to write main.py: {e}"))?;
     }
 
     Ok(skill_path)
+}
+
+#[allow(dead_code)]
+pub fn parse_skill_frontmatter_fields(
+    skill_md_path: &Path,
+) -> anyhow::Result<(Option<String>, Vec<String>)> {
+    let content = fs::read_to_string(skill_md_path)?;
+    if !content.starts_with("---") {
+        return Ok((None, Vec::new()));
+    }
+    let parts: Vec<&str> = content.splitn(3, "---").collect();
+    if parts.len() < 3 {
+        return Ok((None, Vec::new()));
+    }
+    let yaml_block = parts[1];
+    let val: serde_yaml::Value = serde_yaml::from_str(yaml_block)?;
+    let domain = val
+        .get("domain")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let mut tags = Vec::new();
+    if let Some(t_seq) = val.get("tags").and_then(|v| v.as_sequence()) {
+        for t in t_seq {
+            if let Some(ts) = t.as_str() {
+                tags.push(ts.to_string());
+            }
+        }
+    }
+    Ok((domain, tags))
 }
 
 pub fn validate_skill(args: &ValidateArgs, base_dir: Option<&Path>) -> (bool, Vec<String>) {
@@ -271,7 +307,7 @@ pub fn validate_skill(args: &ValidateArgs, base_dir: Option<&Path>) -> (bool, Ve
 
     let target_dir = match sanitize_path(&args.path, base_dir) {
         Ok(p) => p,
-        Err(e) => return (false, vec![e]),
+        Err(e) => return (false, vec![e.to_string()]),
     };
 
     if !target_dir.is_dir() {
@@ -401,6 +437,41 @@ pub fn validate_skill(args: &ValidateArgs, base_dir: Option<&Path>) -> (bool, Ve
                     scripts_dir.display()
                 ));
             }
+
+            // Non-stdlib import & line count check
+            if let Ok(entries) = fs::read_dir(&scripts_dir) {
+                for entry in entries.flatten() {
+                    let p = entry.path();
+                    if p.is_file() {
+                        if let Ok(script_content) = fs::read_to_string(&p) {
+                            if script_content.lines().count() > 500 {
+                                issues.push(format!(
+                                    "Context Load warning: Script '{}' line count exceeds 500 lines.",
+                                    p.display()
+                                ));
+                            }
+                            if p.extension().and_then(|e| e.to_str()) == Some("py") {
+                                for line in script_content.lines() {
+                                    let stripped = line.trim();
+                                    if (stripped.starts_with("import ")
+                                        || stripped.starts_with("from "))
+                                        && (stripped.contains("requests")
+                                            || stripped.contains("pydantic")
+                                            || stripped.contains("pandas")
+                                            || stripped.contains("numpy"))
+                                    {
+                                        issues.push(format!(
+                                            "Non-stdlib import detected in '{}': '{}'",
+                                            p.display(),
+                                            stripped
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -509,5 +580,322 @@ mod tests {
         let (is_valid, issues) = validate_skill(&val_args, Some(&base));
         assert_eq!(issues, Vec::<String>::new());
         assert!(is_valid);
+    }
+
+    #[test]
+    fn test_validate_skill_metadata_too_long() {
+        // Python: test_validate_skill_metadata_too_long — name exceeding MAX_NAME_LEN is rejected
+        let long_name = "a".repeat(MAX_NAME_LEN + 1);
+        let errs = validate_skill_metadata(&long_name, "A valid description.");
+        assert!(
+            !errs.is_empty(),
+            "name exceeding {MAX_NAME_LEN} chars must produce validation errors"
+        );
+        assert!(
+            errs.iter().any(|e| e.contains("exceeds maximum length")),
+            "error must mention 'exceeds maximum length', got: {:?}",
+            errs
+        );
+    }
+
+    #[test]
+    fn test_scaffold_and_validate_user_invoked_router_skill() {
+        // Python: test_scaffold_and_validate_user_invoked_router_skill
+        // SkillType::Router branch is never tested
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+
+        let args = ScaffoldArgs {
+            name: Some("my-router".to_string()),
+            description: Some("A router skill for testing.".to_string()),
+            domain: None,
+            tags: None,
+            target_dir: "skills".to_string(),
+            r#type: SkillType::Router,
+            user_invoked: true,
+            complex: false,
+            dry_run: false,
+        };
+
+        let scaffolded = scaffold_skill(&args, Some(&base)).unwrap();
+        assert!(
+            scaffolded.exists(),
+            "Router skill directory must be created"
+        );
+
+        let skill_md = fs::read_to_string(scaffolded.join("SKILL.md")).unwrap();
+        assert!(
+            skill_md.contains("router") || skill_md.contains("Router"),
+            "Router skill SKILL.md must mention router type, got: {skill_md}"
+        );
+    }
+
+    #[test]
+    fn test_validate_skill_missing_completion_criteria() {
+        // Python: test_validate_skill_missing_completion_criteria — validate detects absent section
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let skill_dir = base.join("skills").join("bad-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+
+        // SKILL.md without Completion Criteria section
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---
+name: bad-skill
+---
+# Bad Skill
+
+## Context
+No completion criteria here.
+",
+        )
+        .unwrap();
+
+        let val_args = ValidateArgs {
+            path: skill_dir.to_string_lossy().to_string(),
+            dry_run: false,
+        };
+        let (is_valid, issues) = validate_skill(&val_args, Some(&base));
+        assert!(
+            !is_valid || !issues.is_empty(),
+            "SKILL.md without Completion Criteria must fail validation"
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|i| i.to_lowercase().contains("completion")),
+            "validation issue must mention 'completion criteria', got: {:?}",
+            issues
+        );
+    }
+
+    #[test]
+    fn test_validate_skill_detects_scope_creep() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let skill_dir = base.join("skills").join("creepy-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: creepy-skill\ndescription: \"Use when analyzing code and also generating reports and also fixing bugs and also running tests.\"\n---\n\n## Completion Criteria\n- [ ] done\n",
+        )
+        .unwrap();
+
+        let val_args = ValidateArgs {
+            path: skill_dir.to_string_lossy().to_string(),
+            dry_run: false,
+        };
+        let (is_valid, issues) = validate_skill(&val_args, Some(&base));
+        assert!(
+            !is_valid || !issues.is_empty(),
+            "scope creep must be detected"
+        );
+        assert!(
+            issues.iter().any(
+                |i| i.to_lowercase().contains("scope") || i.to_lowercase().contains("compound")
+            ),
+            "issue must mention scope or compound, got: {:?}",
+            issues
+        );
+    }
+
+    #[test]
+    fn test_validate_skill_detects_non_stdlib_imports() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let skill_dir = base.join("skills").join("import-skill");
+        let scripts_dir = skill_dir.join("scripts");
+        let refs_dir = skill_dir.join("references");
+        fs::create_dir_all(&scripts_dir).unwrap();
+        fs::create_dir_all(&refs_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: import-skill\ndescription: A skill.\n---\n\n## Completion Criteria\n- [ ] done\n",
+        )
+        .unwrap();
+        fs::write(refs_dir.join("overview.md"), "# Overview\n").unwrap();
+        fs::write(
+            scripts_dir.join("main.py"),
+            "import requests\nimport os\n\ndef main():\n    pass\n",
+        )
+        .unwrap();
+
+        let val_args = ValidateArgs {
+            path: skill_dir.to_string_lossy().to_string(),
+            dry_run: false,
+        };
+        let (is_valid, issues) = validate_skill(&val_args, Some(&base));
+        assert!(!is_valid || !issues.is_empty());
+        assert!(
+            issues.iter().any(|i| i.to_lowercase().contains("requests")
+                || i.to_lowercase().contains("non-stdlib")),
+            "non-stdlib import must be detected, got: {:?}",
+            issues
+        );
+    }
+
+    #[test]
+    fn test_validate_skill_detects_excessive_lines() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let skill_dir = base.join("skills").join("long-skill");
+        let scripts_dir = skill_dir.join("scripts");
+        let refs_dir = skill_dir.join("references");
+        fs::create_dir_all(&scripts_dir).unwrap();
+        fs::create_dir_all(&refs_dir).unwrap();
+
+        let mut content =
+            "---\nname: long-skill\ndescription: A very long skill.\n---\n\n## Completion Criteria\n- [ ] done\n"
+                .to_string();
+        for i in 0..510 {
+            content.push_str(&format!("# Line {}\n", i));
+        }
+        fs::write(skill_dir.join("SKILL.md"), &content).unwrap();
+        fs::write(refs_dir.join("overview.md"), "# Overview\n").unwrap();
+        fs::write(scripts_dir.join("main.py"), "def main():\n    pass\n").unwrap();
+
+        let val_args = ValidateArgs {
+            path: skill_dir.to_string_lossy().to_string(),
+            dry_run: false,
+        };
+        let (is_valid, issues) = validate_skill(&val_args, Some(&base));
+        assert!(
+            !is_valid || !issues.is_empty(),
+            "excessive line count must be detected"
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|i| i.to_lowercase().contains("line") || i.to_lowercase().contains("context")),
+            "must mention line count issue, got: {:?}",
+            issues
+        );
+    }
+
+    #[test]
+    fn test_validate_skill_detects_invalid_yaml_frontmatter() {
+        // Python: test_validate_skill_detects_invalid_yaml_frontmatter — broken YAML in SKILL.md flagged
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let skill_dir = base.join("skills").join("broken-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+
+        // Write SKILL.md with malformed YAML frontmatter (unclosed bracket)
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---
+name: [unclosed
+---
+# Broken
+",
+        )
+        .unwrap();
+
+        let val_args = ValidateArgs {
+            path: skill_dir.to_string_lossy().to_string(),
+            dry_run: false,
+        };
+        let (is_valid, issues) = validate_skill(&val_args, Some(&base));
+        assert!(
+            !is_valid || !issues.is_empty(),
+            "invalid YAML frontmatter must cause validate_skill to fail"
+        );
+        assert!(
+            issues.iter().any(|i| i.to_lowercase().contains("yaml")
+                || i.to_lowercase().contains("frontmatter")
+                || i.to_lowercase().contains("parse")),
+            "issue must mention YAML/frontmatter parse error, got: {:?}",
+            issues
+        );
+    }
+
+    #[test]
+    fn test_scaffold_skill_quotes_colon_description() {
+        // Python: test_scaffold_skill_quotes_colon_description — descriptions with ':' are properly quoted
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+
+        let args = ScaffoldArgs {
+            name: Some("colon-skill".to_string()),
+            description: Some("Use when: you need colon handling.".to_string()),
+            domain: None,
+            tags: None,
+            target_dir: "skills".to_string(),
+            r#type: SkillType::Simple,
+            user_invoked: false,
+            complex: false,
+            dry_run: false,
+        };
+
+        let scaffolded = scaffold_skill(&args, Some(&base)).unwrap();
+        let skill_md = fs::read_to_string(scaffolded.join("SKILL.md")).unwrap();
+
+        // The description containing ':' must be quoted in YAML to prevent parse errors
+        let unquoted = "description: Use when: you need colon handling.";
+        assert!(
+            !skill_md.contains(unquoted),
+            "description with colon must be YAML-quoted (e.g. wrapped in quotes), not left as bare YAML value"
+        );
+    }
+
+    #[test]
+    fn test_scaffold_and_validate_complex_skill_full_structure() {
+        // Python: test_scaffold_and_validate_complex_skill — PARTIAL, the existing strict_assertions
+        // test only checks references/ and scripts/main.py; scaffold_skill also creates
+        // templates/, examples/, and scripts/tests/ which were never asserted.
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+
+        let args = ScaffoldArgs {
+            name: Some("full-structure-skill".to_string()),
+            description: Some("Full structure description.".to_string()),
+            domain: None,
+            tags: None,
+            target_dir: "skills".to_string(),
+            r#type: SkillType::Complex,
+            user_invoked: false,
+            complex: false,
+            dry_run: false,
+        };
+
+        let scaffolded = scaffold_skill(&args, Some(&base)).unwrap();
+        assert!(
+            scaffolded.join("templates").is_dir(),
+            "complex skill must create templates/"
+        );
+        assert!(
+            scaffolded.join("examples").is_dir(),
+            "complex skill must create examples/"
+        );
+        assert!(
+            scaffolded.join("scripts").join("tests").is_dir(),
+            "complex skill must create scripts/tests/"
+        );
+    }
+
+    #[test]
+    fn test_parse_frontmatter_domain_tags_roundtrip() {
+        // Python: test_parse_frontmatter — domain/tags fields are written by scaffold_skill but
+        // never read back by validate_skill; no isolated frontmatter-parsing unit exists.
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+
+        let args = ScaffoldArgs {
+            name: Some("tagged-skill".to_string()),
+            description: Some("Has domain and tags.".to_string()),
+            domain: Some("testing".to_string()),
+            tags: Some("test,unit".to_string()),
+            target_dir: "skills".to_string(),
+            r#type: SkillType::Simple,
+            user_invoked: false,
+            complex: false,
+            dry_run: false,
+        };
+
+        let scaffolded = scaffold_skill(&args, Some(&base)).unwrap();
+        let (domain, tags) = parse_skill_frontmatter_fields(&scaffolded.join("SKILL.md")).unwrap();
+        assert_eq!(domain, Some("testing".to_string()));
+        assert_eq!(tags, vec!["test".to_string(), "unit".to_string()]);
     }
 }

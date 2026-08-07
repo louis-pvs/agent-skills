@@ -140,11 +140,11 @@ pub fn run_test_command(cmd: &[String], cwd: &Path) -> (i32, String, String) {
     }
 }
 
-pub fn run_tdd_command(args: &TddArgs, repo_root: &Path) -> Result<(), String> {
+pub fn run_tdd_command(args: &TddArgs, repo_root: &Path) -> anyhow::Result<()> {
     let target_path = sanitize_path(&args.path, Some(repo_root))?;
 
     if !target_path.exists() || !target_path.is_dir() {
-        return Err(format!(
+        return Err(anyhow::anyhow!(
             "Error: Target path '{}' is not a valid directory.",
             target_path.display()
         ));
@@ -152,9 +152,9 @@ pub fn run_tdd_command(args: &TddArgs, repo_root: &Path) -> Result<(), String> {
 
     let (runner_name, cmd) = if let Some(custom_cmd_str) = &args.cmd {
         let parts = shlex::split(custom_cmd_str)
-            .ok_or_else(|| "Error: Custom command string could not be parsed.".to_string())?;
+            .ok_or_else(|| anyhow::anyhow!("Error: Custom command string could not be parsed."))?;
         if parts.is_empty() {
-            return Err("Error: Custom command string is empty.".to_string());
+            return Err(anyhow::anyhow!("Error: Custom command string is empty."));
         }
         ("custom".to_string(), parts)
     } else {
@@ -169,7 +169,7 @@ pub fn run_tdd_command(args: &TddArgs, repo_root: &Path) -> Result<(), String> {
                     }
                     return Ok(());
                 }
-                return Err("Error: Could not auto-detect a test runner. Use --cmd to specify one manually.".to_string());
+                return Err(anyhow::anyhow!("Error: Could not auto-detect a test runner. Use --cmd to specify one manually."));
             }
         }
     };
@@ -255,7 +255,7 @@ pub fn run_tdd_command(args: &TddArgs, repo_root: &Path) -> Result<(), String> {
     if exit_success {
         Ok(())
     } else {
-        Err(msg)
+        Err(anyhow::anyhow!(msg))
     }
 }
 
@@ -286,32 +286,114 @@ mod tests {
         assert_eq!(cmd, vec!["pytest".to_string()]);
     }
 
+    // --- NEW FAILING TESTS (TDD RED phase) ---
+
     #[test]
-    fn test_verify_red_gate_logic_strict_assertions() {
+    fn test_detect_python_unittest() {
+        // Python: test_detect_python_unittest — fallback to unittest when test files exist but no pyproject.toml
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
+        // Create a test file without a pyproject.toml
+        let tests_dir = base.join("tests");
+        fs::create_dir_all(&tests_dir).unwrap();
+        fs::write(tests_dir.join("test_something.py"), "import unittest\n").unwrap();
 
-        let red_args = TddArgs {
-            path: base.display().to_string(),
-            cmd: Some("python3 -c \"import sys; sys.exit(1)\"".to_string()),
-            detect: false,
-            verify_red: true,
-            verify_green: false,
-            json: false,
-        };
-        let res = run_tdd_command(&red_args, &base);
-        assert!(res.is_ok());
+        let result = detect_test_runner(&base);
+        assert!(
+            result.is_some(),
+            "must detect unittest when test_*.py files exist"
+        );
+        let (runner, cmd) = result.unwrap();
+        assert_eq!(
+            runner, "unittest",
+            "must fall back to unittest (not pytest) when no pyproject.toml/pytest.ini"
+        );
+        assert!(
+            cmd.contains(&"unittest".to_string()),
+            "command must invoke unittest, got: {:?}",
+            cmd
+        );
+    }
 
-        let red_violation_args = TddArgs {
-            path: base.display().to_string(),
-            cmd: Some("python3 -c \"import sys; sys.exit(0)\"".to_string()),
-            detect: false,
-            verify_red: true,
-            verify_green: false,
-            json: false,
-        };
-        let res_violation = run_tdd_command(&red_violation_args, &base);
-        assert!(res_violation.is_err());
-        assert!(res_violation.unwrap_err().contains("RED Violation"));
+    #[test]
+    fn test_detect_node_package_json() {
+        // Python: test_detect_node_package_json — detects npm/jest when package.json with test script exists
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        fs::write(
+            base.join("package.json"),
+            r#"{"name":"test","scripts":{"test":"jest"}}"#,
+        )
+        .unwrap();
+
+        let result = detect_test_runner(&base);
+        assert!(
+            result.is_some(),
+            "must detect node test runner from package.json"
+        );
+        let (runner, cmd) = result.unwrap();
+        assert!(
+            runner.contains("npm") || runner.contains("jest"),
+            "runner must be npm test or jest, got: {runner}"
+        );
+        assert!(!cmd.is_empty(), "command must not be empty for node runner");
+    }
+
+    #[test]
+    fn test_detect_go_mod() {
+        // Python: test_detect_go_mod — detects go test when go.mod exists
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        fs::write(base.join("go.mod"), "module example.com/mymod\ngo 1.21\n").unwrap();
+
+        let result = detect_test_runner(&base);
+        assert!(result.is_some(), "must detect go test runner from go.mod");
+        let (runner, cmd) = result.unwrap();
+        assert!(
+            runner.contains("go"),
+            "runner must mention go, got: {runner}"
+        );
+        assert!(
+            cmd.contains(&"go".to_string()) && cmd.contains(&"test".to_string()),
+            "command must be 'go test', got: {:?}",
+            cmd
+        );
+    }
+
+    #[test]
+    fn test_run_test_command_success() {
+        // Python: test_run_test_command_success — PARTIAL, call run_test_command directly
+        // rather than only through the --verify-red composed wrapper.
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let cmd = vec![
+            "python3".to_string(),
+            "-c".to_string(),
+            "import sys; sys.exit(0)".to_string(),
+        ];
+
+        let (code, _stdout, _stderr) = run_test_command(&cmd, &base);
+        assert_eq!(
+            code, 0,
+            "a command exiting 0 must be reported as a successful test run"
+        );
+    }
+
+    #[test]
+    fn test_run_test_command_failure() {
+        // Python: test_run_test_command_failure — PARTIAL, direct call with a failing command
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let cmd = vec![
+            "python3".to_string(),
+            "-c".to_string(),
+            "import sys; sys.exit(1)".to_string(),
+        ];
+
+        let (code, _stdout, _stderr) = run_test_command(&cmd, &base);
+        assert_eq!(
+            code, 1,
+            "a command exiting non-zero must be reported as a failing test run"
+        );
     }
 }

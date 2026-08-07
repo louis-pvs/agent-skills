@@ -65,15 +65,15 @@ skills/<skill-name>/
 
 ### Test Framework
 
-- Use Python's built-in `unittest` framework.
-- Place test files in `scripts/tests/test_<script_name>.py`.
+- Use Rust unit tests and contract tests in `crates/cli` and `crates/core`.
+- Place unit tests in `src/` modules or `tests/`.
 
 ### Test Execution Command
 
-Run the test suite using standard discovery:
+Run the test suite using Cargo:
 
 ```bash
-python3 -m unittest discover -s skills/<skill-name>/scripts/tests
+cargo test --workspace
 ```
 
 ### Mocking System & Subprocess Calls

@@ -1,3 +1,4 @@
+use crate::error::CoreError;
 use crate::path_safety::sanitize_path;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -27,44 +28,44 @@ pub struct Lockfile {
 pub struct RawSkillMeta {
     pub name: String,
     pub version: String,
+    pub description: String,
     pub requires: Vec<String>,
     pub enhances: Vec<String>,
     pub dir_path: PathBuf,
     pub rel_path: String,
 }
 
-pub fn parse_skill_frontmatter(skill_md_path: &Path) -> Result<RawSkillMeta, String> {
-    let content = fs::read_to_string(skill_md_path)
-        .map_err(|e| format!("Failed to read '{}': {e}", skill_md_path.display()))?;
+pub fn parse_skill_frontmatter(skill_md_path: &Path) -> Result<RawSkillMeta, CoreError> {
+    let content = fs::read_to_string(skill_md_path).map_err(|e| CoreError::Io {
+        path: skill_md_path.to_path_buf(),
+        source: e,
+    })?;
 
     if !content.starts_with("---") {
-        return Err(format!(
-            "SKILL.md at '{}' missing YAML frontmatter.",
-            skill_md_path.display()
-        ));
+        return Err(CoreError::YamlParse {
+            file: skill_md_path.display().to_string(),
+            message: "SKILL.md missing YAML frontmatter.".to_string(),
+        });
     }
 
     let parts: Vec<&str> = content.split("---").collect();
     if parts.len() < 3 {
-        return Err(format!(
-            "SKILL.md YAML frontmatter not closed at '{}'.",
-            skill_md_path.display()
-        ));
+        return Err(CoreError::YamlParse {
+            file: skill_md_path.display().to_string(),
+            message: "YAML frontmatter not closed.".to_string(),
+        });
     }
 
     let yaml_block = parts[1];
-    let yaml: serde_yaml::Value = serde_yaml::from_str(yaml_block).map_err(|e| {
-        format!(
-            "Invalid YAML frontmatter in '{}': {e}",
-            skill_md_path.display()
-        )
-    })?;
+    let yaml: serde_yaml::Value =
+        serde_yaml::from_str(yaml_block).map_err(|e| CoreError::YamlParse {
+            file: skill_md_path.display().to_string(),
+            message: e.to_string(),
+        })?;
 
-    let map = yaml.as_mapping().ok_or_else(|| {
-        format!(
-            "YAML frontmatter is not a mapping in '{}'.",
-            skill_md_path.display()
-        )
+    let map = yaml.as_mapping().ok_or_else(|| CoreError::YamlParse {
+        file: skill_md_path.display().to_string(),
+        message: "YAML frontmatter is not a mapping.".to_string(),
     })?;
 
     let name = map
@@ -107,6 +108,12 @@ pub fn parse_skill_frontmatter(skill_md_path: &Path) -> Result<RawSkillMeta, Str
         list
     };
 
+    let description = map
+        .get(serde_yaml::Value::String("description".to_string()))
+        .and_then(|v| v.as_str())
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+
     let requires = parse_string_list("requires");
     let enhances = parse_string_list("enhances");
     let dir_path = skill_md_path
@@ -121,6 +128,7 @@ pub fn parse_skill_frontmatter(skill_md_path: &Path) -> Result<RawSkillMeta, Str
     Ok(RawSkillMeta {
         name,
         version,
+        description,
         requires,
         enhances,
         dir_path,
@@ -128,18 +136,22 @@ pub fn parse_skill_frontmatter(skill_md_path: &Path) -> Result<RawSkillMeta, Str
     })
 }
 
-pub fn scan_skills_directory(skills_dir: &Path) -> Result<BTreeMap<String, RawSkillMeta>, String> {
+pub fn scan_skills_directory(
+    skills_dir: &Path,
+) -> Result<BTreeMap<String, RawSkillMeta>, CoreError> {
     let sanitized_dir = sanitize_path(skills_dir, None)?;
     if !sanitized_dir.is_dir() {
-        return Err(format!(
+        return Err(CoreError::Other(format!(
             "Skills path is not a directory: {}",
             sanitized_dir.display()
-        ));
+        )));
     }
 
     let mut map = BTreeMap::new();
-    let entries = fs::read_dir(&sanitized_dir)
-        .map_err(|e| format!("Failed to read skills directory: {e}"))?;
+    let entries = fs::read_dir(&sanitized_dir).map_err(|e| CoreError::Io {
+        path: sanitized_dir.clone(),
+        source: e,
+    })?;
 
     for entry in entries.flatten() {
         let path = entry.path();
@@ -158,7 +170,7 @@ pub fn scan_skills_directory(skills_dir: &Path) -> Result<BTreeMap<String, RawSk
 
 pub fn build_topological_order(
     raw_skills: &BTreeMap<String, RawSkillMeta>,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<String>, CoreError> {
     let mut in_degree: BTreeMap<String, usize> = BTreeMap::new();
     let mut graph: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
 
@@ -197,7 +209,9 @@ pub fn build_topological_order(
     }
 
     if topo.len() != raw_skills.len() {
-        return Err("Circular dependency detected in skill requirement graph.".to_string());
+        return Err(CoreError::Depgraph(
+            "Circular dependency detected in skill requirement graph.".to_string(),
+        ));
     }
 
     Ok(topo)
@@ -241,7 +255,7 @@ pub fn compute_transitive_relations(
     result
 }
 
-pub fn generate_lockfile(skills_dir: &Path, lockfile_path: &Path) -> Result<Lockfile, String> {
+pub fn generate_lockfile(skills_dir: &Path, lockfile_path: &Path) -> Result<Lockfile, CoreError> {
     let raw_skills = scan_skills_directory(skills_dir)?;
     let topo_order = build_topological_order(&raw_skills)?;
     let transitive_map = compute_transitive_relations(&raw_skills);
@@ -269,13 +283,11 @@ pub fn generate_lockfile(skills_dir: &Path, lockfile_path: &Path) -> Result<Lock
     };
 
     let json_str = serde_json::to_string_pretty(&lockfile)
-        .map_err(|e| format!("Failed to serialize lockfile: {e}"))?;
+        .map_err(|e| CoreError::Other(format!("Failed to serialize lockfile: {e}")))?;
 
-    fs::write(lockfile_path, json_str).map_err(|e| {
-        format!(
-            "Failed to write lockfile at '{}': {e}",
-            lockfile_path.display()
-        )
+    fs::write(lockfile_path, json_str).map_err(|e| CoreError::Io {
+        path: lockfile_path.to_path_buf(),
+        source: e,
     })?;
 
     Ok(lockfile)
@@ -287,11 +299,11 @@ pub fn verify_graph(skills_dir: &Path, lockfile_path: &Path) -> (bool, Vec<Strin
 
     let raw_skills = match scan_skills_directory(skills_dir) {
         Ok(s) => s,
-        Err(e) => return (false, vec![e], warnings),
+        Err(e) => return (false, vec![e.to_string()], warnings),
     };
 
     if let Err(e) = build_topological_order(&raw_skills) {
-        errors.push(e);
+        errors.push(e.to_string());
     }
 
     if !lockfile_path.exists() {
@@ -384,5 +396,141 @@ mod tests {
         assert!(is_valid);
         assert_eq!(errors, Vec::<String>::new());
         assert_eq!(warnings, Vec::<String>::new());
+    }
+
+    // --- NEW FAILING TEST (TDD RED phase) ---
+
+    #[test]
+    fn test_topological_sort_cycle() {
+        // Python: test_topological_sort_cycle — build_topological_order must error on circular deps
+        let mut raw = BTreeMap::new();
+
+        // skill-a requires skill-b, skill-b requires skill-a → cycle
+        raw.insert(
+            "skill-a".to_string(),
+            RawSkillMeta {
+                name: "skill-a".to_string(),
+                version: "1.0.0".to_string(),
+                description: String::new(),
+                requires: vec!["skill-b".to_string()],
+                enhances: vec![],
+                dir_path: std::path::PathBuf::from("/tmp/skill-a"),
+                rel_path: "skills/skill-a".to_string(),
+            },
+        );
+        raw.insert(
+            "skill-b".to_string(),
+            RawSkillMeta {
+                name: "skill-b".to_string(),
+                version: "1.0.0".to_string(),
+                description: String::new(),
+                requires: vec!["skill-a".to_string()],
+                enhances: vec![],
+                dir_path: std::path::PathBuf::from("/tmp/skill-b"),
+                rel_path: "skills/skill-b".to_string(),
+            },
+        );
+
+        let result = build_topological_order(&raw);
+        assert!(
+            result.is_err(),
+            "build_topological_order must return Err on circular dependency, got Ok"
+        );
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.to_lowercase().contains("circular") || err_msg.to_lowercase().contains("cycle"),
+            "error message must mention circular dependency, got: {err_msg}"
+        );
+    }
+
+    #[test]
+    fn test_parse_frontmatter_description_field() {
+        // Python: test_parse_frontmatter — version/enhances/description extraction,
+        // specifically the description field which previously had no home on RawSkillMeta.
+        let dir = tempdir().unwrap();
+        let skill_dir = dir.path().join("skill-x");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: skill-x\nversion: 2.3.4\ndescription: Does the thing.\nenhances: [skill-y]\n---\n# Skill X\n",
+        )
+        .unwrap();
+
+        let meta = parse_skill_frontmatter(&skill_dir.join("SKILL.md")).unwrap();
+        assert_eq!(meta.version, "2.3.4");
+        assert_eq!(meta.description, "Does the thing.");
+        assert_eq!(meta.enhances, vec!["skill-y".to_string()]);
+    }
+
+    #[test]
+    fn test_transitive_deps_multihop() {
+        // Python: test_transitive_deps — multi-hop chain (C requires B requires A),
+        // C's transitive_requires must include both A and B, not just the direct parent.
+        let mut raw = BTreeMap::new();
+        let meta = |name: &str, requires: Vec<&str>| RawSkillMeta {
+            name: name.to_string(),
+            version: "1.0.0".to_string(),
+            description: String::new(),
+            requires: requires.into_iter().map(String::from).collect(),
+            enhances: vec![],
+            dir_path: std::path::PathBuf::from(format!("/tmp/{name}")),
+            rel_path: format!("skills/{name}"),
+        };
+        raw.insert("skill-a".to_string(), meta("skill-a", vec![]));
+        raw.insert("skill-b".to_string(), meta("skill-b", vec!["skill-a"]));
+        raw.insert("skill-c".to_string(), meta("skill-c", vec!["skill-b"]));
+
+        let transitive = compute_transitive_relations(&raw);
+        let (c_req, _) = transitive.get("skill-c").unwrap();
+        assert!(
+            c_req.contains(&"skill-a".to_string()),
+            "skill-c's transitive_requires must include skill-a (2 hops away), got: {c_req:?}"
+        );
+        assert!(
+            c_req.contains(&"skill-b".to_string()),
+            "skill-c's transitive_requires must include skill-b (1 hop away), got: {c_req:?}"
+        );
+    }
+
+    #[test]
+    fn test_lockfile_verify_flags_drift_after_frontmatter_change() {
+        // Python: test_lockfile_generation_and_verification — the "flags out-of-sync drift"
+        // half: generate a lockfile, then mutate a skill's requires after the fact, and
+        // confirm verify_graph surfaces a warning about the drift.
+        let dir = tempdir().unwrap();
+        let skills_dir = dir.path().join("skills");
+        fs::create_dir_all(&skills_dir).unwrap();
+
+        let skill_a = skills_dir.join("skill-a");
+        fs::create_dir_all(&skill_a).unwrap();
+        fs::write(
+            skill_a.join("SKILL.md"),
+            "---\nname: skill-a\n---\n# Skill A\n",
+        )
+        .unwrap();
+
+        let skill_b = skills_dir.join("skill-b");
+        fs::create_dir_all(&skill_b).unwrap();
+        fs::write(
+            skill_b.join("SKILL.md"),
+            "---\nname: skill-b\n---\n# Skill B\n",
+        )
+        .unwrap();
+
+        let lockfile_path = dir.path().join("skills.lock");
+        generate_lockfile(&skills_dir, &lockfile_path).unwrap();
+
+        // Drift: skill-b now requires skill-a, but the lockfile was generated before this change.
+        fs::write(
+            skill_b.join("SKILL.md"),
+            "---\nname: skill-b\nrequires: [skill-a]\n---\n# Skill B\n",
+        )
+        .unwrap();
+
+        let (_is_valid, _errors, warnings) = verify_graph(&skills_dir, &lockfile_path);
+        assert!(
+            !warnings.is_empty(),
+            "verify_graph must warn when a skill's requires drifted since lockfile generation"
+        );
     }
 }

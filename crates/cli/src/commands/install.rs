@@ -143,13 +143,16 @@ pub fn uninstall_skill_symlink(skill_dir: &Path, target_base_dir: &Path, dry_run
     format!("[REMOVED] {}", target_link.display())
 }
 
-pub fn run_installer(args: &InstallArgs, repo_root: &Path) -> Result<(), String> {
+pub fn run_installer(args: &InstallArgs, repo_root: &Path) -> anyhow::Result<()> {
     let skills_dir = repo_root.join("skills");
     let lockfile_path = repo_root.join("skills.lock");
 
     let skills = find_repo_skills(&skills_dir);
     if skills.is_empty() {
-        return Err(format!("No valid skills found in {}", skills_dir.display()));
+        return Err(anyhow::anyhow!(
+            "No valid skills found in {}",
+            skills_dir.display()
+        ));
     }
 
     if !args.unlink {
@@ -162,7 +165,9 @@ pub fn run_installer(args: &InstallArgs, repo_root: &Path) -> Result<(), String>
         if !is_valid {
             println!("  Regenerating lockfile...");
             if let Err(e) = generate_lockfile(&skills_dir, &lockfile_path) {
-                return Err(format!("Skill dependency graph verification failed: {e}"));
+                return Err(anyhow::anyhow!(
+                    "Skill dependency graph verification failed: {e}"
+                ));
             }
         }
         println!("✅ Skill dependency graph validated successfully.\n");
@@ -218,5 +223,46 @@ mod tests {
         let uninst_res = uninstall_skill_symlink(&skill_dir, &target_dir, false);
         assert!(uninst_res.contains("[REMOVED]"));
         assert!(!link_path.exists());
+    }
+
+    #[test]
+    fn test_find_repo_skills() {
+        let dir = tempdir().unwrap();
+        let skills_dir = dir.path().join("skills");
+        fs::create_dir_all(skills_dir.join("skill-1")).unwrap();
+        fs::write(skills_dir.join("skill-1").join("SKILL.md"), "# Skill 1").unwrap();
+        fs::create_dir_all(skills_dir.join("not-a-skill")).unwrap();
+
+        let found = find_repo_skills(&skills_dir);
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].file_name().unwrap(), "skill-1");
+    }
+
+    #[test]
+    fn test_install_dry_run() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let skill_dir = base.join("skills").join("test-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(skill_dir.join("SKILL.md"), "# Test").unwrap();
+        let target_dir = base.join("global_target");
+
+        let res = install_skill_symlink(&skill_dir, &target_dir, true);
+        assert!(res.contains("[DRY-RUN]"));
+        assert!(!target_dir.join("test-skill").exists());
+    }
+
+    #[test]
+    fn test_install_idempotency_exists() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let skill_dir = base.join("skills").join("test-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(skill_dir.join("SKILL.md"), "# Test").unwrap();
+        let target_dir = base.join("global_target");
+
+        install_skill_symlink(&skill_dir, &target_dir, false);
+        let res2 = install_skill_symlink(&skill_dir, &target_dir, false);
+        assert!(res2.contains("[EXISTS]"));
     }
 }

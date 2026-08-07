@@ -22,7 +22,7 @@ pub struct DepgraphArgs {
     pub dry_run: bool,
 }
 
-pub fn run_depgraph(args: &DepgraphArgs, repo_root: &Path) -> Result<(), String> {
+pub fn run_depgraph(args: &DepgraphArgs, repo_root: &Path) -> anyhow::Result<()> {
     let skills_dir = repo_root.join("skills");
     let lockfile_path = repo_root.join("skills.lock");
 
@@ -38,7 +38,7 @@ pub fn run_depgraph(args: &DepgraphArgs, repo_root: &Path) -> Result<(), String>
         let lockfile = generate_lockfile(&skills_dir, &lockfile_path)?;
         if args.json {
             let json_out = serde_json::to_string_pretty(&lockfile)
-                .map_err(|e| format!("Failed to format JSON output: {e}"))?;
+                .map_err(|e| anyhow::anyhow!("Failed to format JSON output: {e}"))?;
             println!("{json_out}");
         } else {
             println!(
@@ -68,7 +68,7 @@ pub fn run_depgraph(args: &DepgraphArgs, repo_root: &Path) -> Result<(), String>
         for err in &errors {
             eprintln!("  ❌ {err}");
         }
-        return Err("Dependency graph verification failed.".to_string());
+        return Err(anyhow::anyhow!("Dependency graph verification failed."));
     }
 
     Ok(())

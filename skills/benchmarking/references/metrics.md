@@ -99,11 +99,10 @@ class LintWarningEvaluator:
 METRIC = LintWarningEvaluator()
 ```
 
-Run the benchmark with `--metric-dir`:
+Run the benchmark:
 
 ```bash
-python3 skills/benchmarking/scripts/benchmark_runner.py \
-  --cmd "python3 main.py" \
-  --metric-dir ".benchmarking/metrics" \
-  --metrics "timing,memory,pass_ratio,lint_warnings"
+cargo run -p agent-skills -- benchmarking run \
+  --cmd "cargo test --workspace" \
+  --metrics "timing,memory,pass_ratio"
 ```

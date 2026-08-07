@@ -55,19 +55,18 @@ cargo run -p agent-skills -- benchmarking run \
 Plug in custom metric evaluators from project directories:
 
 ```bash
-python3 skills/benchmarking/scripts/benchmark_runner.py \
-  --cmd "python3 scripts/main.py" \
-  --metric-dir ".benchmarking/metrics" \
-  --metrics "timing,memory,pass_ratio,custom_complexity"
+cargo run -p agent-skills -- benchmarking run \
+  --cmd "cargo test --workspace" \
+  --metrics "timing,memory,pass_ratio"
 ```
 
 ### 4. Feed Telemetry to Continuous Improvement Loops
 
-If metrics fail or regress, feed structured JSON reports directly to `skills/self-annealer` or rollback uncommitted changes:
+If metrics fail or regress, feed structured JSON reports directly to `self-annealer` or rollback uncommitted changes:
 
 ```bash
-python3 skills/self-annealer/scripts/anneal_runner.py \
-  --cmd "python3 skills/benchmarking/scripts/benchmark_runner.py --cmd 'python3 main.py' --assert-max-duration-ms 200" \
+cargo run -p agent-skills -- self-annealer run \
+  --cmd "cargo run -p agent-skills -- benchmarking run --cmd 'cargo test' --assert-max-duration-ms 200" \
   --max-iterations 3
 ```
 

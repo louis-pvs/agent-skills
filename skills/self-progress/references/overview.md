@@ -57,7 +57,7 @@ Addressing common concerns around cross-session tracking and context budget:
 When `self-progress` confirms a missing skill gap, it invokes `skill-creator`:
 
 ```bash
-python3 skills/skill-creator/scripts/scaffold_skill.py \
+cargo run -p agent-skills -- skill-creator scaffold \
   --name "new-skill-name" \
   --description "Description of the scaffolded skill" \
   --type complex

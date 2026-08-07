@@ -25,5 +25,3 @@ cargo run -p agent-skills -- lint-scripts
 echo "Running markdownlint check..."
 npx markdownlint-cli --ignore "graphify-out/**" "**/*.md"
 
-echo "Running python backward-compatibility test suite..."
-python3 -m unittest discover -s scripts/tests

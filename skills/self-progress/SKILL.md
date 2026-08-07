@@ -67,10 +67,10 @@ Present the formatted retrospective report to the user and request confirmation/
 ### 3. Act on Confirmed Gaps
 
 For any confirmed **Missing Skill**:
-Execute `scaffold_skill.py` from `skill-creator`:
+Execute `skill-creator` subcommand:
 
 ```bash
-python3 skills/skill-creator/scripts/scaffold_skill.py --name "<new-skill-name>" --description "<description>" --type complex
+cargo run -p agent-skills -- skill-creator scaffold --name "<new-skill-name>" --description "<description>" --type complex
 ```
 
 ---
@@ -80,8 +80,8 @@ python3 skills/skill-creator/scripts/scaffold_skill.py --name "<new-skill-name>"
 - [ ] Hybrid reflection (memory + transcript signal analysis) completed.
 - [ ] Retrospective report generated and presented to user.
 - [ ] Confirmed gaps routed to `skill-creator` or suggested via `/learn`.
-- [ ] All unit tests in `scripts/tests/` pass cleanly exit code 0.
-- [ ] `ruff check .` and `ruff format --check .` pass cleanly.
+- [ ] All Rust unit and contract tests in `cargo test --workspace` pass cleanly with exit code 0.
+- [ ] `cargo fmt --check` and `cargo clippy --workspace --all-targets -- -D warnings` pass cleanly.
 
 ## References
 

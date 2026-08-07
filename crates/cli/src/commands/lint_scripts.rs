@@ -46,6 +46,20 @@ pub fn lint_script_file(file_path: &Path) -> Vec<String> {
             ));
         }
 
+        // Mutating operation check
+        if line.contains("shutil.rmtree")
+            || line.contains("shutil.move")
+            || line.contains("os.remove")
+            || line.contains("os.unlink")
+            || line.contains("os.rmdir")
+        {
+            issues.push(format!(
+                "{}:{line_num}: Mutating operation detected ('{}').",
+                file_path.display(),
+                line.trim()
+            ));
+        }
+
         // Standard library check for python scripts (ADR 0001)
         if filename.ends_with(".py") && !filename.starts_with("test_") {
             let stripped = line.trim();
@@ -66,7 +80,7 @@ pub fn lint_script_file(file_path: &Path) -> Vec<String> {
     issues
 }
 
-pub fn run_lint_scripts(args: &LintScriptsArgs, repo_root: &Path) -> Result<(), String> {
+pub fn run_lint_scripts(args: &LintScriptsArgs, repo_root: &Path) -> anyhow::Result<()> {
     let target = match &args.path {
         Some(p) => sanitize_path(p, Some(repo_root))?,
         None => repo_root.to_path_buf(),
@@ -118,7 +132,7 @@ pub fn run_lint_scripts(args: &LintScriptsArgs, repo_root: &Path) -> Result<(), 
         for issue in &total_issues {
             eprintln!("  - {issue}");
         }
-        Err("Script linting failed.".to_string())
+        Err(anyhow::anyhow!("Script linting failed."))
     }
 }
 
@@ -141,5 +155,56 @@ mod tests {
         assert_eq!(issues.len(), 2);
         assert!(issues[0].contains("Hardcoded absolute user home path"));
         assert!(issues[1].contains("Non-stdlib import detected"));
+    }
+
+    #[test]
+    fn test_dry_run_flag() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let file = base.join("script.py");
+        fs::write(&file, "import os\n").unwrap();
+
+        let args = LintScriptsArgs {
+            path: Some(file.display().to_string()),
+            dry_run: true,
+        };
+        let res = run_lint_scripts(&args, &base);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_repository_scripts_compliance() {
+        let dir = tempdir().unwrap();
+        let file = dir.path().join("clean_script.py");
+        fs::write(&file, "import sys\nprint('clean')\n").unwrap();
+
+        let issues = lint_script_file(&file);
+        assert!(issues.is_empty());
+    }
+
+    #[test]
+    fn test_is_mutating_script_detection() {
+        // Python: test_is_mutating_script_detection — scripts using shutil.rmtree, os.remove,
+        // shutil.move etc. must be flagged with a "Mutating operation" lint issue.
+        let dir = tempdir().unwrap();
+        let file = dir.path().join("mutating.py");
+        fs::write(
+            &file,
+            "import os\nimport shutil\nshutil.rmtree('/tmp/foo')\n",
+        )
+        .unwrap();
+
+        let issues = lint_script_file(&file);
+        let mutating_issue = issues.iter().find(|i| i.contains("Mutating operation"));
+        assert!(
+            mutating_issue.is_some(),
+            "lint_script_file must detect 'Mutating operation' for scripts that call \
+             shutil.rmtree/shutil.move/os.remove — none found in: {:?}",
+            issues
+        );
+        assert!(
+            mutating_issue.unwrap().contains("shutil.rmtree"),
+            "issue must mention the specific mutating call 'shutil.rmtree'"
+        );
     }
 }

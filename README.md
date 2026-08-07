@@ -1,140 +1,152 @@
 # Agent Skills
 
-A curated, open-source collection of procedural skills and workflows for AI coding assistants (Antigravity, Gemini CLI, Claude Code, Codex, and Cursor).
+A curated, open-source collection of procedural skills, automated CLI subcommands, and workflows for AI coding assistants (**Antigravity / Gemini CLI**, **Claude Code**, **GitHub Copilot**, and **Cursor**).
 
-Instead of relying on unguided AI generation, these skills provide structured procedures, architectural guidelines, and multi-agent synthesis tools to ensure clean code execution, reliable decision-making, and high-impact technical documentation.
-
----
-
-## 🚀 Available Skills
-
-| Skill | Description | Path |
-| :--- | :--- | :--- |
-| **`agent-council`** | Collect and synthesize opinions from multiple AI agents into a unified recommendation. | [`skills/agent-council`](skills/agent-council/SKILL.md) |
-| **`architecture-auditor`** | Audit codebases against software design principles (SOLID, DRY, YAGNI, KISS, CUPID) and resolve principle tensions. | [`skills/architecture-auditor`](skills/architecture-auditor/SKILL.md) |
-| **`architecture-decision-records`** | Log, index, supersede, and audit Architectural Decision Records (ADRs) following MADR standards. | [`skills/architecture-decision-records`](skills/architecture-decision-records/SKILL.md) |
-| **`benchmarking`** | Empirical performance benchmarking, baseline differential analysis, and expandable metric evaluations. | [`skills/benchmarking`](skills/benchmarking/SKILL.md) |
-| **`capability-gap-analyzer`** | Measure capability distance between registered agent skills and target project domains with sub-capability scans. | [`skills/capability-gap-analyzer`](skills/capability-gap-analyzer/SKILL.md) |
-| **`context-gatherer`** | Gather deep codebase context: git temporal coupling, symbol navigation, and AST-based structural search. | [`skills/context-gatherer`](skills/context-gatherer/SKILL.md) |
-| **`domain-modeling`** | Design and model business domain entities, aggregate boundaries, value objects, and DDD lifecycles. | [`skills/domain-modeling`](skills/domain-modeling/SKILL.md) |
-| **`self-annealer`** | Enforce bounded self-healing repair loops with strict convergence limits and automated git rollback safeguards. | [`skills/self-annealer`](skills/self-annealer/SKILL.md) |
-| **`self-progress`** | Identify session capability gaps, user corrections, tool failures, and growth opportunities from conversation sessions. | [`skills/self-progress`](skills/self-progress/SKILL.md) |
-| **`skill-creator`** | Create, scaffold, format, and audit new Agent Skills adhering to the agentskills.io standard and Python stdlib standards. | [`skills/skill-creator`](skills/skill-creator/SKILL.md) |
-| **`tdd`** | Enforce Test-Driven Development (TDD) workflows: write failing test (RED), write minimal code (GREEN), and refactor. | [`skills/tdd`](skills/tdd/SKILL.md) |
-| **`tech-doc-writer`** | Generate, refactor, and audit human-facing technical documentation using technical writing directives and GFM conventions. | [`skills/tech-doc-writer`](skills/tech-doc-writer/SKILL.md) |
-| **`what-if-analysis`** | Prospective blast-radius simulation, AST call-graph parsing, counterfactual test generation, and pre-emptive failure risk analysis. | [`skills/what-if-analysis`](skills/what-if-analysis/SKILL.md) |
+Engineered with a high-performance **compiled Rust core** (`agent-skills` CLI binary), these skills provide structured procedures, architectural guidelines, shift-left simulation, empirical benchmarking, and multi-agent synthesis tools to ensure clean code execution and reliable decision-making.
 
 ---
 
-## 📦 Global Setup & Installation
+## 🚀 Available Skills (15/15 Native Rust Subcommands)
 
-To make all skills in this repository available automatically across all your projects in **Gemini / Antigravity**, **Claude Code**, and **GitHub Copilot**:
-
-### Automatic Global Setup (Recommended)
-
-Run the included zero-dependency Python installer:
-
-```bash
-python3 scripts/install_global.py
-```
-
-This automatically creates global symbolic links for all skills in `skills/` across:
-
-- **Gemini / Antigravity**: `~/.gemini/config/skills/`
-- **Claude Code**: `~/.claude/skills/`
-- **GitHub Copilot**: `~/.copilot/skills/`
-
-To show planned actions without modifying files:
-
-```bash
-python3 scripts/install_global.py --dry-run
-```
-
-To remove global symlinks:
-
-```bash
-python3 scripts/install_global.py --unlink
-```
-
-### Manual Configuration Options
-
-<details>
-<summary>Click to view manual config details</summary>
-
-#### Gemini / Antigravity (`skills.json`)
-
-Add the repository's `skills/` path to `~/.gemini/config/skills.json`:
-
-```json
-{
-  "entries": [{ "path": "/path/to/agent-skills/skills" }]
-}
-```
-
-#### Project-Scoped Symlinking
-
-Symlink specific skills into a project's `.agents/skills` folder:
-
-```bash
-mkdir -p .agents/skills
-ln -s /path/to/agent-skills/skills/tech-doc-writer .agents/skills/tech-doc-writer
-```
-
-</details>
+| Skill | Description | Rust CLI Subcommand | Path |
+| :--- | :--- | :--- | :--- |
+| **`agent-council`** | Collect and synthesize opinions from multiple AI agents into a unified recommendation. | `agent-skills agent-council` | [`skills/agent-council`](skills/agent-council/SKILL.md) |
+| **`architecture-auditor`** | Audit codebases against software design principles (SOLID, DRY, YAGNI, KISS, CUPID). | `agent-skills architecture-auditor` | [`skills/architecture-auditor`](skills/architecture-auditor/SKILL.md) |
+| **`architecture-decision-records`** | Log, index, supersede, and audit Architectural Decision Records (ADRs) following MADR standards. | `agent-skills adr` | [`skills/architecture-decision-records`](skills/architecture-decision-records/SKILL.md) |
+| **`benchmarking`** | Empirical performance benchmarking, baseline differential analysis, and metric evaluations. | `agent-skills benchmarking` | [`skills/benchmarking`](skills/benchmarking/SKILL.md) |
+| **`capability-gap-analyzer`** | Measure capability distance between registered agent skills and target project domains. | `agent-skills capability-gap-analyzer` | [`skills/capability-gap-analyzer`](skills/capability-gap-analyzer/SKILL.md) |
+| **`code-janitor`** | Automated code hygiene scanner for dead code, oversized functions, and deep nesting. | `agent-skills code-janitor` | [`skills/code-janitor`](skills/code-janitor/SKILL.md) |
+| **`context-gatherer`** | Gather deep codebase context: git temporal coupling, symbol navigation, and AST search. | `agent-skills context-gatherer` | [`skills/context-gatherer`](skills/context-gatherer/SKILL.md) |
+| **`domain-modeling`** | Design and model business domain entities, aggregate boundaries, and DDD lifecycles. | `agent-skills domain-modeling` | [`skills/domain-modeling`](skills/domain-modeling/SKILL.md) |
+| **`git-conflict-resolver`** | Intelligently resolve Git rebase or merge conflicts using 3-way markers and commit context. | `agent-skills git-conflict-resolver` | [`skills/git-conflict-resolver`](skills/git-conflict-resolver/SKILL.md) |
+| **`self-annealer`** | Enforce bounded self-healing repair loops with strict iteration limits and automated git rollback. | `agent-skills self-annealer` | [`skills/self-annealer`](skills/self-annealer/SKILL.md) |
+| **`self-progress`** | Identify session capability gaps, user corrections, and retrospective growth opportunities. | `agent-skills self-progress` | [`skills/self-progress`](skills/self-progress/SKILL.md) |
+| **`skill-creator`** | Create, scaffold, format, and audit new Agent Skills adhering to agentskills.io standard. | `agent-skills skill-creator` | [`skills/skill-creator`](skills/skill-creator/SKILL.md) |
+| **`tdd`** | Enforce Test-Driven Development (TDD) workflows: verify RED gate, write code, verify GREEN gate. | `agent-skills tdd` | [`skills/tdd`](skills/tdd/SKILL.md) |
+| **`tech-doc-writer`** | Generate, refactor, and audit human-facing technical documentation and GFM compliance. | `agent-skills tech-doc-writer` | [`skills/tech-doc-writer`](skills/tech-doc-writer/SKILL.md) |
+| **`what-if-analysis`** | Prospective blast-radius simulation, AST call-graph parsing, and counterfactual test generation. | `agent-skills what-if-analysis` | [`skills/what-if-analysis`](skills/what-if-analysis/SKILL.md) |
 
 ---
 
-## 🛠 Repository Structure
+## 📦 Quick Onboarding & Installation
+
+### Step 1: Install Rust & Build `agent-skills` CLI
+
+Ensure you have [Rust & Cargo](https://rustup.rs/) installed, then build and install the binary globally:
+
+```bash
+# Clone the repository
+git clone https://github.com/louis-pvs/agent-skills.git
+cd agent-skills
+
+# Option A: Install globally via Cargo
+cargo install --path crates/cli
+
+# Option B: Build local release binary
+cargo build --release
+```
+
+---
+
+### Step 2: Global Skill Linking (`agent-skills install`)
+
+To automatically make all 15 skills available across your supported AI Coding Assistants:
+
+```bash
+# Execute the native installer
+agent-skills install
+
+# Or run via Cargo within repo root
+cargo run -p agent-skills -- install
+```
+
+`agent-skills install` automatically validates the skill dependency graph and creates global symlinks across:
+
+- 🧠 **Claude Code**: `~/.claude/skills/`
+- 💎 **Gemini / Antigravity**: `~/.gemini/config/skills/`
+- ✈️ **GitHub Copilot**: `~/.copilot/skills/`
+
+---
+
+## 💻 CLI Subcommand Usage Reference
+
+```bash
+# Verify skill dependency graph and lockfile integrity
+agent-skills depgraph --verify
+
+# Run Test-Driven Development (TDD) verification gates
+agent-skills tdd --cmd "cargo test" --verify-red
+agent-skills tdd --cmd "cargo test" --verify-green
+
+# Scaffold & validate new agent skills
+agent-skills skill-creator scaffold --name "my-skill" --description "My skill description"
+agent-skills skill-creator validate --path skills/my-skill
+
+# Manage Architectural Decision Records (ADRs)
+agent-skills adr new "Use Rust for CLI Automation"
+agent-skills adr reindex
+
+# Calculate blast radius for a symbol before refactoring
+agent-skills what-if-analysis impact --symbol my_function
+
+# Execute empirical performance benchmarks
+agent-skills benchmarking run --cmd "cargo test" --iterations 5
+```
+
+---
+
+## 🛠 Repository Architecture
 
 ```text
 agent-skills/
 ├── README.md
-├── .gitignore
-├── .agents/
-│   └── AGENTS.md             # Project-level agent rules & privacy guidelines
+├── Cargo.toml
+├── skills.lock               # Skill dependency graph lockfile
+├── .githooks/
+│   └── pre-commit            # Git verification pipeline
+├── crates/
+│   ├── cli/                  # Unified agent-skills Rust CLI application
+│   └── core/                 # Path safety (CWE-22), 4-tier config merger, depgraph
 ├── docs/
-│   └── adr/                  # Architectural Decision Records (ADRs)
-└── skills/
-    ├── agent-council/        # Multi-agent consensus synthesis skill
-    ├── architecture-auditor/ # Software design principle auditing skill
-    ├── benchmarking/         # Performance benchmarking & differential analysis skill
-    ├── context-gatherer/     # Codebase context gathering (git coupling, symbol nav, AST search)
-    ├── self-annealer/        # Bounded repair loop & git rollback skill
-    ├── skill-creator/        # Skill authoring, scaffolding, & validation skill
-    ├── tdd/                  # Test-Driven Development (RED-GREEN-REFACTOR) skill
-    ├── tech-doc-writer/      # Technical documentation authoring & auditing skill
-    └── what-if-analysis/     # Predictive blast-radius, scenario modeling, & pre-emptive healing skill
+│   └── adr/                  # Architectural Decision Records
+└── skills/                   # 15 Agent Skill folders (SKILL.md, README.md, references/)
 ```
 
 ---
 
 ## ✍️ Creating New Skills
 
-Each skill folder inside `skills/` must follow the Agent Skill standard:
+To scaffold and register a new Agent Skill adhering to the `agentskills.io` standard:
 
-1. **`SKILL.md`**: Must contain YAML frontmatter defining `name` and `description`:
+```bash
+agent-skills skill-creator scaffold --name "my-new-skill" --description "Description of trigger criteria"
+```
 
-   ```yaml
-   ---
-   name: my-new-skill
-   description: Concise description of when the agent should trigger this skill.
-   ---
-   ```
+After scaffolding:
 
-2. **Body**: Keep instructions under 500 lines (**Context Load Optimization**). Place supplementary material in a `references/` subdirectory.
-3. **Scripts**: Use **Python 3 Standard Library First** for any executable scripts in `scripts/` with corresponding unit tests in `scripts/tests/`.
+1. Edit `skills/my-new-skill/SKILL.md` (keep main instructions under 500 lines for context load optimization).
+2. Validate compliance: `agent-skills skill-creator validate --path skills/my-new-skill`.
+3. Re-link globally: `agent-skills install`.
 
 ---
 
-## 🧹 Development: Lint & Format Hook
+## 🧹 Development & Contribution Guidelines
 
-This repo uses [ruff](https://docs.astral.sh/ruff/) for linting and formatting Python scripts (see `pyproject.toml`), enforced in CI. To catch issues before pushing, enable the tracked pre-commit hook once per clone:
+Enable pre-commit verification hook once per clone:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-It runs `ruff check .` and `ruff format --check .` on every commit.
+The pre-commit hook enforces strict Rust code quality (ADR 0006):
+
+- `cargo check --workspace`
+- `cargo fmt --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `agent-skills depgraph --verify`
+- `agent-skills lint-scripts`
+- `npx markdownlint-cli "**/*.md"`
 
 ---
 

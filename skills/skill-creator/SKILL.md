@@ -79,7 +79,7 @@ Optimize context and cognitive load:
   - **Testing**: Include unit tests under `scripts/tests/test_<script_name>.py` runnable via:
 
     ```bash
-    python3 -m unittest discover -s scripts/tests
+    cargo test --workspace
     ```
 
 ### 5. Audit & Validate
@@ -90,7 +90,7 @@ Run `cargo run -p agent-skills -- skill-creator validate --path skills/<skill-na
 - **Invocation Mode Compliance**: Validate name, description, and invocation mode flag (`disable-model-invocation`).
 - Checkable **Completion Criteria** section presence (`## Completion Criteria`).
 - **Context Load** (lines <= 500) and **Cognitive Load** branch checks.
-- Python script test pass status.
+- Test pass status via `cargo test`.
 
 ## Completion Criteria
 

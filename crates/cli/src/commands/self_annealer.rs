@@ -45,6 +45,8 @@ pub struct AnnealReport {
     pub attempts: usize,
     pub converged: bool,
     pub rolled_back: bool,
+    pub stdout: String,
+    pub stderr: String,
 }
 
 pub fn run_anneal_loop(
@@ -52,11 +54,15 @@ pub fn run_anneal_loop(
     max_iterations: usize,
     auto_rollback: bool,
     repo_root: &Path,
-) -> Result<AnnealReport, String> {
+) -> anyhow::Result<AnnealReport> {
+    if cmd_str.contains('\0') {
+        return Err(anyhow::anyhow!("Command string contains null bytes"));
+    }
+
     let parts =
-        shlex::split(cmd_str).ok_or_else(|| "Failed to parse command string".to_string())?;
+        shlex::split(cmd_str).ok_or_else(|| anyhow::anyhow!("Failed to parse command string"))?;
     if parts.is_empty() {
-        return Err("Command string is empty".to_string());
+        return Err(anyhow::anyhow!("Command string is empty"));
     }
 
     let program = &parts[0];
@@ -64,16 +70,20 @@ pub fn run_anneal_loop(
 
     let mut attempts = 0;
     let mut converged = false;
+    let mut last_stdout = String::new();
+    let mut last_stderr = String::new();
 
     while attempts < max_iterations {
         attempts += 1;
-        let status = Command::new(program)
+        let output = Command::new(program)
             .args(args)
             .current_dir(repo_root)
-            .status();
+            .output();
 
-        if let Ok(st) = status {
-            if st.success() {
+        if let Ok(out) = output {
+            last_stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            last_stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            if out.status.success() {
                 converged = true;
                 break;
             }
@@ -95,10 +105,12 @@ pub fn run_anneal_loop(
         attempts,
         converged,
         rolled_back,
+        stdout: last_stdout,
+        stderr: last_stderr,
     })
 }
 
-pub fn check_self_annealer_health(skill_dir: &Path) -> Result<Vec<String>, String> {
+pub fn check_self_annealer_health(skill_dir: &Path) -> anyhow::Result<Vec<String>> {
     let required_files = [
         skill_dir.join("SKILL.md"),
         skill_dir.join("README.md"),
@@ -120,7 +132,7 @@ pub fn check_self_annealer_health(skill_dir: &Path) -> Result<Vec<String>, Strin
     if missing.is_empty() {
         Ok(Vec::new())
     } else {
-        Err(format!(
+        Err(anyhow::anyhow!(
             "Self Annealer health check failed. Missing files: {:?}",
             missing
         ))
@@ -130,7 +142,7 @@ pub fn check_self_annealer_health(skill_dir: &Path) -> Result<Vec<String>, Strin
 pub fn run_self_annealer_command(
     subcommand: &SelfAnnealerSubcommand,
     repo_root: &Path,
-) -> Result<(), String> {
+) -> anyhow::Result<()> {
     match subcommand {
         SelfAnnealerSubcommand::Check(args) => {
             let skill_dir = if let Some(p) = &args.path {
@@ -168,7 +180,7 @@ pub fn run_self_annealer_command(
             if report.converged {
                 Ok(())
             } else {
-                Err(format!(
+                Err(anyhow::anyhow!(
                     "Self-annealing repair loop failed to converge after {} iterations.",
                     report.attempts
                 ))
@@ -210,5 +222,62 @@ mod tests {
 
         let res = check_self_annealer_health(&base);
         assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_run_cmd_empty_command() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let res = run_anneal_loop("", 3, false, &base);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_run_cmd_null_bytes() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let res = run_anneal_loop("echo\0test", 3, false, &base);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_run_cmd_success() {
+        // Python: test_run_cmd_success — Rust uses .status() not .output(), so stdout is never captured
+        // Real regression: AnnealReport has no stdout field
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let report = run_anneal_loop("echo UNIQUE_STDOUT_TOKEN", 3, false, &base).unwrap();
+
+        assert!(report.converged, "echo must succeed and converge");
+        // The AnnealReport must capture stdout to verify the command actually ran
+        // This test fails because AnnealReport has no stdout/output field
+        let report_json = serde_json::to_string(&report).unwrap();
+        assert!(
+            report_json.contains(r#""stdout":"UNIQUE_STDOUT_TOKEN"#),
+            "AnnealReport must have a 'stdout' field capturing subprocess output. Got: {report_json}"
+        );
+    }
+
+    #[test]
+    fn test_run_cmd_invalid_quotes() {
+        // Python: test_run_cmd_invalid_quotes — malformed shell quoting must fail
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let result = run_anneal_loop("echo 'unclosed quote", 1, false, &base);
+        assert!(result.is_err(), "unclosed quote must cause a parse error");
+    }
+
+    #[test]
+    fn test_parse_args_defaults() {
+        // Python: test_parse_args_defaults — max_iterations=3, auto_rollback=true by default
+        use clap::Parser;
+        #[derive(Parser)]
+        struct Wrapper {
+            #[command(flatten)]
+            args: RunAnnealArgs,
+        }
+        let parsed = Wrapper::parse_from(["self-annealer-run"]);
+        assert_eq!(parsed.args.max_iterations, 3);
+        assert!(parsed.args.auto_rollback);
     }
 }

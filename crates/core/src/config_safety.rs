@@ -168,4 +168,142 @@ mod tests {
             .expect("default_only must be string");
         assert_eq!(default_val, "from_default");
     }
+
+    // --- NEW FAILING TESTS (TDD RED phase) ---
+
+    #[test]
+    fn test_parse_simple_yaml_basic() {
+        // Python: test_parse_simple_yaml_basic — load_repo_config parses scalar values correctly
+        let dir = tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+
+        fs::write(
+            root.join("skills.config.yaml"),
+            "key: \"value/with/slashes\"\nquoted: 'single'\n",
+        )
+        .unwrap();
+
+        let cfg = load_repo_config(Some(&root));
+        let map = cfg.as_mapping().expect("must be a mapping");
+
+        let key_val = map
+            .get("key")
+            .and_then(|v| v.as_str())
+            .expect("key must be a string");
+        assert_eq!(
+            key_val, "value/with/slashes",
+            "slash-containing value must be parsed correctly"
+        );
+
+        let quoted_val = map
+            .get("quoted")
+            .and_then(|v| v.as_str())
+            .expect("quoted must be a string");
+        assert_eq!(quoted_val, "single");
+    }
+
+    #[test]
+    fn test_parse_simple_yaml_scalar_list() {
+        // Python: test_parse_simple_yaml_scalar_list — load_repo_config handles list-of-strings value
+        let dir = tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+
+        fs::write(
+            root.join("skills.config.yaml"),
+            "items:\n  - alpha\n  - beta\n  - gamma\n",
+        )
+        .unwrap();
+
+        let cfg = load_repo_config(Some(&root));
+        let map = cfg.as_mapping().expect("must be a mapping");
+
+        let items = map
+            .get("items")
+            .and_then(|v| v.as_sequence())
+            .expect("items must be a sequence");
+        assert_eq!(items.len(), 3, "must have 3 items");
+        assert_eq!(items[0].as_str().unwrap(), "alpha");
+        assert_eq!(items[1].as_str().unwrap(), "beta");
+        assert_eq!(items[2].as_str().unwrap(), "gamma");
+    }
+
+    #[test]
+    fn test_parse_simple_yaml_nested_sections() {
+        // Python: test_parse_simple_yaml_nested_sections — multi-level nesting and type coercion
+        let dir = tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+
+        fs::write(
+            root.join("skills.config.yaml"),
+            "outer:\n  inner:\n    value: 42\n    flag: true\n",
+        )
+        .unwrap();
+
+        let cfg = load_repo_config(Some(&root));
+        let map = cfg.as_mapping().expect("must be a mapping");
+
+        let outer = map
+            .get("outer")
+            .and_then(|v| v.as_mapping())
+            .expect("outer must be a mapping");
+        let inner = outer
+            .get("inner")
+            .and_then(|v| v.as_mapping())
+            .expect("inner must be a mapping");
+
+        let value = inner
+            .get("value")
+            .and_then(|v| v.as_i64())
+            .expect("value must be integer 42");
+        assert_eq!(value, 42);
+
+        let flag = inner
+            .get("flag")
+            .and_then(|v| v.as_bool())
+            .expect("flag must be boolean true");
+        assert!(flag);
+    }
+
+    #[test]
+    fn test_load_yaml_file_nonexistent() {
+        // Python: test_load_yaml_file_nonexistent — load_repo_config with missing file returns empty mapping
+        let dir = tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        // No skills.config.yaml written — must not panic
+
+        let cfg = load_repo_config(Some(&root));
+        let map = cfg
+            .as_mapping()
+            .expect("must return empty mapping for missing file");
+        assert!(
+            map.is_empty(),
+            "missing config file must return empty mapping, not error or panic"
+        );
+    }
+
+    #[test]
+    fn test_load_skill_config_legacy_fallback() {
+        // Python: test_load_skill_config_legacy_fallback — reads <skill>.config.yaml when config.yaml absent
+        let dir = tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+
+        let skill_dir = root.join("skills").join("my-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+
+        // Write legacy config (no config.yaml, only my-skill.config.yaml)
+        let legacy_path = skill_dir.join("my-skill.config.yaml");
+        fs::write(&legacy_path, "legacy_key: legacy_value\n").unwrap();
+
+        let cfg = load_skill_config("my-skill", Some(&skill_dir), Some(&root), None);
+        let map = cfg.as_mapping().expect("must be a mapping");
+
+        let val = map
+            .get("legacy_key")
+            .and_then(|v| v.as_str())
+            .expect("legacy_key must exist when loaded from legacy config path");
+        assert_eq!(
+            val, "legacy_value",
+            "load_skill_config must fall back to <skill>.config.yaml when config.yaml is absent"
+        );
+    }
 }

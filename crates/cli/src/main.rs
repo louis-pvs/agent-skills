@@ -122,23 +122,27 @@ enum Commands {
     },
 }
 
+/// Run a command that returns `anyhow::Result<()>`, converting to ExitCode.
+fn run(result: anyhow::Result<()>) -> ExitCode {
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(err) => {
+            eprintln!("❌ {err:#}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let repo_root = get_repo_root(None);
 
     match cli.command {
         Commands::SkillCreator { subcommand } => match subcommand {
-            SkillCreatorSubcommand::Scaffold(args) => match scaffold_skill(&args, Some(&repo_root))
-            {
-                Ok(path) => {
+            SkillCreatorSubcommand::Scaffold(args) => run(scaffold_skill(&args, Some(&repo_root))
+                .map(|path| {
                     println!("🎉 Successfully scaffolded skill at: {}", path.display());
-                    ExitCode::SUCCESS
-                }
-                Err(err) => {
-                    eprintln!("{err}");
-                    ExitCode::FAILURE
-                }
-            },
+                })),
             SkillCreatorSubcommand::Validate(args) => {
                 let (is_valid, issues) = validate_skill(&args, Some(&repo_root));
                 if is_valid {
@@ -156,149 +160,47 @@ fn main() -> ExitCode {
                 }
             }
         },
-        Commands::Adr { subcommand } => match run_adr_command(&subcommand, &repo_root) {
-            Ok(_) => ExitCode::SUCCESS,
-            Err(err) => {
-                eprintln!("❌ ADR operation failed: {err}");
-                ExitCode::FAILURE
-            }
-        },
+        Commands::Adr { subcommand } => run(run_adr_command(&subcommand, &repo_root)),
         Commands::AgentCouncil { subcommand } => {
-            match run_agent_council_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Agent council failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_agent_council_command(&subcommand, &repo_root))
         }
         Commands::ArchitectureAuditor { subcommand } => {
-            match run_architecture_auditor_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Architecture auditor failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_architecture_auditor_command(&subcommand, &repo_root))
         }
         Commands::Benchmarking { subcommand } => {
-            match run_benchmarking_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Benchmarking failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_benchmarking_command(&subcommand, &repo_root))
         }
         Commands::CapabilityGapAnalyzer { subcommand } => {
-            match run_capability_gap_analyzer_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Capability gap analyzer failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_capability_gap_analyzer_command(&subcommand, &repo_root))
         }
         Commands::CodeJanitor { subcommand } => {
-            match run_code_janitor_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Code janitor failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_code_janitor_command(&subcommand, &repo_root))
         }
         Commands::ContextGatherer { subcommand } => {
-            match run_context_gatherer_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Context gatherer failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_context_gatherer_command(&subcommand, &repo_root))
         }
         Commands::DomainModeling { subcommand } => {
-            match run_domain_modeling_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Domain modeling failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_domain_modeling_command(&subcommand, &repo_root))
         }
         Commands::GitConflictResolver { subcommand } => {
-            match run_git_conflict_resolver_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Git conflict resolver failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_git_conflict_resolver_command(&subcommand, &repo_root))
         }
         Commands::SelfAnnealer { subcommand } => {
-            match run_self_annealer_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Self annealer failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_self_annealer_command(&subcommand, &repo_root))
         }
         Commands::SelfProgress { subcommand } => {
-            match run_self_progress_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ Self progress failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_self_progress_command(&subcommand, &repo_root))
         }
         Commands::WhatIfAnalysis { subcommand } => {
-            match run_what_if_analysis_command(&subcommand, &repo_root) {
-                Ok(_) => ExitCode::SUCCESS,
-                Err(err) => {
-                    eprintln!("❌ What-if analysis failed: {err}");
-                    ExitCode::FAILURE
-                }
-            }
+            run(run_what_if_analysis_command(&subcommand, &repo_root))
         }
-        Commands::Tdd(args) => match run_tdd_command(&args, &repo_root) {
-            Ok(_) => ExitCode::SUCCESS,
-            Err(err) => {
-                eprintln!("{err}");
-                ExitCode::FAILURE
-            }
-        },
-        Commands::Install(args) => match run_installer(&args, &repo_root) {
-            Ok(_) => ExitCode::SUCCESS,
-            Err(err) => {
-                eprintln!("❌ Installation failed: {err}");
-                ExitCode::FAILURE
-            }
-        },
-        Commands::Depgraph(args) => match run_depgraph(&args, &repo_root) {
-            Ok(_) => ExitCode::SUCCESS,
-            Err(err) => {
-                eprintln!("❌ Depgraph execution failed: {err}");
-                ExitCode::FAILURE
-            }
-        },
-        Commands::LintScripts(args) => match run_lint_scripts(&args, &repo_root) {
-            Ok(_) => ExitCode::SUCCESS,
-            Err(err) => {
-                eprintln!("{err}");
-                ExitCode::FAILURE
-            }
-        },
+        Commands::Tdd(args) => run(run_tdd_command(&args, &repo_root)),
+        Commands::Install(args) => run(run_installer(&args, &repo_root)),
+        Commands::Depgraph(args) => run(run_depgraph(&args, &repo_root)),
+        Commands::LintScripts(args) => run(run_lint_scripts(&args, &repo_root)),
         Commands::TechDocWriter { subcommand } => match subcommand {
             TechDocWriterSubcommand::Audit(args) => {
-                match run_tech_doc_writer_audit(&args, &repo_root) {
-                    Ok(_) => ExitCode::SUCCESS,
-                    Err(err) => {
-                        eprintln!("{err}");
-                        ExitCode::FAILURE
-                    }
-                }
+                run(run_tech_doc_writer_audit(&args, &repo_root))
             }
         },
     }

@@ -34,12 +34,13 @@ pub struct FileMetrics {
     pub functions: usize,
 }
 
-pub fn analyze_file_metrics(file_path: &Path) -> Result<FileMetrics, String> {
+pub fn analyze_file_metrics(file_path: &Path) -> anyhow::Result<FileMetrics> {
     if !file_path.exists() || !file_path.is_file() {
-        return Err(format!("File not found: {}", file_path.display()));
+        return Err(anyhow::anyhow!("File not found: {}", file_path.display()));
     }
 
-    let content = fs::read_to_string(file_path).map_err(|e| format!("Failed to read file: {e}"))?;
+    let content =
+        fs::read_to_string(file_path).map_err(|e| anyhow::anyhow!("Failed to read file: {e}"))?;
     let lines = content.lines().count();
 
     let class_re = Regex::new(r"(?m)^\s*(class|struct|enum|trait|interface)\s+\w+").unwrap();
@@ -56,7 +57,7 @@ pub fn analyze_file_metrics(file_path: &Path) -> Result<FileMetrics, String> {
     })
 }
 
-pub fn check_architecture_auditor_health(skill_dir: &Path) -> Result<Vec<String>, String> {
+pub fn check_architecture_auditor_health(skill_dir: &Path) -> anyhow::Result<Vec<String>> {
     let required_files = [
         skill_dir.join("SKILL.md"),
         skill_dir.join("README.md"),
@@ -84,7 +85,7 @@ pub fn check_architecture_auditor_health(skill_dir: &Path) -> Result<Vec<String>
     if missing.is_empty() {
         Ok(Vec::new())
     } else {
-        Err(format!(
+        Err(anyhow::anyhow!(
             "Architecture Auditor health check failed. Missing files: {:?}",
             missing
         ))
@@ -94,7 +95,7 @@ pub fn check_architecture_auditor_health(skill_dir: &Path) -> Result<Vec<String>
 pub fn run_architecture_auditor_command(
     subcommand: &ArchitectureAuditorSubcommand,
     repo_root: &Path,
-) -> Result<(), String> {
+) -> anyhow::Result<()> {
     match subcommand {
         ArchitectureAuditorSubcommand::Check(args) => {
             let skill_dir = if let Some(p) = &args.path {
@@ -163,5 +164,48 @@ mod tests {
 
         let res = check_architecture_auditor_health(&base);
         assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_check_dispatch_semantics() {
+        // Python: test_basic_pass — Python's --check is an unconditional no-op that always
+        // exits 0. Rust's Check subcommand intentionally diverges: it actually validates the
+        // 9 required doc files exist via run_architecture_auditor_command's dispatch path
+        // (not just the underlying check_architecture_auditor_health fn in isolation).
+        // This test documents and locks in that stricter, intentional divergence.
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let skill_dir = base.join("skills").join("architecture-auditor");
+        let references = skill_dir.join("references");
+        fs::create_dir_all(&references).unwrap();
+
+        fs::write(skill_dir.join("SKILL.md"), "---").unwrap();
+        fs::write(skill_dir.join("README.md"), "# Title").unwrap();
+        fs::write(references.join("overview.md"), "# Overview").unwrap();
+        fs::write(references.join("solid.md"), "# SOLID").unwrap();
+        fs::write(references.join("dry-yagni.md"), "# DRY").unwrap();
+        fs::write(references.join("cupid.md"), "# CUPID").unwrap();
+        fs::write(references.join("kiss.md"), "# KISS").unwrap();
+        fs::write(references.join("principle-tensions.md"), "# Tensions").unwrap();
+        fs::write(references.join("audit-report.md"), "# Report").unwrap();
+
+        let complete = run_architecture_auditor_command(
+            &ArchitectureAuditorSubcommand::Check(CheckAuditorArgs { path: None }),
+            &base,
+        );
+        assert!(
+            complete.is_ok(),
+            "Check dispatch must succeed when all required files are present, got: {complete:?}"
+        );
+
+        fs::remove_file(references.join("audit-report.md")).unwrap();
+        let incomplete = run_architecture_auditor_command(
+            &ArchitectureAuditorSubcommand::Check(CheckAuditorArgs { path: None }),
+            &base,
+        );
+        assert!(
+            incomplete.is_err(),
+            "Check dispatch must fail (Rust's intentional divergence from Python's no-op --check) when a required file is missing"
+        );
     }
 }

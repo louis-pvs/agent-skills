@@ -64,7 +64,7 @@ flowchart TD
   workspace auto-detection:
 
   ```bash
-  python3 skills/capability-gap-analyzer/scripts/main.py --auto-detect
+  cargo run -p agent-skills -- capability-gap-analyzer check
   ```
 
   The domain detector inspects workspace markers (`package.json`,
@@ -76,7 +76,7 @@ flowchart TD
 - Run the multi-root deterministic inventory scanner:
 
   ```bash
-  python3 skills/capability-gap-analyzer/scripts/gap_analyzer.py --json
+  cargo run -p agent-skills -- capability-gap-analyzer analyze --json
   ```
 
 - This parses all `SKILL.md` files across workspace and global customization
@@ -155,7 +155,7 @@ cargo run -p agent-skills -- capability-gap-analyzer analyze --json
       Zero-Zone from a real `covered/total` sub-capability fraction (not a
       raw skill-match count), with `[workspace]` and `[global]` evidence tags
       and out-of-scope categories filtered from the report.
-- [ ] CLI exit codes pass cleanly with `--domain`, `--auto-detect`, and
-      `--json`.
-- [ ] All Python code passes `ruff check .` and `ruff format --check .`
-      without warnings or errors.
+- [ ] CLI exit codes pass cleanly with `--domain`, `check`, and
+      `analyze --json`.
+- [ ] All Rust unit and contract tests in `cargo test --workspace` pass cleanly.
+- [ ] `cargo fmt --check` and `cargo clippy --workspace --all-targets -- -D warnings` pass cleanly.

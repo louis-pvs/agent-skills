@@ -28,7 +28,7 @@ pub enum DomainModelingSubcommand {
     ScaffoldEntity(ScaffoldEntityArgs),
 }
 
-pub fn check_domain_modeling_health(skill_dir: &Path) -> Result<Vec<String>, String> {
+pub fn check_domain_modeling_health(skill_dir: &Path) -> anyhow::Result<Vec<String>> {
     let required_files = [
         skill_dir.join("SKILL.md"),
         skill_dir.join("README.md"),
@@ -52,16 +52,16 @@ pub fn check_domain_modeling_health(skill_dir: &Path) -> Result<Vec<String>, Str
     if missing.is_empty() {
         Ok(Vec::new())
     } else {
-        Err(format!(
+        Err(anyhow::anyhow!(
             "Domain Modeling health check failed. Missing files: {:?}",
             missing
         ))
     }
 }
 
-pub fn scaffold_entity_stub(name: &str, target_dir: &Path) -> Result<PathBuf, String> {
+pub fn scaffold_entity_stub(name: &str, target_dir: &Path) -> anyhow::Result<PathBuf> {
     fs::create_dir_all(target_dir)
-        .map_err(|e| format!("Failed to create target directory: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to create target directory: {e}"))?;
 
     let filename = format!("{}.rs", name.to_lowercase());
     let file_path = target_dir.join(&filename);
@@ -94,14 +94,14 @@ impl {name} {{
     );
 
     fs::write(&file_path, stub_content)
-        .map_err(|e| format!("Failed to write entity stub file: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to write entity stub file: {e}"))?;
     Ok(file_path)
 }
 
 pub fn run_domain_modeling_command(
     subcommand: &DomainModelingSubcommand,
     repo_root: &Path,
-) -> Result<(), String> {
+) -> anyhow::Result<()> {
     match subcommand {
         DomainModelingSubcommand::Check(args) => {
             let skill_dir = if let Some(p) = &args.path {
@@ -164,5 +164,31 @@ mod tests {
         let content = fs::read_to_string(path).unwrap();
         assert!(content.contains("pub struct Order"));
         assert!(content.contains("pub fn new"));
+    }
+
+    #[test]
+    fn test_main_check_flag() {
+        // Python: test_main_check_flag — must call the CLI dispatch path
+        // (run_domain_modeling_command), not just the underlying health-check fn in isolation.
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let skill_dir = base.join("skills").join("domain-modeling");
+        let references = skill_dir.join("references");
+        fs::create_dir_all(&references).unwrap();
+
+        fs::write(skill_dir.join("SKILL.md"), "---").unwrap();
+        fs::write(skill_dir.join("README.md"), "# Title").unwrap();
+        fs::write(references.join("overview.md"), "# Overview").unwrap();
+        fs::write(references.join("ddd-patterns.md"), "# DDD").unwrap();
+        fs::write(references.join("state-machines.md"), "# States").unwrap();
+
+        let res = run_domain_modeling_command(
+            &DomainModelingSubcommand::Check(CheckDomainArgs { path: None }),
+            &base,
+        );
+        assert!(
+            res.is_ok(),
+            "Check dispatch must succeed via the CLI entry point, got: {res:?}"
+        );
     }
 }

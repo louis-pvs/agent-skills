@@ -155,7 +155,7 @@ pub fn audit_markdown_file(file_path: &Path) -> (bool, Vec<String>) {
     (is_valid, findings)
 }
 
-pub fn run_tech_doc_writer_audit(args: &AuditArgs, repo_root: &Path) -> Result<(), String> {
+pub fn run_tech_doc_writer_audit(args: &AuditArgs, repo_root: &Path) -> anyhow::Result<()> {
     let mut overall_success = true;
     let mut target_files: Vec<PathBuf> = Vec::new();
 
@@ -205,7 +205,7 @@ pub fn run_tech_doc_writer_audit(args: &AuditArgs, repo_root: &Path) -> Result<(
     if overall_success {
         Ok(())
     } else {
-        Err("Technical documentation audit failed.".to_string())
+        Err(anyhow::anyhow!("Technical documentation audit failed."))
     }
 }
 
@@ -240,5 +240,70 @@ mod tests {
         assert_eq!(findings.len(), 2);
         assert!(findings[0].contains("invalid GFM alert tag"));
         assert!(findings[1].contains("Multiple H1 titles found"));
+    }
+
+    // --- NEW FAILING TEST (TDD RED phase) ---
+
+    #[test]
+    fn test_privacy_user_path() {
+        // Python: test_privacy_user_path — /home/<user>/... paths trigger privacy error
+        // The regex exists but the allowlist exceptions (/home/username, /home/user, /home/path/to)
+        // are never tested to ensure real paths are blocked while generic placeholders pass.
+        let dir = tempdir().unwrap();
+
+        // A real hardcoded path should be flagged
+        let bad_file = dir.path().join("bad.md");
+        fs::write(
+            &bad_file,
+            "# Title\n\nSee the file at /home/alice/projects/config.yaml\n",
+        )
+        .unwrap();
+        let (passed_bad, findings_bad) = audit_markdown_file(&bad_file);
+        assert!(
+            !passed_bad,
+            "hardcoded personal path /home/alice/... must be flagged as a privacy violation"
+        );
+        assert!(
+            findings_bad
+                .iter()
+                .any(|f| f.contains("hardcoded personal user path")),
+            "finding must mention 'hardcoded personal user path', got: {:?}",
+            findings_bad
+        );
+
+        // A generic placeholder path must NOT be flagged
+        let ok_file = dir.path().join("ok.md");
+        fs::write(
+            &ok_file,
+            "# Title\n\nReplace /home/username/... with your actual path.\n",
+        )
+        .unwrap();
+        let (passed_ok, findings_ok) = audit_markdown_file(&ok_file);
+        assert!(
+            passed_ok,
+            "/home/username/... placeholder must NOT be flagged, got: {:?}",
+            findings_ok
+        );
+    }
+
+    #[test]
+    fn test_valid_markdown_file_mermaid_exemption() {
+        // Python: test_valid_markdown_file — PARTIAL, ASCII-art-shaped content inside a
+        // mermaid fenced block must be exempt from the ASCII-art check (unlike a plain
+        // fenced block, where the same shapes would be flagged).
+        let dir = tempdir().unwrap();
+        let md_file = dir.path().join("diagram.md");
+        fs::write(
+            &md_file,
+            "# Title\n\n```mermaid\ngraph TD\n  A[ ]--->B\n```\n",
+        )
+        .unwrap();
+
+        let (passed, findings) = audit_markdown_file(&md_file);
+        assert!(
+            passed,
+            "ASCII-art-shaped content inside a mermaid fence must be exempt, got: {:?}",
+            findings
+        );
     }
 }

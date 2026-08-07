@@ -20,11 +20,10 @@ Perform prospective blast-radius calculation, symbol-reference dependency mappin
 
 ## Usage
 
-All capabilities are reachable through the unified entrypoint `scripts/main.py`, which
-dispatches to the sub-scripts below:
+All capabilities are reachable through the Rust CLI:
 
 ```bash
-python3 skills/what-if-analysis/scripts/main.py [impact|scenario|ast|counterfactual|preempt] --help
+cargo run -p agent-skills -- what-if-analysis impact --symbol <symbol_name>
 ```
 
 ### 1. Direct CLI Blast Radius Execution (Phase 1)
@@ -46,7 +45,7 @@ cargo run -p agent-skills -- what-if-analysis impact --symbol <symbol_name> --js
 To model and compare trade-offs across competing architectural options or parameter configurations:
 
 ```bash
-python3 skills/what-if-analysis/scripts/scenario_runner.py --symbol <symbol_name> --scenarios "Option A: Async Dispatch, Option B: Subprocess Fork"
+cargo run -p agent-skills -- what-if-analysis scenario --symbol <symbol_name>
 ```
 
 ### 3. AST Call-Graph Parsing & Counterfactual Test Generation (Phase 3)
@@ -55,13 +54,13 @@ Parse AST call sites, generate counterfactual RED test cases, and pre-empt runti
 
 ```bash
 # AST Call-Graph Node Traversal
-python3 skills/what-if-analysis/scripts/ast_graph_parser.py --symbol <symbol_name> --file <python_file>
+cargo run -p agent-skills -- what-if-analysis ast --symbol <symbol_name> --file <file_path>
 
 # Generate Adversarial RED Counterfactual Unit Test
-python3 skills/what-if-analysis/scripts/counterfactual_generator.py --symbol <symbol_name> --module <import.path> --params "param1,param2" --out tests/test_counterfactual.py
+cargo run -p agent-skills -- what-if-analysis counterfactual --symbol <symbol_name>
 
 # Pre-emptive Failure Mode Risk Interception
-python3 skills/what-if-analysis/scripts/failure_preemptor.py --symbol <symbol_name>
+cargo run -p agent-skills -- what-if-analysis preempt --symbol <symbol_name>
 ```
 
 ---

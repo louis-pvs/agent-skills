@@ -37,15 +37,15 @@ description: { { SKILL_DESCRIPTION } }
 2. **Execution**: Run automation script
 
    ```bash
-   python3 skills/{{SKILL_NAME}}/scripts/main.py --check
+   cargo run -p agent-skills -- {{SKILL_NAME}} check
    ```
 
 3. **Synthesis**: Process output and report results to user.
 
 ## Completion Criteria
 
-- [ ] All automation script executions finish with exit code 0.
-- [ ] Unit tests in `scripts/tests/` pass cleanly.
+- [ ] All automation executions finish with exit code 0.
+- [ ] Unit tests pass cleanly (`cargo test`).
 - [ ] Output files and artifacts comply with required schema.
 
 ## References

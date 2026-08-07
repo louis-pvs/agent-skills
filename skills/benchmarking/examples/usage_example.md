@@ -9,15 +9,15 @@ This guide provides concrete examples of running performance benchmarks, compari
 Measure wall-clock execution time and peak memory RSS over 5 iterations:
 
 ```bash
-python3 skills/benchmarking/scripts/benchmark_runner.py \
-  --cmd "python3 -m unittest discover -s scripts/tests" \
+cargo run -p agent-skills -- benchmarking run \
+  --cmd "cargo test --workspace" \
   --iterations 5
 ```
 
 ### Console Output
 
 ```text
-📊 Benchmark Report: python3 -m unittest discover -s scripts/tests
+📊 Benchmark Report: cargo test --workspace
 Status: PASS
 Avg Wall Time: 42.15 ms
 Avg Peak Memory: 1.85 MB
@@ -33,43 +33,11 @@ Avg Peak Memory: 1.85 MB
 Compare performance of a refactored implementation against a baseline command:
 
 ```bash
-python3 skills/benchmarking/scripts/benchmark_runner.py \
-  --cmd "python3 scripts/optimized_main.py" \
-  --baseline-cmd "python3 scripts/legacy_main.py" \
+cargo run -p agent-skills -- benchmarking run \
+  --cmd "cargo test --package agent-skills --test cli_contract_tests" \
+  --baseline-cmd "cargo test --workspace" \
   --iterations 5 \
   --json
-```
-
-### Structured JSON Report
-
-```json
-{
-  "command": "python3 scripts/optimized_main.py",
-  "iterations": 5,
-  "summary": {
-    "status": "pass",
-    "avg_wall_time_ms": 12.4,
-    "avg_peak_memory_mb": 2.1,
-    "exit_code": 0
-  },
-  "metrics": [
-    {
-      "name": "timing",
-      "status": "pass",
-      "value": 12.4,
-      "unit": "ms",
-      "threshold": null,
-      "detail": "Wall-clock runtime 12.40 ms",
-      "raw": { "wall_time_ms": 12.4 }
-    }
-  ],
-  "baseline": {
-    "command": "python3 scripts/legacy_main.py",
-    "avg_wall_time_ms": 28.6,
-    "avg_peak_memory_mb": 4.5,
-    "wall_time_delta_pct": -56.64
-  }
-}
 ```
 
 ---
@@ -79,7 +47,7 @@ python3 skills/benchmarking/scripts/benchmark_runner.py \
 Enforce automated rollback if performance degrades beyond threshold (e.g. > 100ms runtime):
 
 ```bash
-python3 skills/self-annealer/scripts/anneal_runner.py \
-  --cmd "python3 skills/benchmarking/scripts/benchmark_runner.py --cmd 'python3 scripts/main.py' --assert-max-duration-ms 100" \
+cargo run -p agent-skills -- self-annealer run \
+  --cmd "cargo run -p agent-skills -- benchmarking run --cmd 'cargo test' --assert-max-duration-ms 100" \
   --max-iterations 3
 ```

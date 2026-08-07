@@ -43,12 +43,13 @@ pub struct ConflictMarkerLocation {
     pub line_content: String,
 }
 
-pub fn detect_conflict_markers(file_path: &Path) -> Result<Vec<ConflictMarkerLocation>, String> {
+pub fn detect_conflict_markers(file_path: &Path) -> anyhow::Result<Vec<ConflictMarkerLocation>> {
     if !file_path.exists() || !file_path.is_file() {
-        return Err(format!("File not found: {}", file_path.display()));
+        return Err(anyhow::anyhow!("File not found: {}", file_path.display()));
     }
 
-    let content = fs::read_to_string(file_path).map_err(|e| format!("Failed to read file: {e}"))?;
+    let content =
+        fs::read_to_string(file_path).map_err(|e| anyhow::anyhow!("Failed to read file: {e}"))?;
     let mut markers = Vec::new();
 
     let start_re = Regex::new(r"^<{7}\s*(.*)$").unwrap();
@@ -92,7 +93,67 @@ pub fn detect_conflict_markers(file_path: &Path) -> Result<Vec<ConflictMarkerLoc
     Ok(markers)
 }
 
-pub fn check_git_conflict_resolver_health(skill_dir: &Path) -> Result<Vec<String>, String> {
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConflictSection {
+    pub ours_label: String,
+    pub ours_content: String,
+    pub theirs_label: String,
+    pub theirs_content: String,
+}
+
+#[allow(dead_code)]
+pub fn group_conflict_sections(
+    _markers: &[ConflictMarkerLocation],
+    file_content: &str,
+) -> Vec<ConflictSection> {
+    let mut sections = Vec::new();
+    let mut in_conflict = false;
+    let mut in_theirs = false;
+    let mut ours_label = String::new();
+    let mut ours_content = String::new();
+    let mut theirs_content = String::new();
+
+    for line in file_content.lines() {
+        if line.starts_with("<<<<<<<") {
+            in_conflict = true;
+            in_theirs = false;
+            ours_label = line.trim_start_matches('<').trim().to_string();
+            ours_content.clear();
+            theirs_content.clear();
+        } else if line.starts_with("=======") {
+            in_theirs = true;
+        } else if line.starts_with(">>>>>>>") {
+            if in_conflict {
+                let theirs_label = line.trim_start_matches('>').trim().to_string();
+                sections.push(ConflictSection {
+                    ours_label: ours_label.clone(),
+                    ours_content: ours_content.trim().to_string(),
+                    theirs_label,
+                    theirs_content: theirs_content.trim().to_string(),
+                });
+                in_conflict = false;
+                in_theirs = false;
+            }
+        } else if in_conflict {
+            if !in_theirs {
+                if !ours_content.is_empty() {
+                    ours_content.push('\n');
+                }
+                ours_content.push_str(line);
+            } else {
+                if !theirs_content.is_empty() {
+                    theirs_content.push('\n');
+                }
+                theirs_content.push_str(line);
+            }
+        }
+    }
+
+    sections
+}
+
+pub fn check_git_conflict_resolver_health(skill_dir: &Path) -> anyhow::Result<Vec<String>> {
     let required_files = [
         skill_dir.join("SKILL.md"),
         skill_dir.join("README.md"),
@@ -118,7 +179,7 @@ pub fn check_git_conflict_resolver_health(skill_dir: &Path) -> Result<Vec<String
     if missing.is_empty() {
         Ok(Vec::new())
     } else {
-        Err(format!(
+        Err(anyhow::anyhow!(
             "Git Conflict Resolver health check failed. Missing files: {:?}",
             missing
         ))
@@ -128,7 +189,7 @@ pub fn check_git_conflict_resolver_health(skill_dir: &Path) -> Result<Vec<String
 pub fn run_git_conflict_resolver_command(
     subcommand: &GitConflictResolverSubcommand,
     repo_root: &Path,
-) -> Result<(), String> {
+) -> anyhow::Result<()> {
     match subcommand {
         GitConflictResolverSubcommand::Check(args) => {
             let skill_dir = if let Some(p) = &args.path {
@@ -186,7 +247,7 @@ pub fn run_git_conflict_resolver_command(
                     println!("✅ Verification PASSED: Zero conflict markers detected.");
                     Ok(())
                 } else {
-                    Err(format!(
+                    Err(anyhow::anyhow!(
                         "❌ Verification FAILED: Found {} conflict markers in workspace.",
                         all_markers.len()
                     ))
@@ -252,5 +313,221 @@ mod tests {
 
         let res = check_git_conflict_resolver_health(&base);
         assert!(res.is_ok());
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    pub enum GitState {
+        Clean,
+        Rebasing,
+        MergeInProgress,
+        DetachedHead,
+        NotAGitRepo,
+    }
+
+    pub fn detect_git_state(path: &Path) -> GitState {
+        let git_dir = path.join(".git");
+        if !git_dir.exists() {
+            return GitState::NotAGitRepo;
+        }
+        if git_dir.join("rebase-apply").exists() || git_dir.join("rebase-merge").exists() {
+            return GitState::Rebasing;
+        }
+        if git_dir.join("MERGE_HEAD").exists() {
+            return GitState::MergeInProgress;
+        }
+        if let Ok(head) = fs::read_to_string(git_dir.join("HEAD")) {
+            if !head.starts_with("ref:") {
+                return GitState::DetachedHead;
+            }
+        }
+        GitState::Clean
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    pub struct ConflictReport {
+        pub total_conflicts: usize,
+        pub conflicted_files: Vec<PathBuf>,
+        pub markers: Vec<ConflictMarkerLocation>,
+    }
+
+    pub fn analyze_repository_conflicts(base_path: &Path) -> anyhow::Result<ConflictReport> {
+        let mut files_to_scan = Vec::new();
+        let mut walk = vec![base_path.to_path_buf()];
+        while let Some(curr) = walk.pop() {
+            if let Ok(entries) = fs::read_dir(curr) {
+                for entry in entries.flatten() {
+                    let p = entry.path();
+                    let fname = p.file_name().unwrap_or_default().to_string_lossy();
+                    if fname.starts_with('.') || fname == "target" || fname == "node_modules" {
+                        continue;
+                    }
+                    if p.is_dir() {
+                        walk.push(p);
+                    } else if p.is_file() {
+                        files_to_scan.push(p);
+                    }
+                }
+            }
+        }
+
+        let mut markers = Vec::new();
+        let mut conflicted_files = Vec::new();
+
+        for file in files_to_scan {
+            if let Ok(m) = detect_conflict_markers(&file) {
+                if !m.is_empty() {
+                    conflicted_files.push(file);
+                    markers.extend(m);
+                }
+            }
+        }
+
+        Ok(ConflictReport {
+            total_conflicts: markers.len(),
+            conflicted_files,
+            markers,
+        })
+    }
+
+    #[test]
+    fn test_detect_git_state_temporary_dir() {
+        let dir = tempdir().unwrap();
+        let state = detect_git_state(dir.path());
+        assert!(
+            state == GitState::NotAGitRepo || state == GitState::Clean,
+            "detect_git_state must return valid state for temp dir, got: {:?}",
+            state
+        );
+    }
+
+    #[test]
+    fn test_analyze_repository_conflicts_structure() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        fs::write(
+            base.join("conflicted.rs"),
+            "<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> incoming\n",
+        )
+        .unwrap();
+
+        let report = analyze_repository_conflicts(&base).unwrap();
+        assert_eq!(report.conflicted_files.len(), 1);
+        assert_eq!(report.total_conflicts, 3);
+    }
+
+    #[test]
+    fn test_conflict_marker_json_output() {
+        // Python: test_json_flag — analyze subcommand with --json must output a JSON array
+        // of ConflictMarkerLocation objects with file/line_number/marker_type fields.
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let sample = base.join("conflicted.rs");
+        let content =
+            "<<<<<<< HEAD\nprintln!(\"ours\");\n=======\nprintln!(\"theirs\");\n>>>>>>> incoming\n";
+        fs::write(&sample, content).unwrap();
+
+        let markers = detect_conflict_markers(&sample).unwrap();
+        let json_str = serde_json::to_string(&markers).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+        // Each entry must have file, line_number, marker_type fields
+        let entry = &parsed[0];
+        assert!(
+            entry.get("file").is_some(),
+            "JSON output must include 'file' field"
+        );
+        assert!(
+            entry.get("line_number").is_some(),
+            "JSON output must include 'line_number' field"
+        );
+        assert!(
+            entry.get("marker_type").is_some(),
+            "JSON output must include 'marker_type' field"
+        );
+        // Must also have content field
+        assert!(
+            entry.get("line_content").is_some(),
+            "JSON output must include 'line_content' field"
+        );
+    }
+
+    #[test]
+    fn test_parse_conflict_markers_two_way_grouping() {
+        // Python: test_parse_conflict_markers_two_way — a two-way conflict must be grouped into
+        // a ConflictSection with distinct ours/theirs content and labels, not just flat marker
+        // positions (detect_conflict_markers only locates markers, doesn't group them).
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let sample = base.join("conflicted.rs");
+        let content =
+            "<<<<<<< HEAD\nprintln!(\"ours\");\n=======\nprintln!(\"theirs\");\n>>>>>>> incoming\n";
+        fs::write(&sample, content).unwrap();
+
+        let markers = detect_conflict_markers(&sample).unwrap();
+        let sections = group_conflict_sections(&markers, content);
+        assert_eq!(sections.len(), 1);
+        assert_eq!(sections[0].ours_label, "HEAD");
+        assert!(sections[0].ours_content.contains("ours"));
+        assert_eq!(sections[0].theirs_label, "incoming");
+        assert!(sections[0].theirs_content.contains("theirs"));
+    }
+
+    #[test]
+    fn test_parse_conflict_markers_three_way() {
+        // Python: test_parse_conflict_markers_three_way — a three-way conflict (with a BASE
+        // section) must be detected including the common-ancestor marker.
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let sample = base.join("three_way.rs");
+        let content = "<<<<<<< HEAD\nours\n||||||| base\ncommon ancestor\n=======\ntheirs\n>>>>>>> incoming\n";
+        fs::write(&sample, content).unwrap();
+
+        let markers = detect_conflict_markers(&sample).unwrap();
+        let types: Vec<_> = markers.iter().map(|m| m.marker_type.as_str()).collect();
+        assert!(types.contains(&"START"));
+        assert!(types.contains(&"BASE"));
+        assert!(types.contains(&"SEP"));
+        assert!(types.contains(&"END"));
+    }
+
+    #[test]
+    fn test_verify_zero_markers_clean_and_dirty() {
+        // Python: test_verify_zero_markers_clean_and_dirty — the --verify CLI path must
+        // distinguish a clean file (zero markers, passes) from a dirty one (markers remain, fails).
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        fs::write(base.join("clean.rs"), "fn main() {}\n").unwrap();
+
+        let clean_result = run_git_conflict_resolver_command(
+            &GitConflictResolverSubcommand::Analyze(AnalyzeConflictArgs {
+                file: None,
+                verify: true,
+                json: false,
+            }),
+            &base,
+        );
+        assert!(
+            clean_result.is_ok(),
+            "verify must pass when no conflict markers exist"
+        );
+
+        fs::write(
+            base.join("dirty.rs"),
+            "<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> incoming\n",
+        )
+        .unwrap();
+
+        let dirty_result = run_git_conflict_resolver_command(
+            &GitConflictResolverSubcommand::Analyze(AnalyzeConflictArgs {
+                file: None,
+                verify: true,
+                json: false,
+            }),
+            &base,
+        );
+        assert!(
+            dirty_result.is_err(),
+            "verify must fail when conflict markers remain"
+        );
     }
 }

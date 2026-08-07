@@ -6,7 +6,7 @@ You're about to refactor `src/auth/session.py`. Find what else will need to chan
 
 ```bash
 # Find temporally coupled files
-python3 skills/context-gatherer/scripts/git_coupling.py --file src/auth/session.py --min-commits 2
+cargo run -p agent-skills -- context-gatherer git-coupling --file src/auth/session.py --min-commits 2
 
 # Output:
 # Temporal coupling for: src/auth/session.py
@@ -27,10 +27,10 @@ Before renaming `validate_token`, find every place that calls it:
 
 ```bash
 # Find where validate_token is defined
-python3 skills/context-gatherer/scripts/symbol_nav.py --symbol "validate_token" --path src/ --type definition
+cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "validate_token" --path src/ --type definition
 
 # Find all usages (excluding the definition)
-python3 skills/context-gatherer/scripts/symbol_nav.py --symbol "validate_token" --path src/ --type reference
+cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "validate_token" --path src/ --type reference
 ```
 
 ## Example 3: Find All Handler Implementations
@@ -38,13 +38,13 @@ python3 skills/context-gatherer/scripts/symbol_nav.py --symbol "validate_token" 
 Find every class that extends `BaseHandler`:
 
 ```bash
-python3 skills/context-gatherer/scripts/ast_search.py --pattern "class * (BaseHandler)" --path src/
+cargo run -p agent-skills -- context-gatherer ast-search --pattern "class * (BaseHandler)" --path src/
 ```
 
 Find all test functions:
 
 ```bash
-python3 skills/context-gatherer/scripts/ast_search.py --pattern "def test_*" --path tests/
+cargo run -p agent-skills -- context-gatherer ast-search --pattern "def test_*" --path tests/
 ```
 
 ## Example 4: Combined Deep Context
@@ -56,19 +56,19 @@ For maximum understanding before a major change, combine techniques:
 # /graphify query "How does the auth module connect to the API layer?"
 
 # 2. Find co-changing files
-python3 skills/context-gatherer/scripts/git_coupling.py --file src/auth/session.py --format json
+cargo run -p agent-skills -- context-gatherer git-coupling --file src/auth/session.py --format json
 
 # 3. Find all references to the symbol you're changing
-python3 skills/context-gatherer/scripts/symbol_nav.py --symbol "SessionManager" --path src/
+cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "SessionManager" --path src/
 
 # 4. Find related implementations
-python3 skills/context-gatherer/scripts/ast_search.py --pattern "class * (SessionManager)" --path src/
+cargo run -p agent-skills -- context-gatherer ast-search --pattern "class * (SessionManager)" --path src/
 ```
 
 ## Example 5: JSON Output for Programmatic Use
 
-All scripts support `--format json` for piping into other tools:
+All commands support `--json` / `--format json` for piping into other tools:
 
 ```bash
-python3 skills/context-gatherer/scripts/git_coupling.py --file src/app.py --format json | python3 -m json.tool
+cargo run -p agent-skills -- context-gatherer git-coupling --file src/app.py --format json
 ```
