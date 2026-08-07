@@ -116,6 +116,27 @@ Smells indicating legacy syntax patterns, verbose guard checks, or procedural bo
 - **Severity**: 💡 ADVISORY.
 - **Fix**: Refactor to nullish coalescing (`val ?? defaultVal`) or logical nullish assignment (`x.cfg ??= defaultCfg`).
 
+### Modern Array & Grouping Operations (ES2023 / ES2024)
+
+- **Detection**: Manual `reduce` for grouping (`items.reduce((acc, x) => ...)`), mutating `.sort()`, or `reverse().find()`.
+- **Severity**: 💡 ADVISORY.
+- **Fix**: Refactor to native immutability and array features:
+  - `Object.groupBy(items, x => x.category)` (ES2024)
+  - `items.toSorted((a, b) => a - b)` (ES2023)
+  - `items.findLast(x => x.active)` (ES2023)
+
+### Python Structural Pattern Matching & Pipe Unions (Python 3.10+)
+
+- **Detection**: Verbose `if/elif/isinstance` nested dict/event checks or legacy `typing.Union` / `Optional` imports.
+- **Severity**: 💡 ADVISORY.
+- **Fix**: Refactor to structural pattern matching (`match/case`) and pipe union type annotations (`str | int | None`).
+
+### Rust `let-else` Flat Control Flow (Rust 1.65+)
+
+- **Detection**: Nested `if let` blocks with immediate `else { return; }` divergence causing rightward drift.
+- **Severity**: 💡 ADVISORY.
+- **Fix**: Apply `let-else` statements (`let Some(val) = maybe_val else { return; };`) to maintain flat Happy-Path execution.
+
 ## Extending Rules for New Languages
 
 Modernization rules are dynamically loaded and scoped by file extension defined in `skills/code-janitor/config.yaml`. To support new languages (e.g. Go, Python, C#, Rust):

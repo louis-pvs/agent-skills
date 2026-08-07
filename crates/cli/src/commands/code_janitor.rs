@@ -124,6 +124,14 @@ pub fn scan_file_for_smells(
     let nullish_coalescing_re =
         Regex::new(r"[\w\.]+\s*!==?\s*null\s*&&\s*[\w\.]+\s*!==?\s*undefined\s*\?\s*[\w\.]+\s*:")
             .unwrap();
+    let promise_then_re = Regex::new(r"\.then\(\s*\(?\w*\)?\s*=>").unwrap();
+    let mutating_sort_re = Regex::new(r"\[\s*\.\.\.[\w\.]+\s*\]\.sort\(").unwrap();
+    let reverse_find_re = Regex::new(r"[\w\.]+\.reverse\(\)\.find\(").unwrap();
+    let logical_assignment_re = Regex::new(r"if\s*\(\s*!\s*[\w\.]+\s*\)\s*[\w\.]+\s*=\s*").unwrap();
+    let legacy_union_re = Regex::new(r"from\s+typing\s+import\s+.*?\b(Union|Optional)\b").unwrap();
+    let is_rust = ext_str == "rs";
+    let rust_if_let_else_re =
+        Regex::new(r"if\s+let\s+Some\([\w\.]+\)\s*=\s*[\w\.]+\s*\{[^\}]*\}\s*else\s*\{").unwrap();
 
     let lines: Vec<&str> = content.lines().collect();
 
@@ -174,6 +182,78 @@ pub fn scan_file_for_smells(
                     severity: "ADVISORY".to_string(),
                 });
             }
+            if promise_then_re.is_match(line) {
+                smells.push(CodeSmell {
+                    file: file_path.to_path_buf(),
+                    line_number: idx + 1,
+                    smell_category: "Modernization".to_string(),
+                    description: format!(
+                        "Promise .then() callback chain detected; consider async/await: {}",
+                        line.trim()
+                    ),
+                    severity: "ADVISORY".to_string(),
+                });
+            }
+            if mutating_sort_re.is_match(line) {
+                smells.push(CodeSmell {
+                    file: file_path.to_path_buf(),
+                    line_number: idx + 1,
+                    smell_category: "Modernization".to_string(),
+                    description: format!(
+                        "Spread sort detected; consider non-mutating toSorted(): {}",
+                        line.trim()
+                    ),
+                    severity: "ADVISORY".to_string(),
+                });
+            }
+            if reverse_find_re.is_match(line) {
+                smells.push(CodeSmell {
+                    file: file_path.to_path_buf(),
+                    line_number: idx + 1,
+                    smell_category: "Modernization".to_string(),
+                    description: format!(
+                        "Reverse find chain detected; consider native findLast(): {}",
+                        line.trim()
+                    ),
+                    severity: "ADVISORY".to_string(),
+                });
+            }
+            if logical_assignment_re.is_match(line) {
+                smells.push(CodeSmell {
+                    file: file_path.to_path_buf(),
+                    line_number: idx + 1,
+                    smell_category: "Modernization".to_string(),
+                    description: format!(
+                        "Manual existence assignment detected; consider logical nullish assignment (??=): {}",
+                        line.trim()
+                    ),
+                    severity: "ADVISORY".to_string(),
+                });
+            }
+        }
+        if is_python && legacy_union_re.is_match(line) {
+            smells.push(CodeSmell {
+                file: file_path.to_path_buf(),
+                line_number: idx + 1,
+                smell_category: "Modernization".to_string(),
+                description: format!(
+                    "Legacy typing.Union/Optional import detected; consider pipe union syntax (int | str | None): {}",
+                    line.trim()
+                ),
+                severity: "ADVISORY".to_string(),
+            });
+        }
+        if is_rust && rust_if_let_else_re.is_match(line) {
+            smells.push(CodeSmell {
+                file: file_path.to_path_buf(),
+                line_number: idx + 1,
+                smell_category: "Modernization".to_string(),
+                description: format!(
+                    "Nested if let with else return detected; consider let-else statement: {}",
+                    line.trim()
+                ),
+                severity: "ADVISORY".to_string(),
+            });
         }
     }
 
@@ -1154,5 +1234,116 @@ mod tests {
             smell.description.contains("val !== null"),
             "smell description must include line content"
         );
+    }
+
+    #[test]
+    fn test_detects_promise_then_smell() {
+        let dir = tempdir().unwrap();
+        let sample = dir.path().join("async.ts");
+        fs::write(
+            &sample,
+            "fetchData().then(res => res.json()).then(data => handle(data));\n",
+        )
+        .unwrap();
+
+        let smells = scan_file_for_smells(&sample, 50, 5, 4).unwrap();
+        let then_smell = smells.iter().find(|s| {
+            s.smell_category == "Modernization" && s.description.contains("Promise .then()")
+        });
+        assert!(
+            then_smell.is_some(),
+            "Promise .then() chain must be detected"
+        );
+        let smell = then_smell.unwrap();
+        assert_eq!(smell.file, sample);
+        assert_eq!(smell.line_number, 1);
+        assert_eq!(smell.severity, "ADVISORY");
+    }
+
+    #[test]
+    fn test_detects_legacy_python_union_import() {
+        let dir = tempdir().unwrap();
+        let sample = dir.path().join("legacy_typing.py");
+        fs::write(
+            &sample,
+            "from typing import Union, Optional\ndef parse(val: Optional[Union[int, str]]) -> None:\n    pass\n",
+        )
+        .unwrap();
+
+        let smells = scan_file_for_smells(&sample, 50, 5, 4).unwrap();
+        let union_smell = smells.iter().find(|s| {
+            s.smell_category == "Modernization" && s.description.contains("typing.Union/Optional")
+        });
+        assert!(
+            union_smell.is_some(),
+            "Legacy typing import must be detected"
+        );
+        let smell = union_smell.unwrap();
+        assert_eq!(smell.file, sample);
+        assert_eq!(smell.line_number, 1);
+        assert_eq!(smell.severity, "ADVISORY");
+    }
+
+    #[test]
+    fn test_detects_mutating_sort_smell() {
+        let dir = tempdir().unwrap();
+        let sample = dir.path().join("sort.ts");
+        fs::write(
+            &sample,
+            "const sorted = [...items].sort((a, b) => a.id - b.id);\n",
+        )
+        .unwrap();
+
+        let smells = scan_file_for_smells(&sample, 50, 5, 4).unwrap();
+        let sort_smell = smells
+            .iter()
+            .find(|s| s.smell_category == "Modernization" && s.description.contains("toSorted()"));
+        assert!(sort_smell.is_some(), "Spread sort must be detected");
+        let smell = sort_smell.unwrap();
+        assert_eq!(smell.file, sample);
+        assert_eq!(smell.line_number, 1);
+    }
+
+    #[test]
+    fn test_detects_reverse_find_smell() {
+        let dir = tempdir().unwrap();
+        let sample = dir.path().join("find.ts");
+        fs::write(
+            &sample,
+            "const lastActive = items.reverse().find(x => x.active);\n",
+        )
+        .unwrap();
+
+        let smells = scan_file_for_smells(&sample, 50, 5, 4).unwrap();
+        let find_smell = smells
+            .iter()
+            .find(|s| s.smell_category == "Modernization" && s.description.contains("findLast()"));
+        assert!(find_smell.is_some(), "Reverse find must be detected");
+        let smell = find_smell.unwrap();
+        assert_eq!(smell.file, sample);
+        assert_eq!(smell.line_number, 1);
+    }
+
+    #[test]
+    fn test_detects_rust_if_let_else_smell() {
+        let dir = tempdir().unwrap();
+        let sample = dir.path().join("let_else.rs");
+        fs::write(
+            &sample,
+            "fn check() {\n    if let Some(val) = maybe_val { process(val); } else { return; }\n}\n",
+        )
+        .unwrap();
+
+        let smells = scan_file_for_smells(&sample, 50, 5, 4).unwrap();
+        let let_else_smell = smells
+            .iter()
+            .find(|s| s.smell_category == "Modernization" && s.description.contains("let-else"));
+        assert!(
+            let_else_smell.is_some(),
+            "Rust if let else return must be detected"
+        );
+        let smell = let_else_smell.unwrap();
+        assert_eq!(smell.file, sample);
+        assert_eq!(smell.line_number, 2);
     }
 }
