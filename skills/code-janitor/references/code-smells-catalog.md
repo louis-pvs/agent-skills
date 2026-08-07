@@ -87,3 +87,39 @@ Smells indicating deferred work that accumulates over time.
 - **Detection**: Comments containing `TODO`, `FIXME`, `HACK`, `XXX`, or `NOQA`.
 - **Severity**: 💡 ADVISORY.
 - **Fix**: Resolve the TODO (implement, remove, or convert to a tracked issue).
+
+## Modernization & Expressive Idioms
+
+Smells indicating legacy syntax patterns, verbose guard checks, or procedural boilerplate that can be refactored into modern, declarative language idioms.
+
+### Verbose Guard Checks
+
+- **Detection**: Explicit type or existence guard checks prior to function invocation, e.g., `if (typeof fn === 'function')` or `if (obj !== null && obj !== undefined)`.
+- **Severity**: 💡 ADVISORY.
+- **Fix**: Use modern language operators such as optional chaining (`fn?.(arg)` or `obj?.prop`) or pattern matching / guard clauses.
+
+### Imperative Boilerplate to Declarative Expressions
+
+- **Detection**: Multi-line imperative setup (e.g. manual iteration loops for filtering/transforming state) that can be expressed cleanly as functional transformations.
+- **Severity**: 💡 ADVISORY.
+- **Fix**: Refactor to declarative collection transformations (`filter`, `map`, direct conditional returns).
+
+### Redundant Ternary & Nullish Checks
+
+- **Detection**: Redundant boolean ternaries (e.g., `cond ? true : false`) or manual null checks refactorable via nullish coalescing.
+- **Severity**: 💡 ADVISORY.
+- **Fix**: Use direct boolean expressions or nullish coalescing operators (`??`).
+
+### Nullish Coalescing & Logical Assignment
+
+- **Detection**: Explicit null/undefined checks prior to assignment, e.g. `val !== null && val !== undefined ? val : defaultVal` or `if (!x.cfg) x.cfg = defaultCfg;`.
+- **Severity**: 💡 ADVISORY.
+- **Fix**: Refactor to nullish coalescing (`val ?? defaultVal`) or logical nullish assignment (`x.cfg ??= defaultCfg`).
+
+## Extending Rules for New Languages
+
+Modernization rules are dynamically loaded and scoped by file extension defined in `skills/code-janitor/config.yaml`. To support new languages (e.g. Go, Python, C#, Rust):
+
+1. Open `skills/code-janitor/config.yaml` (or your project's `skills.config.yaml`).
+2. Add target file extensions under `modernization.rules.<rule_name>.extensions`.
+3. Save the configuration. The scanner will automatically apply those rules to the configured file extensions.

@@ -26,3 +26,21 @@ code_janitor:
   reporting:
     verbose: true
     generate_summary_report: true
+
+  modernization:
+    enabled: true
+    language_extensions:
+      javascript_typescript: ["js", "jsx", "ts", "tsx", "mjs", "cjs"]
+      python: ["py", "pyi"]
+      rust: ["rs"]
+      go: ["go"]
+    rules:
+      verbose_guard_checks:
+        extensions: ["js", "jsx", "ts", "tsx", "mjs", "cjs"]
+      redundant_ternary:
+        extensions: ["js", "jsx", "ts", "tsx", "mjs", "cjs", "py"]
+      nullish_coalescing:
+        extensions: ["js", "jsx", "ts", "tsx", "mjs", "cjs"]
+      logical_assignment:
+        extensions: ["js", "jsx", "ts", "tsx", "mjs", "cjs"]
+

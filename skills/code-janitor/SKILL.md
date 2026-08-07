@@ -59,6 +59,11 @@ The scanner detects the following smell categories:
 | **Documentation** | Missing docstrings | Functions/classes without docstrings |
 | **Documentation** | Missing type annotations | Functions without return type hints |
 | **Maintenance** | Stale TODO/FIXME markers | Any `TODO` or `FIXME` comment |
+| **Modernization** | Verbose guard checks | Legacy `typeof fn === 'function'` or redundant null checks |
+| **Modernization** | Imperative boilerplate | Manual iteration setup refactorable to declarative expressions |
+
+> [!TIP]
+> Modernization rules are scoped by target file extensions configured in `skills/code-janitor/config.yaml`. Developers can add new file extensions or custom language modernization rules without modifying CLI source code.
 
 ### 3. Clean Code Refactoring Plan
 

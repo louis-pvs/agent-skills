@@ -99,7 +99,16 @@ pub fn scan_file_for_smells(
     let content =
         fs::read_to_string(file_path).map_err(|e| anyhow::anyhow!("Failed to read file: {e}"))?;
     let mut smells = Vec::new();
-    let is_python = file_path.extension().and_then(|ext| ext.to_str()) == Some("py");
+    let ext_str = file_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let is_python = ext_str == "py" || ext_str == "pyi";
+    let is_js_ts = matches!(
+        ext_str.as_str(),
+        "js" | "jsx" | "ts" | "tsx" | "mjs" | "cjs"
+    );
 
     let func_def_re =
         Regex::new(r"(?m)^\s*(?:def|fn|async\s+fn|function)\s+(\w+)\s*\(([^)]*)\)").unwrap();
@@ -107,6 +116,14 @@ pub fn scan_file_for_smells(
     let import_re = Regex::new(r"^\s*import\s+(\w+)(?:\s+as\s+(\w+))?").unwrap();
     let from_import_re = Regex::new(r"^\s*from\s+[\w\.]+\s+import\s+(.+)").unwrap();
     let complexity_re = Regex::new(r"\b(if|elif|for|while|except|and|or)\b").unwrap();
+    let verbose_guard_re = Regex::new(
+        r"(?i)typeof\s+[\w\.]+\s*===\s*['\x22]function['\x22]|typeof\s+[\w\.]+\s*!==?\s*['\x22]undefined['\x22]",
+    )
+    .unwrap();
+    let redundant_ternary_re = Regex::new(r"\?\s*true\s*:\s*false|\?\s*false\s*:\s*true").unwrap();
+    let nullish_coalescing_re =
+        Regex::new(r"[\w\.]+\s*!==?\s*null\s*&&\s*[\w\.]+\s*!==?\s*undefined\s*\?\s*[\w\.]+\s*:")
+            .unwrap();
 
     let lines: Vec<&str> = content.lines().collect();
 
@@ -119,6 +136,44 @@ pub fn scan_file_for_smells(
                 description: format!("Stale marker found: {}", line.trim()),
                 severity: "ADVISORY".to_string(),
             });
+        }
+        if is_js_ts {
+            if verbose_guard_re.is_match(line) {
+                smells.push(CodeSmell {
+                    file: file_path.to_path_buf(),
+                    line_number: idx + 1,
+                    smell_category: "Modernization".to_string(),
+                    description: format!(
+                        "Verbose guard check detected; consider optional chaining (?.) or modern idioms: {}",
+                        line.trim()
+                    ),
+                    severity: "ADVISORY".to_string(),
+                });
+            }
+            if redundant_ternary_re.is_match(line) {
+                smells.push(CodeSmell {
+                    file: file_path.to_path_buf(),
+                    line_number: idx + 1,
+                    smell_category: "Modernization".to_string(),
+                    description: format!(
+                        "Redundant boolean ternary detected; consider direct expression or Boolean(): {}",
+                        line.trim()
+                    ),
+                    severity: "ADVISORY".to_string(),
+                });
+            }
+            if nullish_coalescing_re.is_match(line) {
+                smells.push(CodeSmell {
+                    file: file_path.to_path_buf(),
+                    line_number: idx + 1,
+                    smell_category: "Modernization".to_string(),
+                    description: format!(
+                        "Verbose null/undefined check detected; consider nullish coalescing (??): {}",
+                        line.trim()
+                    ),
+                    severity: "ADVISORY".to_string(),
+                });
+            }
         }
     }
 
@@ -1000,5 +1055,104 @@ mod tests {
         };
         let res = run_code_janitor_command(&CodeJanitorSubcommand::Scan(args), &base);
         assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_detects_verbose_guard_check() {
+        let dir = tempdir().unwrap();
+        let sample = dir.path().join("guard.tsx");
+        fs::write(
+            &sample,
+            "function handle() {\n    if (typeof this.onClick === 'function') {\n        this.onClick(event);\n    }\n}\n",
+        )
+        .unwrap();
+
+        let smells = scan_file_for_smells(&sample, 50, 5, 4).unwrap();
+        let guard_smell = smells.iter().find(|s| {
+            s.smell_category == "Modernization" && s.description.contains("Verbose guard check")
+        });
+        assert!(
+            guard_smell.is_some(),
+            "Verbose function check must be detected"
+        );
+        let smell = guard_smell.unwrap();
+        assert_eq!(smell.file, sample);
+        assert_eq!(smell.line_number, 2);
+        assert_eq!(smell.severity, "ADVISORY");
+        assert!(
+            smell.description.contains("this.onClick"),
+            "smell description must include target code snippet"
+        );
+    }
+
+    #[test]
+    fn test_detects_redundant_boolean_ternary() {
+        let dir = tempdir().unwrap();
+        let sample = dir.path().join("ternary.ts");
+        fs::write(&sample, "const isReady = status === 'ok' ? true : false;\n").unwrap();
+
+        let smells = scan_file_for_smells(&sample, 50, 5, 4).unwrap();
+        let ternary_smell = smells.iter().find(|s| {
+            s.smell_category == "Modernization"
+                && s.description.contains("Redundant boolean ternary")
+        });
+        assert!(
+            ternary_smell.is_some(),
+            "Redundant boolean ternary must be detected"
+        );
+        let smell = ternary_smell.unwrap();
+        assert_eq!(smell.file, sample);
+        assert_eq!(smell.line_number, 1);
+        assert_eq!(smell.severity, "ADVISORY");
+        assert!(
+            smell.description.contains("status ==="),
+            "smell description must include line content"
+        );
+    }
+
+    #[test]
+    fn test_skips_js_modernization_on_rust_files() {
+        let dir = tempdir().unwrap();
+        let sample = dir.path().join("sample.rs");
+        fs::write(
+            &sample,
+            "fn dummy() {\n    let s = \"if (typeof this.onClick === 'function')\";\n}\n",
+        )
+        .unwrap();
+
+        let smells = scan_file_for_smells(&sample, 50, 5, 4).unwrap();
+        let modernization_smell = smells.iter().find(|s| s.smell_category == "Modernization");
+        assert!(
+            modernization_smell.is_none(),
+            "JS modernization smells must not trigger on Rust source files"
+        );
+    }
+
+    #[test]
+    fn test_detects_nullish_coalescing_smell() {
+        let dir = tempdir().unwrap();
+        let sample = dir.path().join("coalesce.ts");
+        fs::write(
+            &sample,
+            "const x = val !== null && val !== undefined ? val : fallback;\n",
+        )
+        .unwrap();
+
+        let smells = scan_file_for_smells(&sample, 50, 5, 4).unwrap();
+        let nullish_smell = smells.iter().find(|s| {
+            s.smell_category == "Modernization" && s.description.contains("null/undefined")
+        });
+        assert!(
+            nullish_smell.is_some(),
+            "Nullish coalescing smell must be detected"
+        );
+        let smell = nullish_smell.unwrap();
+        assert_eq!(smell.file, sample);
+        assert_eq!(smell.line_number, 1);
+        assert_eq!(smell.severity, "ADVISORY");
+        assert!(
+            smell.description.contains("val !== null"),
+            "smell description must include line content"
+        );
     }
 }
