@@ -126,6 +126,9 @@ pub fn run_benchmark_iterations(
     iterations: usize,
     repo_root: &Path,
 ) -> anyhow::Result<BenchmarkReport> {
+    if cmd_str.contains('\0') {
+        return Err(anyhow::anyhow!("Command string contains null bytes"));
+    }
     let parts =
         shlex::split(cmd_str).ok_or_else(|| anyhow::anyhow!("Failed to parse command string"))?;
     if parts.is_empty() {

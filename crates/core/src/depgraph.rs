@@ -33,12 +33,14 @@ pub struct RawSkillMeta {
     pub enhances: Vec<String>,
     pub dir_path: PathBuf,
     pub rel_path: String,
+    pub domain: Option<String>,
+    pub tags: Vec<String>,
 }
 
 pub fn parse_skill_frontmatter(skill_md_path: &Path) -> Result<RawSkillMeta, CoreError> {
     let content = fs::read_to_string(skill_md_path).map_err(|e| CoreError::Io {
         path: skill_md_path.to_path_buf(),
-        source: e,
+        io_error: e,
     })?;
 
     if !content.starts_with("---") {
@@ -116,6 +118,11 @@ pub fn parse_skill_frontmatter(skill_md_path: &Path) -> Result<RawSkillMeta, Cor
 
     let requires = parse_string_list("requires");
     let enhances = parse_string_list("enhances");
+    let domain = map
+        .get(serde_yaml::Value::String("domain".to_string()))
+        .and_then(|v| v.as_str())
+        .map(|s| s.trim().to_string());
+    let tags = parse_string_list("tags");
     let dir_path = skill_md_path
         .parent()
         .unwrap_or(skill_md_path)
@@ -133,6 +140,8 @@ pub fn parse_skill_frontmatter(skill_md_path: &Path) -> Result<RawSkillMeta, Cor
         enhances,
         dir_path,
         rel_path,
+        domain,
+        tags,
     })
 }
 
@@ -150,7 +159,7 @@ pub fn scan_skills_directory(
     let mut map = BTreeMap::new();
     let entries = fs::read_dir(&sanitized_dir).map_err(|e| CoreError::Io {
         path: sanitized_dir.clone(),
-        source: e,
+        io_error: e,
     })?;
 
     for entry in entries.flatten() {
@@ -287,7 +296,7 @@ pub fn generate_lockfile(skills_dir: &Path, lockfile_path: &Path) -> Result<Lock
 
     fs::write(lockfile_path, json_str).map_err(|e| CoreError::Io {
         path: lockfile_path.to_path_buf(),
-        source: e,
+        io_error: e,
     })?;
 
     Ok(lockfile)
@@ -416,6 +425,8 @@ mod tests {
                 enhances: vec![],
                 dir_path: std::path::PathBuf::from("/tmp/skill-a"),
                 rel_path: "skills/skill-a".to_string(),
+                domain: None,
+                tags: vec![],
             },
         );
         raw.insert(
@@ -428,6 +439,8 @@ mod tests {
                 enhances: vec![],
                 dir_path: std::path::PathBuf::from("/tmp/skill-b"),
                 rel_path: "skills/skill-b".to_string(),
+                domain: None,
+                tags: vec![],
             },
         );
 
@@ -475,6 +488,8 @@ mod tests {
             enhances: vec![],
             dir_path: std::path::PathBuf::from(format!("/tmp/{name}")),
             rel_path: format!("skills/{name}"),
+            domain: None,
+            tags: vec![],
         };
         raw.insert("skill-a".to_string(), meta("skill-a", vec![]));
         raw.insert("skill-b".to_string(), meta("skill-b", vec!["skill-a"]));

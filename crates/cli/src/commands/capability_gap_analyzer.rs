@@ -142,57 +142,13 @@ pub fn check_gap_analyzer_health(skill_dir: &Path) -> anyhow::Result<Vec<String>
 }
 
 pub fn parse_skill_frontmatter(skill_md_path: &Path) -> anyhow::Result<SkillFrontmatter> {
-    let content = fs::read_to_string(skill_md_path)?;
-    if !content.starts_with("---") {
-        return Err(anyhow::anyhow!("No YAML frontmatter found"));
-    }
-    let parts: Vec<&str> = content.splitn(3, "---").collect();
-    if parts.len() < 3 {
-        return Err(anyhow::anyhow!("Unclosed frontmatter"));
-    }
-    let yaml_block = parts[1];
-    let val: serde_yaml::Value = serde_yaml::from_str(yaml_block)?;
-    let map = val
-        .as_mapping()
-        .ok_or_else(|| anyhow::anyhow!("Frontmatter must be a mapping"))?;
-
-    let name = map
-        .get(serde_yaml::Value::String("name".to_string()))
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    let description = map
-        .get(serde_yaml::Value::String("description".to_string()))
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    let domain = map
-        .get(serde_yaml::Value::String("domain".to_string()))
-        .and_then(|v| v.as_str())
-        .map(canonicalize_domain);
-    let tags = map
-        .get(serde_yaml::Value::String("tags".to_string()))
-        .and_then(|v| match v {
-            serde_yaml::Value::Sequence(seq) => Some(
-                seq.iter()
-                    .filter_map(|t| t.as_str().map(|s| s.to_string()))
-                    .collect(),
-            ),
-            serde_yaml::Value::String(s) => Some(
-                s.split(',')
-                    .map(|t| t.trim().to_string())
-                    .filter(|t| !t.is_empty())
-                    .collect(),
-            ),
-            _ => None,
-        })
-        .unwrap_or_default();
-
+    let meta = agent_skills_core::depgraph::parse_skill_frontmatter(skill_md_path)
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
     Ok(SkillFrontmatter {
-        name,
-        description,
-        domain,
-        tags,
+        name: meta.name,
+        description: meta.description,
+        domain: meta.domain.map(|d| canonicalize_domain(&d)),
+        tags: meta.tags,
     })
 }
 

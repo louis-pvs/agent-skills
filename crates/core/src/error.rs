@@ -11,10 +11,13 @@ pub enum CoreError {
     PathTraversal { message: String, path: String },
 
     /// Filesystem I/O failure with path context.
-    #[error("I/O error at '{path}': {source}")]
+    #[error("I/O error at '{path}': {io_error}")]
     Io {
         path: PathBuf,
-        source: std::io::Error,
+        /// Stored under a non-`source` name so thiserror does not also expose it via
+        /// `Error::source()`, which would make anyhow's `{:#}` format print it twice.
+        #[source]
+        io_error: std::io::Error,
     },
 
     /// YAML parse/serialization failure.

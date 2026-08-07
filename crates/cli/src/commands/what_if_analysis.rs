@@ -88,6 +88,7 @@ pub fn analyze_symbol_blast_radius(
                             let fname_lower = fname.to_lowercase();
                             let is_test_file = fname_lower.starts_with("test_")
                                 || fname_lower.contains("_test.")
+                                || fname_lower.contains(".spec.")
                                 || fname_lower == "tests.py"
                                 || p.components()
                                     .any(|c| c.as_os_str() == "tests" || c.as_os_str() == "test");

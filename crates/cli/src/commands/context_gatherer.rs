@@ -114,16 +114,23 @@ pub fn calculate_git_coupling(
     };
 
     if !output.status.success() {
-        return Ok(Vec::new());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        // "no commits yet" is a benign empty-repo condition — return empty results.
+        if stderr.contains("no commits yet")
+            || stderr.contains("does not have any commits")
+            || stderr.contains("fatal: your current branch")
+        {
+            return Ok(Vec::new());
+        }
+        return Err(anyhow::anyhow!(
+            "git log failed (exit {}): {}",
+            output.status,
+            stderr.trim()
+        ));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let mut co_change_counts: HashMap<String, usize> = HashMap::new();
-
-    let target_name = Path::new(file_path)
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or(file_path);
 
     let commits = stdout.split("---COMMIT---");
     for commit in commits {
@@ -132,16 +139,11 @@ pub fn calculate_git_coupling(
             .map(|l| l.trim())
             .filter(|l| !l.is_empty())
             .collect();
-        let contains_target = lines
-            .iter()
-            .any(|l| Path::new(l).file_name().and_then(|n| n.to_str()) == Some(target_name));
+        // Match commits that contain the target path (full path, not just basename).
+        let contains_target = lines.contains(&file_path);
         if contains_target {
             for f in lines {
-                let f_name = Path::new(f)
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or(f);
-                if f_name != target_name {
+                if f != file_path {
                     *co_change_counts.entry(f.to_string()).or_insert(0) += 1;
                 }
             }

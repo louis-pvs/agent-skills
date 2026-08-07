@@ -151,6 +151,9 @@ pub fn run_tdd_command(args: &TddArgs, repo_root: &Path) -> anyhow::Result<()> {
     }
 
     let (runner_name, cmd) = if let Some(custom_cmd_str) = &args.cmd {
+        if custom_cmd_str.contains('\0') {
+            return Err(anyhow::anyhow!("Command string contains null bytes"));
+        }
         let parts = shlex::split(custom_cmd_str)
             .ok_or_else(|| anyhow::anyhow!("Error: Custom command string could not be parsed."))?;
         if parts.is_empty() {

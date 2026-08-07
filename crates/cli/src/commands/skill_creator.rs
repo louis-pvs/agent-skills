@@ -277,29 +277,10 @@ pub fn scaffold_skill(args: &ScaffoldArgs, base_dir: Option<&Path>) -> anyhow::R
 pub fn parse_skill_frontmatter_fields(
     skill_md_path: &Path,
 ) -> anyhow::Result<(Option<String>, Vec<String>)> {
-    let content = fs::read_to_string(skill_md_path)?;
-    if !content.starts_with("---") {
-        return Ok((None, Vec::new()));
+    match agent_skills_core::depgraph::parse_skill_frontmatter(skill_md_path) {
+        Ok(meta) => Ok((meta.domain, meta.tags)),
+        Err(_) => Ok((None, Vec::new())),
     }
-    let parts: Vec<&str> = content.splitn(3, "---").collect();
-    if parts.len() < 3 {
-        return Ok((None, Vec::new()));
-    }
-    let yaml_block = parts[1];
-    let val: serde_yaml::Value = serde_yaml::from_str(yaml_block)?;
-    let domain = val
-        .get("domain")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-    let mut tags = Vec::new();
-    if let Some(t_seq) = val.get("tags").and_then(|v| v.as_sequence()) {
-        for t in t_seq {
-            if let Some(ts) = t.as_str() {
-                tags.push(ts.to_string());
-            }
-        }
-    }
-    Ok((domain, tags))
 }
 
 pub fn validate_skill(args: &ValidateArgs, base_dir: Option<&Path>) -> (bool, Vec<String>) {

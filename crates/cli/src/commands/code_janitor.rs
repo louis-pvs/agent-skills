@@ -192,7 +192,13 @@ pub fn scan_file_for_smells(
             let param_count = params_str
                 .split(',')
                 .map(|param| param.trim())
-                .filter(|param| !param.is_empty() && *param != "self" && *param != "cls")
+                .filter(|param| {
+                    !param.is_empty()
+                        && *param != "self"
+                        && *param != "cls"
+                        && *param != "&self"
+                        && *param != "&mut self"
+                })
                 .count();
 
             if param_count > max_parameters {
@@ -264,7 +270,10 @@ pub fn scan_file_for_smells(
                 }
 
                 func_lines += 1;
-                complexity += complexity_re.find_iter(trimmed).count();
+                // Skip comment lines to avoid counting keywords in prose.
+                if !trimmed.starts_with('#') && !trimmed.starts_with("//") {
+                    complexity += complexity_re.find_iter(trimmed).count();
+                }
 
                 if is_python {
                     let relative_depth = if curr_indent >= body_indent {
@@ -439,13 +448,17 @@ pub fn run_code_janitor_command(
 
             let mut all_smells = Vec::new();
             for file in files_to_scan {
-                let smells = scan_file_for_smells(
+                match scan_file_for_smells(
                     &file,
                     args.max_function_lines,
                     args.max_parameters,
                     args.max_nesting_depth,
-                )?;
-                all_smells.extend(smells);
+                ) {
+                    Ok(smells) => all_smells.extend(smells),
+                    Err(_) => {
+                        // Skip binary or unreadable files and continue scanning.
+                    }
+                }
             }
 
             if args.json {
