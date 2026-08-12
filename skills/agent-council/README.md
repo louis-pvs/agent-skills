@@ -16,13 +16,13 @@ Agent Council fans out queries across multiple CLI tools in parallel, then synth
 
 ```bash
 # Asynchronous execution
-JOB_DIR=$(cargo run -p agent-skills -- agent-council start "your question here")
-cargo run -p agent-skills -- agent-council wait "$JOB_DIR"
-cargo run -p agent-skills -- agent-council results "$JOB_DIR" # --verbose (default: true)
-cargo run -p agent-skills -- agent-council clean "$JOB_DIR"
+JOB_DIR=$(agent-skills agent-council start "your question here")
+agent-skills agent-council wait "$JOB_DIR"
+agent-skills agent-council results "$JOB_DIR" # --verbose (default: true)
+agent-skills agent-council clean "$JOB_DIR"
 
 # One-shot synchronous query
-cargo run -p agent-skills -- agent-council start "your question here"
+agent-skills agent-council start "your question here"
 ```
 
 ---

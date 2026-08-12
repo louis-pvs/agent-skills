@@ -17,7 +17,7 @@ Technical documentation is often either too brief or diluted with marketing hype
 Run the document auditor against your Markdown files:
 
 ```bash
-cargo run -p agent-skills -- tech-doc-writer audit --path README.md ARCHITECTURE.md
+agent-skills tech-doc-writer audit --path README.md ARCHITECTURE.md
 ```
 
 ### Audited Rules

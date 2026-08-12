@@ -22,11 +22,11 @@ Intelligently resolve Git rebase or merge conflicts using repository context, co
 
 ```bash
 # Check health of git-conflict-resolver skill files
-cargo run -p agent-skills -- git-conflict-resolver check
+agent-skills git-conflict-resolver check
 
 # Deep analysis of all unmerged files
-cargo run -p agent-skills -- git-conflict-resolver analyze --json
+agent-skills git-conflict-resolver analyze --json
 
 # Verify zero conflict markers remain
-cargo run -p agent-skills -- git-conflict-resolver analyze --verify
+agent-skills git-conflict-resolver analyze --verify
 ```

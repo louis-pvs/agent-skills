@@ -35,7 +35,7 @@ git status --porcelain
 Run `anneal_runner.py` with your test command and iteration cap (default max 3 attempts):
 
 ```bash
-cargo run -p agent-skills -- self-annealer run --cmd "cargo test" --max-iterations 3
+agent-skills self-annealer run --cmd "cargo test" --max-iterations 3
 ```
 
 ### 3. Iterative Refinement
@@ -56,10 +56,10 @@ For each iteration up to `--max-iterations`:
 
 ```bash
 # Run self-annealing loop with default test runner (3 iterations max + auto rollback)
-cargo run -p agent-skills -- self-annealer run
+agent-skills self-annealer run
 
 # Custom command with JSON output
-cargo run -p agent-skills -- self-annealer run --cmd "cargo test" --max-iterations 3 --json
+agent-skills self-annealer run --cmd "cargo test" --max-iterations 3 --json
 ```
 
 ## Completion Criteria

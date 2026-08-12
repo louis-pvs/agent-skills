@@ -16,5 +16,5 @@ The `agent-skills tdd` CLI tool automatically inspects the target directory for 
 If a project uses custom test paths, non-standard arguments, or flags, specify `--cmd`:
 
 ```bash
-cargo run -p agent-skills -- tdd --cmd "pytest tests/unit/test_api.py -v" --verify-green
+agent-skills tdd --cmd "pytest tests/unit/test_api.py -v" --verify-green
 ```

@@ -8,10 +8,10 @@ Enforce Test-Driven Development (TDD) workflows: write failing test (RED), write
 
 ```bash
 # Verify RED gate (failing test)
-cargo run -p agent-skills -- tdd --cmd "pytest tests/test_feature.py" --verify-red
+agent-skills tdd --cmd "pytest tests/test_feature.py" --verify-red
 
 # Verify GREEN gate (passing test)
-cargo run -p agent-skills -- tdd --cmd "pytest tests/test_feature.py" --verify-green
+agent-skills tdd --cmd "pytest tests/test_feature.py" --verify-green
 ```
 
 ---

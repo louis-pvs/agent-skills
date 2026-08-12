@@ -30,7 +30,7 @@ Follow these 6 steps when resolving Git merge or rebase conflicts:
 Inspect the workspace repository to identify active operation (`rebase`, `merge`, `cherry-pick`, `revert`) and unmerged files:
 
 ```bash
-cargo run -p agent-skills -- git-conflict-resolver analyze
+agent-skills git-conflict-resolver analyze
 ```
 
 ### 2. Extract Conflict Blocks & Branch Intent
@@ -38,7 +38,7 @@ cargo run -p agent-skills -- git-conflict-resolver analyze
 Run full diagnostic analysis to parse `OURS`, `THEIRS`, and `BASE` (if present) versions, along with recent commit messages for both branches:
 
 ```bash
-cargo run -p agent-skills -- git-conflict-resolver analyze --json
+agent-skills git-conflict-resolver analyze --json
 ```
 
 Key contextual elements to examine:
@@ -74,7 +74,7 @@ Verify clean resolution before staging changes:
 1. **Zero Conflict Markers Check**:
 
    ```bash
-   cargo run -p agent-skills -- git-conflict-resolver analyze --verify
+   agent-skills git-conflict-resolver analyze --verify
    ```
 
 2. **Syntax & Quality Audit**:

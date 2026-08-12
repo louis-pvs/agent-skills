@@ -23,7 +23,7 @@ Perform prospective blast-radius calculation, symbol-reference dependency mappin
 All capabilities are reachable through the Rust CLI:
 
 ```bash
-cargo run -p agent-skills -- what-if-analysis impact --symbol <symbol_name>
+agent-skills what-if-analysis impact --symbol <symbol_name>
 ```
 
 ### 1. Direct CLI Blast Radius Execution (Phase 1)
@@ -31,13 +31,13 @@ cargo run -p agent-skills -- what-if-analysis impact --symbol <symbol_name>
 To calculate the blast radius of a target function, class, or symbol:
 
 ```bash
-cargo run -p agent-skills -- what-if-analysis impact --symbol <symbol_name>
+agent-skills what-if-analysis impact --symbol <symbol_name>
 ```
 
 Output raw JSON metadata:
 
 ```bash
-cargo run -p agent-skills -- what-if-analysis impact --symbol <symbol_name> --json
+agent-skills what-if-analysis impact --symbol <symbol_name> --json
 ```
 
 ### 2. Scenario Tradeoff Matrix & Sensitivity Probes (Phase 2)
@@ -45,7 +45,7 @@ cargo run -p agent-skills -- what-if-analysis impact --symbol <symbol_name> --js
 To model and compare trade-offs across competing architectural options or parameter configurations:
 
 ```bash
-cargo run -p agent-skills -- what-if-analysis scenario --symbol <symbol_name>
+agent-skills what-if-analysis scenario --symbol <symbol_name>
 ```
 
 ### 3. AST Call-Graph Parsing & Counterfactual Test Generation (Phase 3)
@@ -54,13 +54,13 @@ Parse AST call sites, generate counterfactual RED test cases, and pre-empt runti
 
 ```bash
 # AST Call-Graph Node Traversal
-cargo run -p agent-skills -- what-if-analysis ast --symbol <symbol_name> --file <file_path>
+agent-skills what-if-analysis ast --symbol <symbol_name> --file <file_path>
 
 # Generate Adversarial RED Counterfactual Unit Test
-cargo run -p agent-skills -- what-if-analysis counterfactual --symbol <symbol_name>
+agent-skills what-if-analysis counterfactual --symbol <symbol_name>
 
 # Pre-emptive Failure Mode Risk Interception
-cargo run -p agent-skills -- what-if-analysis preempt --symbol <symbol_name>
+agent-skills what-if-analysis preempt --symbol <symbol_name>
 ```
 
 ---

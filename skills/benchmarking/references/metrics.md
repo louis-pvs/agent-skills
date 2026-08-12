@@ -102,7 +102,7 @@ METRIC = LintWarningEvaluator()
 Run the benchmark:
 
 ```bash
-cargo run -p agent-skills -- benchmarking run \
+agent-skills benchmarking run \
   --cmd "cargo test --workspace" \
   --metrics "timing,memory,pass_ratio"
 ```

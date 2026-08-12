@@ -9,7 +9,7 @@ This guide provides concrete examples of running performance benchmarks, compari
 Measure wall-clock execution time and peak memory RSS over 5 iterations:
 
 ```bash
-cargo run -p agent-skills -- benchmarking run \
+agent-skills benchmarking run \
   --cmd "cargo test --workspace" \
   --iterations 5
 ```
@@ -33,7 +33,7 @@ Avg Peak Memory: 1.85 MB
 Compare performance of a refactored implementation against a baseline command:
 
 ```bash
-cargo run -p agent-skills -- benchmarking run \
+agent-skills benchmarking run \
   --cmd "cargo test --package agent-skills --test cli_contract_tests" \
   --baseline-cmd "cargo test --workspace" \
   --iterations 5 \
@@ -47,7 +47,7 @@ cargo run -p agent-skills -- benchmarking run \
 Enforce automated rollback if performance degrades beyond threshold (e.g. > 100ms runtime):
 
 ```bash
-cargo run -p agent-skills -- self-annealer run \
-  --cmd "cargo run -p agent-skills -- benchmarking run --cmd 'cargo test' --assert-max-duration-ms 100" \
+agent-skills self-annealer run \
+  --cmd "agent-skills benchmarking run --cmd 'cargo test' --assert-max-duration-ms 100" \
   --max-iterations 3
 ```

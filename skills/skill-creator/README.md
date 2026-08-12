@@ -8,13 +8,13 @@ Guide and automate the creation of high-quality, standardized, predictable Agent
 
 ```bash
 # Scaffold a complex model-invoked skill (Rust CLI)
-cargo run -p agent-skills -- skill-creator scaffold \
+agent-skills skill-creator scaffold \
   --name "my-new-skill" \
   --description "Description of when to trigger this skill." \
   --type complex
 
 # Validate an existing skill directory
-cargo run -p agent-skills -- skill-creator validate --path skills/my-new-skill
+agent-skills skill-creator validate --path skills/my-new-skill
 ```
 
 ---

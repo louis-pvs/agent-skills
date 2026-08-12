@@ -44,13 +44,13 @@ The agent performs a hybrid reflection:
 2. Optionally, parse the log transcript JSONL file for programmatic evidence:
 
    ```bash
-   cargo run -p agent-skills -- self-progress analyze --transcript <appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript.jsonl
+   agent-skills self-progress analyze --transcript <appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript.jsonl
    ```
 
    For JSON output:
 
    ```bash
-   cargo run -p agent-skills -- self-progress analyze --transcript <path-to-transcript.jsonl> --json
+   agent-skills self-progress analyze --transcript <path-to-transcript.jsonl> --json
    ```
 
 ### 2. Classify & Present Retrospective Report
@@ -70,7 +70,7 @@ For any confirmed **Missing Skill**:
 Execute `skill-creator` subcommand:
 
 ```bash
-cargo run -p agent-skills -- skill-creator scaffold --name "<new-skill-name>" --description "<description>" --type complex
+agent-skills skill-creator scaffold --name "<new-skill-name>" --description "<description>" --type complex
 ```
 
 ---

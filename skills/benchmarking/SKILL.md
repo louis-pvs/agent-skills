@@ -32,7 +32,7 @@ Follow these 4 steps when evaluating performance or verifying code changes:
 Determine the command to benchmark (e.g. test runner, script, CLI entrypoint) and optional baseline command:
 
 ```bash
-cargo run -p agent-skills -- benchmarking run \
+agent-skills benchmarking run \
   --cmd "cargo test" \
   --iterations 5
 ```
@@ -43,7 +43,7 @@ Execute benchmark runs with target assertion thresholds:
 
 ```bash
 # Verify max runtime threshold (< 500 ms) and 100% pass ratio
-cargo run -p agent-skills -- benchmarking run \
+agent-skills benchmarking run \
   --cmd "cargo test" \
   --assert-max-duration-ms 500 \
   --assert-min-pass-ratio 1.0 \
@@ -55,7 +55,7 @@ cargo run -p agent-skills -- benchmarking run \
 Plug in custom metric evaluators from project directories:
 
 ```bash
-cargo run -p agent-skills -- benchmarking run \
+agent-skills benchmarking run \
   --cmd "cargo test --workspace" \
   --metrics "timing,memory,pass_ratio"
 ```
@@ -65,8 +65,8 @@ cargo run -p agent-skills -- benchmarking run \
 If metrics fail or regress, feed structured JSON reports directly to `self-annealer` or rollback uncommitted changes:
 
 ```bash
-cargo run -p agent-skills -- self-annealer run \
-  --cmd "cargo run -p agent-skills -- benchmarking run --cmd 'cargo test' --assert-max-duration-ms 200" \
+agent-skills self-annealer run \
+  --cmd "agent-skills benchmarking run --cmd 'cargo test' --assert-max-duration-ms 200" \
   --max-iterations 3
 ```
 

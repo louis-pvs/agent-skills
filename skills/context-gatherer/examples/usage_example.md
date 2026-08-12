@@ -6,7 +6,7 @@ You're about to refactor `src/auth/session.py`. Find what else will need to chan
 
 ```bash
 # Find temporally coupled files
-cargo run -p agent-skills -- context-gatherer git-coupling --file src/auth/session.py --min-commits 2
+agent-skills context-gatherer git-coupling --file src/auth/session.py --min-commits 2
 
 # Output:
 # Temporal coupling for: src/auth/session.py
@@ -27,10 +27,10 @@ Before renaming `validate_token`, find every place that calls it:
 
 ```bash
 # Find where validate_token is defined
-cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "validate_token" --path src/ --type definition
+agent-skills context-gatherer symbol-nav --symbol "validate_token" --path src/ --type definition
 
 # Find all usages (excluding the definition)
-cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "validate_token" --path src/ --type reference
+agent-skills context-gatherer symbol-nav --symbol "validate_token" --path src/ --type reference
 ```
 
 ## Example 3: Find All Handler Implementations
@@ -38,13 +38,13 @@ cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "validate_toke
 Find every class that extends `BaseHandler`:
 
 ```bash
-cargo run -p agent-skills -- context-gatherer ast-search --pattern "class * (BaseHandler)" --path src/
+agent-skills context-gatherer ast-search --pattern "class * (BaseHandler)" --path src/
 ```
 
 Find all test functions:
 
 ```bash
-cargo run -p agent-skills -- context-gatherer ast-search --pattern "def test_*" --path tests/
+agent-skills context-gatherer ast-search --pattern "def test_*" --path tests/
 ```
 
 ## Example 4: Combined Deep Context
@@ -56,13 +56,13 @@ For maximum understanding before a major change, combine techniques:
 # /graphify query "How does the auth module connect to the API layer?"
 
 # 2. Find co-changing files
-cargo run -p agent-skills -- context-gatherer git-coupling --file src/auth/session.py --format json
+agent-skills context-gatherer git-coupling --file src/auth/session.py --format json
 
 # 3. Find all references to the symbol you're changing
-cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "SessionManager" --path src/
+agent-skills context-gatherer symbol-nav --symbol "SessionManager" --path src/
 
 # 4. Find related implementations
-cargo run -p agent-skills -- context-gatherer ast-search --pattern "class * (SessionManager)" --path src/
+agent-skills context-gatherer ast-search --pattern "class * (SessionManager)" --path src/
 ```
 
 ## Example 5: JSON Output for Programmatic Use
@@ -70,5 +70,5 @@ cargo run -p agent-skills -- context-gatherer ast-search --pattern "class * (Ses
 All commands support `--json` / `--format json` for piping into other tools:
 
 ```bash
-cargo run -p agent-skills -- context-gatherer git-coupling --file src/app.py --format json
+agent-skills context-gatherer git-coupling --file src/app.py --format json
 ```

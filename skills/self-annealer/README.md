@@ -16,10 +16,10 @@ Self-Annealer prevents token drain and codebase corruption by enforcing a strict
 
 ```bash
 # Verify health of self-annealer skill files
-cargo run -p agent-skills -- self-annealer check
+agent-skills self-annealer check
 
 # Run bounded self-healing repair loop
-cargo run -p agent-skills -- self-annealer run --cmd "cargo test" --max-iterations 3
+agent-skills self-annealer run --cmd "cargo test" --max-iterations 3
 ```
 
 ---

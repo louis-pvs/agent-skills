@@ -14,10 +14,10 @@ Collect multiple AI opinions and synthesize one answer using parallel CLI execut
 For background tracking and non-blocking execution across member CLIs:
 
 ```bash
-JOB_DIR=$(cargo run -p agent-skills -- agent-council start "your question here")
-cargo run -p agent-skills -- agent-council wait "$JOB_DIR"
-cargo run -p agent-skills -- agent-council results "$JOB_DIR" # --verbose (default: true)
-cargo run -p agent-skills -- agent-council clean "$JOB_DIR"
+JOB_DIR=$(agent-skills agent-council start "your question here")
+agent-skills agent-council wait "$JOB_DIR"
+agent-skills agent-council results "$JOB_DIR" # --verbose (default: true)
+agent-skills agent-council clean "$JOB_DIR"
 ```
 
 ### Direct One-Shot Execution
@@ -25,7 +25,7 @@ cargo run -p agent-skills -- agent-council clean "$JOB_DIR"
 For quick, synchronous query and result synthesis:
 
 ```bash
-cargo run -p agent-skills -- agent-council start "your question here"
+agent-skills agent-council start "your question here"
 ```
 
 ## Headless Execution & Prompt Guidelines

@@ -36,7 +36,7 @@ Follow these 4 steps sequentially:
 3. Run `agent-skills tdd` with `--verify-red` to verify that the test fails as expected:
 
    ```bash
-   cargo run -p agent-skills -- tdd --verify-red
+   agent-skills tdd --verify-red
    ```
 
    > [!IMPORTANT]
@@ -48,7 +48,7 @@ Follow these 4 steps sequentially:
 2. Run `agent-skills tdd` with `--verify-green` to confirm that all tests pass:
 
    ```bash
-   cargo run -p agent-skills -- tdd --verify-green
+   agent-skills tdd --verify-green
    ```
 
 3. If tests fail, adjust implementation code (maximum 3 iterations) before seeking user guidance.
@@ -59,7 +59,7 @@ Follow these 4 steps sequentially:
 2. Re-verify the GREEN state to ensure no regressions were introduced:
 
    ```bash
-   cargo run -p agent-skills -- tdd --verify-green
+   agent-skills tdd --verify-green
    ```
 
 ### 4. Boundary & Edge Case Coverage
@@ -75,16 +75,16 @@ The CLI handles test runner auto-detection (`pytest`, `unittest`, `npm test`, `j
 
 ```bash
 # Auto-detect project test runner
-cargo run -p agent-skills -- tdd --detect
+agent-skills tdd --detect
 
 # Assert RED state (fails if tests pass)
-cargo run -p agent-skills -- tdd --verify-red
+agent-skills tdd --verify-red
 
 # Assert GREEN state (fails if tests fail)
-cargo run -p agent-skills -- tdd --verify-green
+agent-skills tdd --verify-green
 
 # Custom command override
-cargo run -p agent-skills -- tdd --cmd "pytest tests/test_feature.py" --verify-green
+agent-skills tdd --cmd "pytest tests/test_feature.py" --verify-green
 ```
 
 ---

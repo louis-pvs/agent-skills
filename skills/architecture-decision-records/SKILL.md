@@ -45,13 +45,13 @@ flowchart TD
 - Run the ADR CLI generator:
 
   ```bash
-  cargo run -p agent-skills -- adr new "Adopt PostgreSQL for Persistence"
+  agent-skills adr new "Adopt PostgreSQL for Persistence"
   ```
 
 - Or initialize the ADR repository directory if it does not yet exist:
 
   ```bash
-  cargo run -p agent-skills -- adr init
+  agent-skills adr init
   ```
 
 ### 3. State Transition & Indexing
@@ -59,13 +59,13 @@ flowchart TD
 - When a new decision supersedes a previous one, run:
 
   ```bash
-  cargo run -p agent-skills -- adr supersede --old 0001 --by 0002
+  agent-skills adr supersede --old 0001 --by 0002
   ```
 
 - Rebuild or update the Markdown index table in `docs/adr/README.md`:
 
   ```bash
-  cargo run -p agent-skills -- adr reindex
+  agent-skills adr reindex
   ```
 
 ### 4. Format Audit & Validation
@@ -73,7 +73,7 @@ flowchart TD
 - Validate ADR structural integrity:
 
   ```bash
-  cargo run -p agent-skills -- adr validate
+  agent-skills adr validate
   ```
 
 ---
@@ -84,19 +84,19 @@ Unified CLI commands:
 
 ```bash
 # Initialize docs/adr directory with 0000 ADR and README index
-cargo run -p agent-skills -- adr init
+agent-skills adr init
 
 # Create a new MADR formatted decision record
-cargo run -p agent-skills -- adr new "Use Redis for Session Caching"
+agent-skills adr new "Use Redis for Session Caching"
 
 # Create a Nygard formatted decision record
-cargo run -p agent-skills -- adr new "Use Redis" --template nygard
+agent-skills adr new "Use Redis" --template nygard
 
 # Supersede ADR 0001 with ADR 0002
-cargo run -p agent-skills -- adr supersede --old 0001 --by 0002
+agent-skills adr supersede --old 0001 --by 0002
 
 # Validate all ADRs in project
-cargo run -p agent-skills -- adr validate
+agent-skills adr validate
 ```
 
 ---

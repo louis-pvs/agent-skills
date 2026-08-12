@@ -31,8 +31,8 @@ flowchart TD
 
 Determine what code to audit:
 
-- `--file <path>`: Single file metric analysis (`cargo run -p agent-skills -- architecture-auditor analyze --file path/to/file.rs`).
-- `--check`: Health check audit (`cargo run -p agent-skills -- architecture-auditor check`).
+- `--file <path>`: Single file metric analysis (`agent-skills architecture-auditor analyze --file path/to/file.rs`).
+- `--check`: Health check audit (`agent-skills architecture-auditor check`).
 
 ### 2. Inspect Code Context
 

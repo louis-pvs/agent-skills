@@ -8,10 +8,10 @@ Design, formalize, and model business domain entities, ubiquitous language, aggr
 
 ```bash
 # Verify health of domain-modeling skill files
-cargo run -p agent-skills -- domain-modeling check
+agent-skills domain-modeling check
 
 # Scaffold a pure domain entity stub
-cargo run -p agent-skills -- domain-modeling scaffold-entity Order
+agent-skills domain-modeling scaffold-entity Order
 ```
 
 ---

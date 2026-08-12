@@ -8,10 +8,10 @@ Log, index, supersede, and audit Architectural Decision Records (ADRs) following
 
 ```bash
 # Scaffold a new ADR
-cargo run -p agent-skills -- adr new "Adopt PostgreSQL for Persistence"
+agent-skills adr new "Adopt PostgreSQL for Persistence"
 
 # Rebuild the catalog index
-cargo run -p agent-skills -- adr reindex
+agent-skills adr reindex
 ```
 
 ---

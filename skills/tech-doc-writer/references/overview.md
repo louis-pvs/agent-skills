@@ -18,5 +18,5 @@ Comprehensive architectural overview and reference guide for the `tech-doc-write
 
 ```bash
 # Audit single or multiple Markdown files
-cargo run -p agent-skills -- tech-doc-writer audit --path README.md ARCHITECTURE.md
+agent-skills tech-doc-writer audit --path README.md ARCHITECTURE.md
 ```

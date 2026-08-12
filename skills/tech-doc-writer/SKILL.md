@@ -55,7 +55,7 @@ Read the required reference documents before drafting content:
 Run the document auditor to verify GFM compliance, single H1, alert syntax, and path privacy:
 
 ```bash
-cargo run -p agent-skills -- tech-doc-writer audit --path path/to/document.md
+agent-skills tech-doc-writer audit --path path/to/document.md
 ```
 
 ## Completion Criteria

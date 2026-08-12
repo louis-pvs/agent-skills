@@ -37,7 +37,7 @@ description: { { SKILL_DESCRIPTION } }
 2. **Execution**: Run automation script
 
    ```bash
-   cargo run -p agent-skills -- {{SKILL_NAME}} check
+   agent-skills {{SKILL_NAME}} check
    ```
 
 3. **Synthesis**: Process output and report results to user.

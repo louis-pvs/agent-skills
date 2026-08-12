@@ -43,7 +43,7 @@ Determine what code to clean:
 Run the `agent-skills code-janitor` CLI scanner:
 
 ```bash
-cargo run -p agent-skills -- code-janitor scan --file <path> --json
+agent-skills code-janitor scan --file <path> --json
 ```
 
 The scanner detects the following smell categories:

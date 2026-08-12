@@ -21,13 +21,13 @@ Discovered gaps are classified into actionable next steps, with missing skill pr
 
 ```bash
 # Verify health of self-progress skill files
-cargo run -p agent-skills -- self-progress check
+agent-skills self-progress check
 
 # Analyze a conversation transcript log file
-cargo run -p agent-skills -- self-progress analyze --transcript /path/to/transcript.jsonl
+agent-skills self-progress analyze --transcript /path/to/transcript.jsonl
 
 # Output JSON signals for automated processing
-cargo run -p agent-skills -- self-progress analyze --transcript /path/to/transcript.jsonl --json
+agent-skills self-progress analyze --transcript /path/to/transcript.jsonl --json
 ```
 
 ---

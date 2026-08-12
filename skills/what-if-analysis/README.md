@@ -27,13 +27,13 @@ flowchart TD
 
 ```bash
 # Verify health of what-if-analysis skill files
-cargo run -p agent-skills -- what-if-analysis check
+agent-skills what-if-analysis check
 
 # Calculate symbol blast radius and prospective impact
-cargo run -p agent-skills -- what-if-analysis impact --symbol calculate_score
+agent-skills what-if-analysis impact --symbol calculate_score
 
 # Output JSON structured metadata
-cargo run -p agent-skills -- what-if-analysis impact --symbol calculate_score --json
+agent-skills what-if-analysis impact --symbol calculate_score --json
 ```
 
 ---

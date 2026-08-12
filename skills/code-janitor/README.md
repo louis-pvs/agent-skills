@@ -14,23 +14,23 @@ Automated code hygiene: detect and fix dead code, unused imports, code smells, o
 ### Verify health of code-janitor skill files
 
 ```bash
-cargo run -p agent-skills -- code-janitor check
+agent-skills code-janitor check
 ```
 
 ### Scan a single file
 
 ```bash
-cargo run -p agent-skills -- code-janitor scan --file path/to/file.py
+agent-skills code-janitor scan --file path/to/file.py
 ```
 
 ### Scan an entire directory
 
 ```bash
-cargo run -p agent-skills -- code-janitor scan --dir path/to/module/
+agent-skills code-janitor scan --dir path/to/module/
 ```
 
 ### JSON output for programmatic consumption
 
 ```bash
-cargo run -p agent-skills -- code-janitor scan --file path/to/file.py --json
+agent-skills code-janitor scan --file path/to/file.py --json
 ```

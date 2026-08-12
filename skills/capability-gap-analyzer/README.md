@@ -16,16 +16,16 @@ It computes real coverage fractions (`covered sub-capabilities / total sub-capab
 
 ```bash
 # Verify health of capability-gap-analyzer skill files
-cargo run -p agent-skills -- capability-gap-analyzer check
+agent-skills capability-gap-analyzer check
 
 # Auto-detect project domain mix and analyze skill coverage
-cargo run -p agent-skills -- capability-gap-analyzer analyze --auto-detect
+agent-skills capability-gap-analyzer analyze --auto-detect
 
 # Analyze an explicit target domain (e.g. frontend-web, devops-infra)
-cargo run -p agent-skills -- capability-gap-analyzer analyze --domain frontend-web
+agent-skills capability-gap-analyzer analyze --domain frontend-web
 
 # Output structured JSON metadata
-cargo run -p agent-skills -- capability-gap-analyzer analyze --json
+agent-skills capability-gap-analyzer analyze --json
 ```
 
 ---

@@ -64,7 +64,7 @@ flowchart TD
   workspace auto-detection:
 
   ```bash
-  cargo run -p agent-skills -- capability-gap-analyzer check
+  agent-skills capability-gap-analyzer check
   ```
 
   The domain detector inspects workspace markers (`package.json`,
@@ -76,7 +76,7 @@ flowchart TD
 - Run the multi-root deterministic inventory scanner:
 
   ```bash
-  cargo run -p agent-skills -- capability-gap-analyzer analyze --json
+  agent-skills capability-gap-analyzer analyze --json
   ```
 
 - This parses all `SKILL.md` files across workspace and global customization
@@ -115,7 +115,7 @@ flowchart TD
   [skill-creator](../skill-creator/SKILL.md):
 
   ```bash
-  cargo run -p agent-skills -- capability-gap-analyzer analyze --auto-detect
+  agent-skills capability-gap-analyzer analyze --auto-detect
   ```
 
 ---
@@ -126,13 +126,13 @@ Unified CLI entrypoint:
 
 ```bash
 # Analyze explicit domain across workspace and global skills
-cargo run -p agent-skills -- capability-gap-analyzer analyze --domain frontend-web
+agent-skills capability-gap-analyzer analyze --domain frontend-web
 
 # Auto-detect workspace domain mix for non-specific prompts
-cargo run -p agent-skills -- capability-gap-analyzer analyze --auto-detect
+agent-skills capability-gap-analyzer analyze --auto-detect
 
 # Output JSON structured inventory for agent consumption
-cargo run -p agent-skills -- capability-gap-analyzer analyze --json
+agent-skills capability-gap-analyzer analyze --json
 ```
 
 ---

@@ -8,10 +8,10 @@ Audit codebases against modern software design principles (SOLID, DRY, YAGNI, KI
 
 ```bash
 # Verify health of architecture-auditor skill files
-cargo run -p agent-skills -- architecture-auditor check
+agent-skills architecture-auditor check
 
 # Analyze structural metrics for a single file
-cargo run -p agent-skills -- architecture-auditor analyze --file path/to/file.rs
+agent-skills architecture-auditor analyze --file path/to/file.rs
 ```
 
 ---

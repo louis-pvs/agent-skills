@@ -24,6 +24,6 @@
 
 ## Verification & Next Steps
 
-1. Run `cargo run -p agent-skills -- git-conflict-resolver analyze --verify` to re-confirm zero conflict markers.
+1. Run `agent-skills git-conflict-resolver analyze --verify` to re-confirm zero conflict markers.
 2. Stage resolved files: `git add <files>`
 3. Continue Git operation: `git rebase --continue` or `git merge --continue`

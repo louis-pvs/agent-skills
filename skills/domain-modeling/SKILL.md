@@ -72,13 +72,13 @@ flowchart TD
 - Run CLI validation:
 
   ```bash
-  cargo run -p agent-skills -- domain-modeling check
+  agent-skills domain-modeling check
   ```
 
 - Scaffold a pure domain aggregate root stub:
 
   ```bash
-  cargo run -p agent-skills -- domain-modeling scaffold-entity Order
+  agent-skills domain-modeling scaffold-entity Order
   ```
 
 - Synthesize pure domain code stubs containing self-validating invariant constructors.
@@ -99,5 +99,5 @@ flowchart TD
 - [ ] Bounded Context and Aggregate Root boundaries explicitly defined.
 - [ ] Entities vs. Value Objects clearly categorized with invariant validation rules.
 - [ ] Mermaid state machine diagram generated for stateful domain entities.
-- [ ] CLI health check (`cargo run -p agent-skills -- domain-modeling check`) executed with exit code 0.
+- [ ] CLI health check (`agent-skills domain-modeling check`) executed with exit code 0.
 - [ ] Pure domain code stubs free of ORM or transport framework dependencies.

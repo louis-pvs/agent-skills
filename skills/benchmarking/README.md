@@ -8,10 +8,10 @@ Empirical performance benchmarking, baseline differential analysis, and expandab
 
 ```bash
 # Verify health of benchmarking skill files
-cargo run -p agent-skills -- benchmarking check
+agent-skills benchmarking check
 
 # Run empirical performance benchmark
-cargo run -p agent-skills -- benchmarking run --cmd "cargo test" --iterations 5
+agent-skills benchmarking run --cmd "cargo test" --iterations 5
 ```
 
 ---

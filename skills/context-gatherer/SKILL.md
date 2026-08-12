@@ -49,8 +49,8 @@ Gather deep codebase context before making code changes. Orchestrates multiple c
 Find files that frequently change together with a target file:
 
 ```bash
-cargo run -p agent-skills -- context-gatherer git-coupling --file path/to/file.py
-cargo run -p agent-skills -- context-gatherer git-coupling --file path/to/file.py --min-commits 3 --limit 20
+agent-skills context-gatherer git-coupling --file path/to/file.py
+agent-skills context-gatherer git-coupling --file path/to/file.py --min-commits 3 --limit 20
 ```
 
 ### Symbol Navigation
@@ -58,9 +58,9 @@ cargo run -p agent-skills -- context-gatherer git-coupling --file path/to/file.p
 Find definitions and references of a symbol:
 
 ```bash
-cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "MyClass" --path src/
-cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "my_function" --path src/ --type definition
-cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "my_function" --path src/ --type reference
+agent-skills context-gatherer symbol-nav --symbol "MyClass" --path src/
+agent-skills context-gatherer symbol-nav --symbol "my_function" --path src/ --type definition
+agent-skills context-gatherer symbol-nav --symbol "my_function" --path src/ --type reference
 ```
 
 ### AST Search
@@ -68,8 +68,8 @@ cargo run -p agent-skills -- context-gatherer symbol-nav --symbol "my_function" 
 Find structural code patterns:
 
 ```bash
-cargo run -p agent-skills -- context-gatherer ast-search --pattern "class .* \(BaseHandler\)" --path src/
-cargo run -p agent-skills -- context-gatherer ast-search --pattern "def test_.*" --path tests/
+agent-skills context-gatherer ast-search --pattern "class .* \(BaseHandler\)" --path src/
+agent-skills context-gatherer ast-search --pattern "def test_.*" --path tests/
 ```
 
 ## Completion Criteria
