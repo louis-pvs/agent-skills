@@ -339,6 +339,7 @@ pub fn create_job_directory(
                     }
                     cmd.arg(question);
 
+                    cmd.stdin(std::process::Stdio::null());
                     cmd.stdout(std::process::Stdio::from(out_f));
                     cmd.stderr(std::process::Stdio::from(err_f));
 

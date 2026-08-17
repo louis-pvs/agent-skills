@@ -1,108 +1,33 @@
-# Metric Evaluators Reference & Plugin Guide
+# Metric Evaluators Reference Guide
 
-The Benchmarking Skill features an expandable metric evaluator framework. Built-in evaluators provide core execution metrics, while custom evaluators can be added dynamically.
-
----
-
-## 1. Built-in Evaluators
-
-| Evaluator Name | Metric Measured           | Unit    | Default Threshold | Description                                                                                  |
-| -------------- | ------------------------- | ------- | ----------------- | -------------------------------------------------------------------------------------------- |
-| `timing`       | Wall-clock execution time | `ms`    | Configurable      | Measures execution duration using high-precision performance timers (`time.perf_counter()`). |
-| `memory`       | Peak RAM heap allocation  | `MB`    | Configurable      | Tracks peak Resident Set Size / memory allocation using `tracemalloc`.                       |
-| `pass_ratio`   | Process exit status       | `ratio` | `1.0`             | Asserts process return code (1.0 for exit code 0, 0.0 for failure).                          |
+The Benchmarking Skill provides native empirical performance metrics evaluated directly via `agent-skills benchmarking run`.
 
 ---
 
-## 2. Custom Metric Evaluator Interface
+## 1. Core Native Evaluators
 
-Custom metric plugins must implement the `MetricEvaluator` contract.
-
-```python
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, Optional
-
-
-class MetricStatus(Enum):
-    PASS = "pass"
-    FAIL = "fail"
-    WARN = "warn"
-    ERROR = "error"
-    SKIPPED = "skipped"
-
-
-@dataclass
-class MetricResult:
-    name: str
-    status: MetricStatus
-    value: Any
-    unit: Optional[str] = None
-    threshold: Optional[Any] = None
-    detail: str = ""
-    raw: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class BenchmarkContext:
-    command: str
-    cwd: str
-    stdout: str
-    stderr: str
-    exit_code: int
-    wall_time_ms: float
-    peak_memory_mb: float
-    baseline: Optional[Dict[str, Any]] = None
-    artifacts: Dict[str, str] = field(default_factory=dict)
-    config: Dict[str, Any] = field(default_factory=dict)
-```
+| Evaluator Metric | Measured Attribute          | Unit                | Assertion CLI Flag                | Description                                                          |
+| :--------------- | :-------------------------- | :------------------ | :-------------------------------- | :------------------------------------------------------------------- |
+| `duration_ms`    | Wall-clock execution time   | `ms`                | `--assert-max-duration-ms <ms>`   | Average wall-clock execution duration across statistical iterations. |
+| `pass_ratio`     | Process exit status         | `ratio (0.0 - 1.0)` | `--assert-min-pass-ratio <ratio>` | Proportion of runs returning exit code 0.                            |
+| `delta_ms`       | Differential baseline delta | `ms`                | N/A                               | Execution duration difference relative to `--baseline-cmd`.          |
 
 ---
 
-## 3. Creating a Custom Metric Evaluator Plugin
+## 2. Statistical Iteration & Variance
 
-Create a `.py` file inside your custom metric directory (e.g., `.benchmarking/metrics/lint_evaluator.py`):
+To eliminate transient noise and variance:
 
-```python
-"""Custom Metric Plugin Example: Lint Warning Count."""
-
-from skills.benchmarking.scripts.evaluators.base import (
-    BenchmarkContext,
-    MetricResult,
-    MetricStatus,
-)
-
-
-class LintWarningEvaluator:
-    name = "lint_warnings"
-    requires = ()
-
-    def configure(self, config: dict) -> None:
-        self.max_warnings = config.get("max_warnings", 0)
-
-    def evaluate(self, context: BenchmarkContext) -> MetricResult:
-        # Example logic parsing warnings from stderr or stdout
-        warning_count = context.stderr.count("WARNING") + context.stdout.count("warning")
-        status = MetricStatus.PASS if warning_count <= self.max_warnings else MetricStatus.FAIL
-
-        return MetricResult(
-            name=self.name,
-            status=status,
-            value=warning_count,
-            unit="warnings",
-            threshold=self.max_warnings,
-            detail=f"Found {warning_count} warning(s) (max allowed: {self.max_warnings})",
-        )
-
-
-# Module export hook for auto-discovery
-METRIC = LintWarningEvaluator()
-```
-
-Run the benchmark:
+- Default iterations: 5 (`--iterations <n>`)
+- Reports `min_duration_ms`, `max_duration_ms`, and `avg_duration_ms`.
+- Pass ratio calculates `pass_count / iterations`.
 
 ```bash
+# Example: Assert strict < 250ms avg duration and 100% pass ratio across 10 runs
 agent-skills benchmarking run \
   --cmd "cargo test --workspace" \
-  --metrics "timing,memory,pass_ratio"
+  --iterations 10 \
+  --assert-max-duration-ms 250 \
+  --assert-min-pass-ratio 1.0 \
+  --json
 ```

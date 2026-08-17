@@ -72,35 +72,21 @@ agent-skills self-annealer run \
 
 ---
 
-## Metric Plugin System Architecture
+## CLI Architecture & Metric Evaluation
 
-Every metric evaluator implements the standard interface:
+Benchmarking uses the native `agent-skills` Rust CLI engine (`crates/cli/src/commands/benchmarking.rs`) with built-in metric registries:
 
-```python
-from skills.benchmarking.scripts.evaluators.base import BenchmarkContext, MetricResult, MetricStatus
+- **Timing & Latency**: Wall-clock execution time in milliseconds (`avg_duration_ms`, `min_duration_ms`, `max_duration_ms`).
+- **Pass Ratio**: Exit status ratio over statistical iterations (`pass_ratio`, `pass_count`).
+- **Baseline Differential**: Delta tracking against reference baseline commands (`baseline_avg_ms`, `delta_ms`).
 
-
-class CustomMetricEvaluator:
-    name = "custom_metric"
-    requires = ()
-
-    def configure(self, config: dict) -> None:
-        self.limit = config.get("limit", 100)
-
-    def evaluate(self, context: BenchmarkContext) -> MetricResult:
-        val = 42
-        status = MetricStatus.PASS if val <= self.limit else MetricStatus.FAIL
-        return MetricResult(
-            name=self.name,
-            status=status,
-            value=val,
-            unit="score",
-            threshold=self.limit,
-            detail=f"Score {val} (limit {self.limit})",
-        )
-
-
-METRIC = CustomMetricEvaluator()
+```bash
+# JSON output for programmatic evaluation and CI gating
+agent-skills benchmarking run \
+  --cmd "cargo test" \
+  --baseline-cmd "cargo test -- --nocapture" \
+  --iterations 5 \
+  --json
 ```
 
 ---

@@ -14,6 +14,7 @@ pub mod lint_scripts;
 pub mod self_annealer;
 pub mod self_progress;
 pub mod skill_creator;
+pub mod skill_evaluator;
 pub mod tdd;
 pub mod tech_doc_writer;
 pub mod what_if_analysis;

@@ -35,6 +35,7 @@ fn test_cli_subcommands_help() {
         "self-annealer",
         "self-progress",
         "skill-creator",
+        "skill-evaluator",
         "what-if-analysis",
         "domain-modeling",
         "git-conflict-resolver",
@@ -340,4 +341,36 @@ fn test_agent_council_doctor_verbose_cli() {
     cmd.assert()
         .success()
         .stdout(predicate::str::contains("Enriched PATH Search Locations:"));
+}
+
+#[test]
+fn test_skill_evaluator_mock_json() {
+    let repo_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf();
+
+    let mut cmd = Command::cargo_bin("agent-skills").unwrap();
+    cmd.current_dir(&repo_root);
+    cmd.args([
+        "skill-evaluator",
+        "run",
+        "--skill",
+        "skill-evaluator",
+        "--mock",
+        "--json",
+    ]);
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let stdout_str = String::from_utf8(output).unwrap();
+
+    let parsed: Result<serde_json::Value, _> = serde_json::from_str(&stdout_str);
+    assert!(
+        parsed.is_ok(),
+        "skill-evaluator run --mock --json must produce valid JSON, got: {stdout_str}"
+    );
+    let json = parsed.unwrap();
+    assert_eq!(json["skill_name"], "skill-evaluator");
+    assert!(json["avg_token_savings_pct"].as_f64().unwrap() > 50.0);
 }

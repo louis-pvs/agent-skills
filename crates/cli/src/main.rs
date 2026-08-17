@@ -25,6 +25,7 @@ use commands::lint_scripts::{run_lint_scripts, LintScriptsArgs};
 use commands::self_annealer::{run_self_annealer_command, SelfAnnealerSubcommand};
 use commands::self_progress::{run_self_progress_command, SelfProgressSubcommand};
 use commands::skill_creator::{scaffold_skill, validate_skill, SkillCreatorSubcommand};
+use commands::skill_evaluator::{run_skill_evaluator_command, SkillEvaluatorSubcommand};
 use commands::tdd::{run_tdd_command, TddArgs};
 use commands::tech_doc_writer::{run_tech_doc_writer_audit, TechDocWriterSubcommand};
 use commands::what_if_analysis::{run_what_if_analysis_command, WhatIfAnalysisSubcommand};
@@ -47,6 +48,11 @@ enum Commands {
     SkillCreator {
         #[command(subcommand)]
         subcommand: SkillCreatorSubcommand,
+    },
+    /// Skill Evaluator agent efficiency & ROI verification tool (check, run, sync-badges)
+    SkillEvaluator {
+        #[command(subcommand)]
+        subcommand: SkillEvaluatorSubcommand,
     },
     /// Custom Agent Creator tooling (scaffold, validate Antigravity Custom Agents)
     AgentCreator {
@@ -166,6 +172,9 @@ fn main() -> ExitCode {
                 }
             }
         },
+        Commands::SkillEvaluator { subcommand } => {
+            run(run_skill_evaluator_command(&subcommand, &repo_root))
+        }
         Commands::AgentCreator { subcommand } => match subcommand {
             AgentCreatorSubcommand::Scaffold(args) => run(scaffold_agent(&args, Some(&repo_root))
                 .map(|path| {

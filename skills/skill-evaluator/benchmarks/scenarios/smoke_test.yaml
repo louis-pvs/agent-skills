@@ -1,0 +1,13 @@
+version: "1.0.0"
+skill: "skill-evaluator"
+scenario_id: "evaluator_self_smoke_test"
+description: "Verify that skill-evaluator can self-evaluate cleanly without regression"
+complexity: "low"
+max_turns: 5
+timeout_seconds: 30
+prompt: |
+  Run self health check and verify skill evaluation telemetry schemas.
+eval_criteria:
+  assertions:
+    - type: "max_tool_calls"
+      threshold: 4.0

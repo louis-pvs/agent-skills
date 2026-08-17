@@ -17,7 +17,8 @@
     "tech-doc-writer",
     "what-if-analysis",
     "benchmarking",
-    "self-annealer"
+    "self-annealer",
+    "skill-evaluator"
   ],
   "skills": {
     "agent-council": {
@@ -201,6 +202,28 @@
       "transitive_requires": [],
       "transitive_enhances": [],
       "path": "skills/skill-creator"
+    },
+    "skill-evaluator": {
+      "name": "skill-evaluator",
+      "version": "1.0.0",
+      "requires": [
+        "benchmarking"
+      ],
+      "enhances": [
+        "capability-gap-analyzer",
+        "skill-creator"
+      ],
+      "transitive_requires": [
+        "benchmarking",
+        "tdd"
+      ],
+      "transitive_enhances": [
+        "capability-gap-analyzer",
+        "context-gatherer",
+        "graphify",
+        "skill-creator"
+      ],
+      "path": "skills/skill-evaluator"
     },
     "tdd": {
       "name": "tdd",

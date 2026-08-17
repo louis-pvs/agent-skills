@@ -1,0 +1,13 @@
+version: "1.0.0"
+skill: "graphify"
+scenario_id: "find_circular_dependency"
+description: "Identify and resolve circular imports across a multi-file workspace"
+complexity: "medium"
+max_turns: 8
+timeout_seconds: 60
+prompt: |
+  Analyze the codebase dependency graph and identify the circular dependency cycle.
+eval_criteria:
+  assertions:
+    - type: "max_tool_calls"
+      threshold: 5.0
