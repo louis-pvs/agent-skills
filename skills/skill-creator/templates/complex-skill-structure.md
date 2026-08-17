@@ -30,7 +30,7 @@ description: { { SKILL_DESCRIPTION } }
 ## Workflow
 
 1. **Initialization & Triage**: Read configuration or validate parameters. When multiple execution modes or ambiguous options exist, prompt the user via `ask_question` with `(Recommended)` first-choice options.
-2. **Execution**: Run automation script
+2. **Execution**: Run automation script:
 
    ```bash
    agent-skills {{SKILL_NAME}} check

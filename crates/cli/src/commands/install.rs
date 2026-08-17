@@ -232,6 +232,140 @@ pub fn uninstall_skill_symlink(skill_dir: &Path, target_base_dir: &Path, dry_run
     format!("[REMOVED] {}", target_link.display())
 }
 
+pub fn configure_file_with_cargo_path(
+    path: &Path,
+    cargo_line: &str,
+    dry_run: bool,
+) -> Option<String> {
+    if path.exists() {
+        if let Ok(content) = fs::read_to_string(path) {
+            if content.contains(".cargo\\bin") || content.contains(".cargo/bin") {
+                return Some(format!(
+                    "[EXISTS] Cargo bin PATH configured in {}",
+                    path.display()
+                ));
+            }
+        }
+        if dry_run {
+            Some(format!(
+                "[DRY-RUN] Would append Cargo PATH to {}",
+                path.display()
+            ))
+        } else if let Ok(mut content) = fs::read_to_string(path) {
+            if !content.ends_with('\n') && !content.is_empty() {
+                content.push('\n');
+            }
+            content.push_str(cargo_line);
+            content.push('\n');
+            if fs::write(path, content).is_ok() {
+                Some(format!(
+                    "[CONFIGURED] Appended Cargo bin PATH to {}",
+                    path.display()
+                ))
+            } else {
+                Some(format!(
+                    "[ERROR] Failed to write Cargo PATH to {}",
+                    path.display()
+                ))
+            }
+        } else {
+            None
+        }
+    } else if !dry_run {
+        if let Some(parent) = path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        let content = format!("{cargo_line}\n");
+        if fs::write(path, content).is_ok() {
+            Some(format!(
+                "[CONFIGURED] Created profile with Cargo bin PATH at {}",
+                path.display()
+            ))
+        } else {
+            Some(format!(
+                "[ERROR] Failed to create profile at {}",
+                path.display()
+            ))
+        }
+    } else {
+        Some(format!(
+            "[DRY-RUN] Would create profile with Cargo bin PATH at {}",
+            path.display()
+        ))
+    }
+}
+
+pub fn ensure_shell_profile_environment(dry_run: bool) -> Vec<String> {
+    let mut messages = Vec::new();
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => {
+            return vec![
+                "[SKIP] Could not determine home directory for shell profiles.".to_string(),
+            ]
+        }
+    };
+
+    #[cfg(windows)]
+    {
+        let cargo_line = "$env:PATH = \"$env:USERPROFILE\\.cargo\\bin;$env:PATH\"";
+        let mut profile_paths = vec![
+            home.join("Documents")
+                .join("PowerShell")
+                .join("Microsoft.PowerShell_profile.ps1"),
+            home.join("Documents")
+                .join("WindowsPowerShell")
+                .join("Microsoft.PowerShell_profile.ps1"),
+        ];
+
+        if let Ok(entries) = fs::read_dir(&home) {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.starts_with("OneDrive") && entry.path().is_dir() {
+                    profile_paths.push(
+                        entry
+                            .path()
+                            .join("Documents")
+                            .join("PowerShell")
+                            .join("Microsoft.PowerShell_profile.ps1"),
+                    );
+                    profile_paths.push(
+                        entry
+                            .path()
+                            .join("Documents")
+                            .join("WindowsPowerShell")
+                            .join("Microsoft.PowerShell_profile.ps1"),
+                    );
+                }
+            }
+        }
+
+        for path in profile_paths {
+            if let Some(msg) = configure_file_with_cargo_path(&path, cargo_line, dry_run) {
+                messages.push(msg);
+            }
+        }
+    }
+
+    #[cfg(unix)]
+    {
+        let cargo_line = "export PATH=\"$HOME/.cargo/bin:$PATH\"";
+        let profile_paths = vec![
+            home.join(".bashrc"),
+            home.join(".zshrc"),
+            home.join(".profile"),
+        ];
+
+        for path in profile_paths {
+            if let Some(msg) = configure_file_with_cargo_path(&path, cargo_line, dry_run) {
+                messages.push(msg);
+            }
+        }
+    }
+
+    messages
+}
+
 pub fn run_installer(args: &InstallArgs, repo_root: &Path) -> anyhow::Result<()> {
     let skills_dir = repo_root.join("skills");
     let lockfile_path = repo_root.join("skills.lock");
@@ -278,6 +412,15 @@ pub fn run_installer(args: &InstallArgs, repo_root: &Path) -> anyhow::Result<()>
             } else {
                 install_skill_symlink(skill, target_dir, args.dry_run)
             };
+            println!("  {msg}");
+        }
+        println!();
+    }
+
+    if !args.unlink {
+        println!("=== Shell Profile Environment Configuration ===");
+        let profile_msgs = ensure_shell_profile_environment(args.dry_run);
+        for msg in profile_msgs {
             println!("  {msg}");
         }
         println!();
@@ -355,5 +498,54 @@ mod tests {
         install_skill_symlink(&skill_dir, &target_dir, false);
         let res2 = install_skill_symlink(&skill_dir, &target_dir, false);
         assert!(res2.contains("[EXISTS]"));
+    }
+
+    #[test]
+    fn test_configure_file_with_cargo_path_creation_and_idempotency() {
+        let dir = tempdir().unwrap();
+        let profile_file = dir.path().join("sub").join("profile.ps1");
+        let cargo_line = "$env:PATH = \"$env:USERPROFILE\\.cargo\\bin;$env:PATH\"";
+
+        // 1. Dry run on non-existent file
+        let dry_res = configure_file_with_cargo_path(&profile_file, cargo_line, true);
+        assert!(dry_res.unwrap().contains("[DRY-RUN]"));
+        assert!(!profile_file.exists());
+
+        // 2. Real creation
+        let create_res = configure_file_with_cargo_path(&profile_file, cargo_line, false);
+        assert!(create_res.unwrap().contains("[CONFIGURED]"));
+        assert!(profile_file.exists());
+        let content = fs::read_to_string(&profile_file).unwrap();
+        assert!(content.contains(cargo_line));
+
+        // 3. Idempotent re-run
+        let exists_res = configure_file_with_cargo_path(&profile_file, cargo_line, false);
+        assert!(exists_res.unwrap().contains("[EXISTS]"));
+    }
+
+    #[test]
+    fn test_configure_file_with_cargo_path_appends_cleanly_to_existing_content() {
+        let dir = tempdir().unwrap();
+        let profile_file = dir.path().join("profile.ps1");
+        fs::write(&profile_file, "# existing comment without newline").unwrap();
+
+        let cargo_line = "$env:PATH = \"$env:USERPROFILE\\.cargo\\bin;$env:PATH\"";
+        let res = configure_file_with_cargo_path(&profile_file, cargo_line, false);
+        assert!(res.unwrap().contains("[CONFIGURED]"));
+
+        let content = fs::read_to_string(&profile_file).unwrap();
+        assert!(content.starts_with("# existing comment without newline\n"));
+        assert!(content.contains(cargo_line));
+    }
+
+    #[test]
+    fn test_configure_file_with_cargo_path_skips_unix_path() {
+        let dir = tempdir().unwrap();
+        let profile_file = dir.path().join(".bashrc");
+        fs::write(&profile_file, "export PATH=\"$HOME/.cargo/bin:$PATH\"\n").unwrap();
+
+        let cargo_line = "export PATH=\"$HOME/.cargo/bin:$PATH\"";
+        let res = configure_file_with_cargo_path(&profile_file, cargo_line, false);
+        assert!(res.unwrap().contains("[EXISTS]"));
     }
 }

@@ -119,11 +119,15 @@ fn test_dry_run_flag_install_subcommand() {
     cmd.current_dir(dir.path());
     cmd.args(["install", "--dry-run"]);
     // Dry run must succeed (exit 0) and produce no real symlinks
-    let output = cmd.output().unwrap();
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let output = cmd.assert().success().get_output().stdout.clone();
+    let stdout = String::from_utf8_lossy(&output);
     assert!(
-        stdout.contains("[DRY-RUN]") || !output.status.success(),
-        "install --dry-run must produce DRY-RUN output or fail gracefully; got stdout: {stdout}"
+        stdout.contains("[DRY-RUN]") || stdout.contains("[EXISTS]"),
+        "install --dry-run must produce DRY-RUN/EXISTS output; got stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("Shell Profile Environment Configuration"),
+        "install --dry-run output must include Shell Profile Environment Configuration section; got: {stdout}"
     );
 }
 
