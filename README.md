@@ -6,11 +6,12 @@ Engineered with a high-performance **compiled Rust core** (`agent-skills` CLI bi
 
 ---
 
-## 🚀 Available Skills (15/15 Native Rust Subcommands)
+## 🚀 Available Skills (17/17 Native Rust Subcommands)
 
 | Skill | Description | Rust CLI Subcommand | Path |
 | :--- | :--- | :--- | :--- |
 | **`agent-council`** | Collect and synthesize opinions from multiple AI agents into a unified recommendation. | `agent-skills agent-council` | [`skills/agent-council`](skills/agent-council/SKILL.md) |
+| **`agent-creator`** | Create, scaffold, configure, and validate Antigravity Custom Agents (`.agents/agents/*.md`). | `agent-skills agent-creator` | [`skills/agent-creator`](skills/agent-creator/SKILL.md) |
 | **`architecture-auditor`** | Audit codebases against software design principles (SOLID, DRY, YAGNI, KISS, CUPID). | `agent-skills architecture-auditor` | [`skills/architecture-auditor`](skills/architecture-auditor/SKILL.md) |
 | **`architecture-decision-records`** | Log, index, supersede, and audit Architectural Decision Records (ADRs) following MADR standards. | `agent-skills adr` | [`skills/architecture-decision-records`](skills/architecture-decision-records/SKILL.md) |
 | **`benchmarking`** | Empirical performance benchmarking, baseline differential analysis, and metric evaluations. | `agent-skills benchmarking` | [`skills/benchmarking`](skills/benchmarking/SKILL.md) |
@@ -22,6 +23,7 @@ Engineered with a high-performance **compiled Rust core** (`agent-skills` CLI bi
 | **`self-annealer`** | Enforce bounded self-healing repair loops with strict iteration limits and automated git rollback. | `agent-skills self-annealer` | [`skills/self-annealer`](skills/self-annealer/SKILL.md) |
 | **`self-progress`** | Identify session capability gaps, user corrections, and retrospective growth opportunities. | `agent-skills self-progress` | [`skills/self-progress`](skills/self-progress/SKILL.md) |
 | **`skill-creator`** | Create, scaffold, format, and audit new Agent Skills adhering to agentskills.io standard. | `agent-skills skill-creator` | [`skills/skill-creator`](skills/skill-creator/SKILL.md) |
+| **`skill-evaluator`** | Empirical agent skill evaluation, benchmark token savings, and ROI scorecard measurement. | `agent-skills skill-evaluator` | [`skills/skill-evaluator`](skills/skill-evaluator/SKILL.md) |
 | **`tdd`** | Enforce Test-Driven Development (TDD) workflows: verify RED gate, write code, verify GREEN gate. | `agent-skills tdd` | [`skills/tdd`](skills/tdd/SKILL.md) |
 | **`tech-doc-writer`** | Generate, refactor, and audit human-facing technical documentation and GFM compliance. | `agent-skills tech-doc-writer` | [`skills/tech-doc-writer`](skills/tech-doc-writer/SKILL.md) |
 | **`what-if-analysis`** | Prospective blast-radius simulation, AST call-graph parsing, and counterfactual test generation. | `agent-skills what-if-analysis` | [`skills/what-if-analysis`](skills/what-if-analysis/SKILL.md) |
@@ -50,7 +52,7 @@ cargo build --release
 
 ### Step 2: Global Skill Linking (`agent-skills install`)
 
-To automatically make all 15 skills available across your supported AI Coding Assistants:
+To automatically make all 17 skills available across your supported AI Coding Assistants:
 
 ```bash
 # Execute the native installer
@@ -82,6 +84,14 @@ agent-skills tdd --cmd "cargo test" --verify-green
 agent-skills skill-creator scaffold --name "my-skill" --description "My skill description"
 agent-skills skill-creator validate --path skills/my-skill
 
+# Scaffold & validate custom Antigravity agents
+agent-skills agent-creator scaffold --name "code-reviewer"
+agent-skills agent-creator validate --path .agents/agents/code-reviewer.md
+
+# Evaluate agent skill ROI and token savings
+agent-skills skill-evaluator check --skill graphify
+agent-skills skill-evaluator run --skill graphify --mock
+
 # Manage Architectural Decision Records (ADRs)
 agent-skills adr new "Use Rust for CLI Automation"
 agent-skills adr reindex
@@ -109,7 +119,7 @@ agent-skills/
 │   └── core/                 # Path safety (CWE-22), 4-tier config merger, depgraph
 ├── docs/
 │   └── adr/                  # Architectural Decision Records
-└── skills/                   # 15 Agent Skill folders (SKILL.md, README.md, references/)
+└── skills/                   # 17 Agent Skill folders (SKILL.md, README.md, references/)
 ```
 
 ---
