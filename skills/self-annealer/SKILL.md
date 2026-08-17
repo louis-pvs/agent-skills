@@ -32,7 +32,7 @@ git status --porcelain
 
 ### 2. Launch Bounded Annealing Loop
 
-Run `anneal_runner.py` with your test command and iteration cap (default max 3 attempts):
+Run `agent-skills self-annealer run` with your test command and iteration cap (default max 3 attempts):
 
 ```bash
 agent-skills self-annealer run --cmd "cargo test" --max-iterations 3
@@ -42,7 +42,7 @@ agent-skills self-annealer run --cmd "cargo test" --max-iterations 3
 
 For each iteration up to `--max-iterations`:
 
-1. Read error traceback / `ruff` lint output.
+1. Read compiler/test error traceback or linter output.
 2. Formulate a minimal diagnostic hypothesis.
 3. Apply targeted code fix.
 4. Re-evaluate test command.

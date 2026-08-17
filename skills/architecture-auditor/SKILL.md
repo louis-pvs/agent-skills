@@ -31,6 +31,7 @@ flowchart TD
 
 Determine what code to audit:
 
+- If target files or architectural scope are ambiguous, prompt the user via `ask_question` with `(Recommended)` first-choice targets.
 - `--file <path>`: Single file metric analysis (`agent-skills architecture-auditor analyze --file path/to/file.rs`).
 - `--check`: Health check audit (`agent-skills architecture-auditor check`).
 
@@ -59,6 +60,7 @@ Calibrate findings according to [references/audit-report.md](references/audit-re
 
 - **Severity**: `🚨 CRITICAL`, `⚠️ WARNING`, `💡 ADVISORY`.
 - **Confidence**: `CONFIRMED` (empirical proof) or `PLAUSIBLE` (heuristic pattern).
+- When severe principle tensions or architectural trade-offs require user direction, call `ask_question` to present proposed refactoring directions.
 - Avoid over-flagging minor stylistic choices as critical violations.
 
 ### 5. Report Synthesis

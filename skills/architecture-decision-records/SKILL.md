@@ -37,6 +37,7 @@ flowchart TD
 ### 1. Context & Trade-off Discovery
 
 - Collect decision drivers, constraints, considered alternatives, and consequences.
+- If the architectural direction or template format (MADR vs Nygard) is undecided, prompt the user via `ask_question` with `(Recommended)` first-choice options.
 - If domain boundaries or aggregate concepts are affected, refer to [domain-modeling](../domain-modeling/SKILL.md).
 - If evaluating design principles (SOLID/DRY/YAGNI), refer to [architecture-auditor](../architecture-auditor/SKILL.md).
 
@@ -56,6 +57,7 @@ flowchart TD
 
 ### 3. State Transition & Indexing
 
+- When resolving which previous ADR to supersede or deprecate, confirm the target record via `ask_question`.
 - When a new decision supersedes a previous one, run:
 
   ```bash

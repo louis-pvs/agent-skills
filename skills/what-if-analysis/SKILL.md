@@ -15,7 +15,7 @@ Perform prospective blast-radius calculation, symbol-reference dependency mappin
 
 ## T-Shape Domain Scope & Boundary
 
-- **Predictive Domain (`what-if-analysis`)**: Forward-looking & simulation-driven. Focuses on predicting consequences before making code changes—blast-radius risk calculation (`impact_analyzer.py`), multi-option scenario tradeoff matrices (`scenario_runner.py`), AST call-graph node traversal (`ast_graph_parser.py`), adversarial RED counterfactual test generation (`counterfactual_generator.py`), and shift-left failure pre-emption (`failure_preemptor.py`).
+- **Predictive Domain (`what-if-analysis`)**: Forward-looking & simulation-driven. Focuses on predicting consequences before making code changes—blast-radius risk calculation (`agent-skills what-if-analysis impact`), multi-option scenario tradeoff matrices (`agent-skills what-if-analysis scenario`), AST call-graph node traversal (`agent-skills what-if-analysis ast`), adversarial RED counterfactual test generation (`agent-skills what-if-analysis counterfactual`), and shift-left failure pre-emption (`agent-skills what-if-analysis preempt`).
 - **Descriptive Domain (`context-gatherer`)**: Backward-looking & exploratory. For mapping existing codebase structure, git history coupling, and architectural graph queries, use `context-gatherer`.
 
 ## Usage
@@ -48,6 +48,8 @@ To model and compare trade-offs across competing architectural options or parame
 agent-skills what-if-analysis scenario --symbol <symbol_name>
 ```
 
+- When comparing multiple refactoring paths or simulation parameters, present candidate scenarios to the user via the `ask_question` tool with `(Recommended)` first-choice options.
+
 ### 3. AST Call-Graph Parsing & Counterfactual Test Generation (Phase 3)
 
 Parse AST call sites, generate counterfactual RED test cases, and pre-empt runtime failure modes:
@@ -76,19 +78,19 @@ agent-skills what-if-analysis preempt --symbol <symbol_name>
 
 ## Output Structure
 
-1. **Blast Radius Report** (`impact_analyzer.py`): Target Symbol, Risk Level (`LOW`/`MEDIUM`/`HIGH`), Code Callers Table, Impacted Test Suites (TDD Pre-Flight), and Documentation Drift Check.
-2. **Scenario Tradeoff Matrix** (`scenario_runner.py`): Scenario Comparison Matrix across Latency Impact, Blast Radius Risk, Maintenance Cost, Confidence Level, and Execution Mode / Fallback Notice.
-3. **AST Call-Graph & Pre-emption Report** (`ast_graph_parser.py` & `failure_preemptor.py`): Semantic call sites, boundary checking, and shift-left failure recommendations.
+1. **Blast Radius Report**: Target Symbol, Risk Level (`LOW`/`MEDIUM`/`HIGH`), Code Callers Table, Impacted Test Suites (TDD Pre-Flight), and Documentation Drift Check.
+2. **Scenario Tradeoff Matrix**: Scenario Comparison Matrix across Latency Impact, Blast Radius Risk, Maintenance Cost, Confidence Level, and Execution Mode / Fallback Notice.
+3. **AST Call-Graph & Pre-emption Report**: Semantic call sites, boundary checking, and shift-left failure recommendations.
 
 ---
 
 ## Completion Criteria
 
 - [ ] Blast-radius calculation executed without errors or missing caller files.
-- [ ] Test files (`_is_test_file`) and doc drift (`_is_doc_file`) accurately classified.
+- [ ] Test files and doc drift accurately classified.
 - [ ] Scenario comparison matrix rendered with explicit fallback notice when council is absent.
-- [ ] AST call-graph parser, counterfactual test generator, and failure pre-emptor scripts pass all unit tests cleanly.
-- [ ] Code formatting passes `ruff check .` and `ruff format --check .` without errors.
+- [ ] AST call-graph parser, counterfactual test generator, and failure pre-emptor subcommands pass all tests cleanly.
+- [ ] Workspace test suite passes (`cargo test --workspace`).
 
 ---
 
@@ -96,6 +98,4 @@ agent-skills what-if-analysis preempt --symbol <symbol_name>
 
 - [overview.md](references/overview.md) — Comprehensive architectural overview and component design.
 - [blast-radius.md](references/blast-radius.md) — Heuristics, risk level formulas, and symbol reference matching rules.
-- [overview.md](references/overview.md) — Multi-phase evolution (Phase 1: Blast Radius, Phase 2: Sensitivity Modeling, Phase 3: Counterfactuals & Pre-emptive Healing [Shipped]).
 - [usage_example.md](examples/usage_example.md) — Step-by-step workflow examples.
-- [counterfactual_template.py](templates/counterfactual_template.py) — Starter template for adversarial RED unit tests.

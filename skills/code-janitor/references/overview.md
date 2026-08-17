@@ -10,7 +10,7 @@ The skill consists of three layers:
    scanning, refactoring, and reporting.
 2. **Reference Documentation** (`references/`): On-demand heuristics, smell catalogs,
    and report templates loaded via progressive disclosure.
-3. **Automation Script** (`scripts/janitor_runner.py`): Python standard library CLI tool
+3. **Automation Tool** (`agent-skills code-janitor`): Native compiled Rust CLI tool
    that performs AST-based static analysis to detect code smells.
 
 ## Relationship to Other Skills

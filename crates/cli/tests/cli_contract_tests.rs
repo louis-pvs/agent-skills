@@ -29,6 +29,7 @@ fn test_cli_subcommands_help() {
         "code-janitor",
         "context-gatherer",
         "agent-council",
+        "agent-creator",
         "adr",
         "benchmarking",
         "self-annealer",
@@ -295,4 +296,21 @@ fn test_git_conflict_resolver_analyze_json() {
         parsed.is_ok(),
         "git-conflict-resolver analyze --json must produce valid JSON, got: {stdout_str}"
     );
+}
+
+#[test]
+fn test_agent_creator_scaffold_dry_run() {
+    let mut cmd = Command::cargo_bin("agent-skills").unwrap();
+    cmd.args([
+        "agent-creator",
+        "scaffold",
+        "--name",
+        "test-custom-agent",
+        "--description",
+        "Specialized in testing custom agent scaffolding.",
+        "--dry-run",
+    ]);
+    cmd.assert().success().stdout(predicate::str::contains(
+        "[DRY RUN] Would create agent file",
+    ));
 }

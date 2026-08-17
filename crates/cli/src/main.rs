@@ -5,6 +5,7 @@ use std::process::ExitCode;
 mod commands;
 use commands::adr::{run_adr_command, AdrSubcommand};
 use commands::agent_council::{run_agent_council_command, AgentCouncilSubcommand};
+use commands::agent_creator::{scaffold_agent, validate_agent, AgentCreatorSubcommand};
 use commands::architecture_auditor::{
     run_architecture_auditor_command, ArchitectureAuditorSubcommand,
 };
@@ -46,6 +47,11 @@ enum Commands {
     SkillCreator {
         #[command(subcommand)]
         subcommand: SkillCreatorSubcommand,
+    },
+    /// Custom Agent Creator tooling (scaffold, validate Antigravity Custom Agents)
+    AgentCreator {
+        #[command(subcommand)]
+        subcommand: AgentCreatorSubcommand,
     },
     /// Architecture Decision Records (ADR) CLI utility (init, new, supersede, reindex, validate)
     Adr {
@@ -153,6 +159,31 @@ fn main() -> ExitCode {
                     ExitCode::SUCCESS
                 } else {
                     eprintln!("❌ Skill validation FAILED for '{}':", args.path);
+                    for issue in &issues {
+                        eprintln!("  - {issue}");
+                    }
+                    ExitCode::FAILURE
+                }
+            }
+        },
+        Commands::AgentCreator { subcommand } => match subcommand {
+            AgentCreatorSubcommand::Scaffold(args) => run(scaffold_agent(&args, Some(&repo_root))
+                .map(|path| {
+                    println!(
+                        "🎉 Successfully scaffolded custom agent at: {}",
+                        path.display()
+                    );
+                })),
+            AgentCreatorSubcommand::Validate(args) => {
+                let (is_valid, issues) = validate_agent(&args, Some(&repo_root));
+                if is_valid {
+                    println!(
+                        "✅ Custom Agent at '{}' is VALID according to Antigravity specification!",
+                        args.path
+                    );
+                    ExitCode::SUCCESS
+                } else {
+                    eprintln!("❌ Agent validation FAILED for '{}':", args.path);
                     for issue in &issues {
                         eprintln!("  - {issue}");
                     }

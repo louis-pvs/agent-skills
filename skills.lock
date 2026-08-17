@@ -3,6 +3,7 @@
   "generated_by": "agent-skills depgraph",
   "topological_order": [
     "agent-council",
+    "agent-creator",
     "architecture-auditor",
     "architecture-decision-records",
     "capability-gap-analyzer",
@@ -27,6 +28,15 @@
       "transitive_requires": [],
       "transitive_enhances": [],
       "path": "skills/agent-council"
+    },
+    "agent-creator": {
+      "name": "agent-creator",
+      "version": "1.0.0",
+      "requires": [],
+      "enhances": [],
+      "transitive_requires": [],
+      "transitive_enhances": [],
+      "path": "skills/agent-creator"
     },
     "architecture-auditor": {
       "name": "architecture-auditor",

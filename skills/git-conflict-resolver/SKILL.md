@@ -11,7 +11,7 @@ Intelligently analyze and resolve Git merge and rebase conflicts using full repo
 
 ```mermaid
 graph TD
-    A[Detect Git Conflict State] --> B[Run conflict_analyzer.py]
+    A[Detect Git Conflict State] --> B[Run agent-skills git-conflict-resolver analyze]
     B --> C[Analyze Commit History & Branch Diff]
     C --> D[AST & Symbol Dependency Check]
     D --> E[Synthesize Logical Conflict Resolution]
@@ -64,6 +64,7 @@ For deep category heuristics, refer to [resolution-strategies.md](references/res
 Apply targeted edits to resolve each conflict block:
 
 - **Do NOT blindly choose `--ours` or `--theirs`** when both branches contain valid edits.
+- If opposing business logic cannot be reconciled automatically without architectural trade-offs, call the `ask_question` tool with `(Recommended)` first-choice strategies.
 - Preserve business logic and intent from both opposing commits.
 - Completely remove all Git conflict markers (`<<<<<<<`, `|||||||`, `=======`, `>>>>>>>`).
 
@@ -84,7 +85,7 @@ Verify clean resolution before staging changes:
 
 ### 6. Present Resolution Summary
 
-Present a clear summary of all resolved files and resolution rationale using [templates/resolution_report.md](templates/resolution_report.md) before prompting the user to stage or continue rebase/merge.
+Present a clear summary of all resolved files and resolution rationale using [templates/resolution_report.md](templates/resolution_report.md). Use `ask_question` to confirm the next action (e.g., stage files, continue rebase, or run full regression tests).
 
 ---
 
@@ -93,7 +94,7 @@ Present a clear summary of all resolved files and resolution rationale using [te
 - [ ] Active Git conflict state detected and unmerged files identified.
 - [ ] Conflict markers (`<<<<<<<`, `|||||||`, `=======`, `>>>>>>>`) completely removed from all files.
 - [ ] Code intent from both branches synthesized logically without regressions.
-- [ ] Automated verification (`conflict_analyzer.py --verify`) confirms zero remaining markers (exit code 0).
+- [ ] Automated verification (`agent-skills git-conflict-resolver analyze --verify`) confirms zero remaining markers (exit code 0).
 - [ ] Project linters and unit test suites pass cleanly post-resolution.
 - [ ] Detailed resolution summary report presented to user.
 

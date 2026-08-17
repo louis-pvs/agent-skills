@@ -44,6 +44,7 @@ flowchart TD
 
 - If exploring an existing codebase, run `context-gatherer` or `graphify` to discover how domain concepts currently exist.
 - Identify the primary business problem, core actors, domain actions, and triggers.
+- If requirements or domain boundaries are ambiguous, call the `ask_question` tool with `(Recommended)` first-choice options to clarify before designing models.
 
 ### 2. Establish Ubiquitous Language
 
@@ -54,7 +55,7 @@ flowchart TD
 ### 3. Define Bounded Contexts & Aggregates
 
 - **Bounded Context**: Establish clear boundaries separating model meanings (e.g. `User` in Auth Context vs `Customer` in Billing Context).
-- **Aggregate Root**: Identify single transactional boundary entities that enforce business invariants across child entities and value objects.
+- **Aggregate Root**: Identify single transactional boundary entities that enforce business invariants across child entities and value objects. If multiple aggregate root candidates exist, present the trade-offs via `ask_question`.
 - **Entities vs Value Objects**:
   - **Entity**: Has a unique identity that persists across state changes (e.g., `Order`, `Account`).
   - **Value Object**: Defined entirely by its attributes, immutable, and side-effect free (e.g., `EmailAddress`, `Money`).

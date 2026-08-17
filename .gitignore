@@ -11,10 +11,6 @@ Thumbs.db
 .env
 .env.local
 
-# Python
-__pycache__/
-*.py[cod]
-
 # Rust / Cargo build output
 target/
 

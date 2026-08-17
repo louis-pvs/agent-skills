@@ -33,14 +33,14 @@ agent-skills agent-council start "your question here"
 > [!TIP]
 > **Pass Self-Contained Context in Prompts**: Member CLIs execute headlessly in background sub-shells without interactive user access. When formulating council questions, inline all critical context (such as code diffs, file snippets, or issue descriptions) directly into the prompt string so member agents do not fail on interactive permission prompts or remote repo auth limits.
 >
-> **Missing CLI Pre-checking**: Executables are pre-checked via `shutil.which`. If a configured CLI is absent, it is safely marked as `missing_cli` in status output without crashing the orchestrator.
+> **Missing CLI Pre-checking**: Executables are pre-checked automatically. If a configured CLI is absent, it is safely marked as `missing_cli` in status output without crashing the orchestrator.
 
 ## References
 
 - [overview.md](references/overview.md) — Workflow and multi-agent synthesis background.
 - [examples.md](references/examples.md) — Usage examples.
 - [config.md](references/config.md) — Member configuration in `council.config.yaml`.
-- [requirements.md](references/requirements.md) — Python 3 requirements and CLI checks.
+- [requirements.md](references/requirements.md) — Member CLI configuration and checks.
 - [host-ui.md](references/host-ui.md) — Host UI checklist guidance.
 - [safety.md](references/safety.md) — Safety guidelines.
 

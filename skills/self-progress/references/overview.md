@@ -6,11 +6,11 @@ Detailed design documentation for the `self-progress` conversation retrospective
 
 ## 1. Signal Taxonomy & Extraction Heuristics
 
-The retrospective parser (`retrospective.py`) inspects `transcript.jsonl` log files and categorizes execution signals into four distinct vectors:
+The retrospective parser (`agent-skills self-progress analyze`) inspects `transcript.jsonl` log files and categorizes execution signals into four distinct vectors:
 
 ```mermaid
 flowchart LR
-    Log["transcript.jsonl"] --> P["retrospective.py Parser"]
+    Log["transcript.jsonl"] --> P["agent-skills self-progress analyze"]
     P --> E["Errors & Failures\n(status: ERROR)"]
     P --> C["User Corrections\n(USER_INPUT after ERROR)"]
     P --> R["Research Queries\n(search_web / read_url)"]

@@ -4,19 +4,15 @@ This template defines the standard layout for multi-resource or script-augmented
 
 ```text
 skills/{{SKILL_NAME}}/
-├── SKILL.md
+├── SKILL.md                 # Lean agent instruction protocol
 ├── README.md                # Human-facing landing page
 ├── config.yaml              # Optional configuration file
 ├── references/
-│   └── overview.md          # Mandatory architecture & reference overview
-├── scripts/
-│   ├── main.py              # Primary CLI orchestrator (ADR 0001 stdlib, ADR 0003 argparse)
-│   └── tests/
-│       └── test_main.py     # Unit test suite
+│   └── overview.md          # Architecture & reference overview
 ├── templates/
-│   └── sample_output.txt
+│   └── sample_output.txt    # Optional resource templates
 └── examples/
-    └── usage_example.md
+    └── usage_example.md     # Workflow usage examples
 ```
 
 ## `SKILL.md` Boilerplate for Complex Skill
@@ -33,22 +29,24 @@ description: { { SKILL_DESCRIPTION } }
 
 ## Workflow
 
-1. **Initialization**: Read configuration or set up environment.
+1. **Initialization & Triage**: Read configuration or validate parameters. When multiple execution modes or ambiguous options exist, prompt the user via `ask_question` with `(Recommended)` first-choice options.
 2. **Execution**: Run automation script
 
    ```bash
    agent-skills {{SKILL_NAME}} check
    ```
 
-3. **Synthesis**: Process output and report results to user.
+3. **Synthesis & Verification**: Process output, handle exceptions, and report results to user.
 
 ## Completion Criteria
 
+- [ ] Interactive choices (if any) resolved using the `ask_question` tool protocol.
 - [ ] All automation executions finish with exit code 0.
 - [ ] Unit tests pass cleanly (`cargo test`).
 - [ ] Output files and artifacts comply with required schema.
 
 ## References
 
+- [interactive-decisions.md](references/interactive-decisions.md) — Interactive decision-making protocol.
 - [overview.md](references/overview.md) — Extended design documentation.
 ````
