@@ -1,9 +1,9 @@
 use agent_skills_core::path_safety::sanitize_path;
+use agent_skills_core::process_exec::run_with_windows_fallback_status;
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use std::process::Command;
 use std::time::Instant;
 
 #[derive(Args, Debug, Clone)]
@@ -135,18 +135,12 @@ pub fn run_benchmark_iterations(
         return Err(anyhow::anyhow!("Command string is empty"));
     }
 
-    let program = &parts[0];
-    let args = &parts[1..];
-
     let mut durations = Vec::new();
     let mut pass_count = 0;
 
     for _ in 0..iterations {
         let start = Instant::now();
-        let status = Command::new(program)
-            .args(args)
-            .current_dir(repo_root)
-            .status();
+        let status = run_with_windows_fallback_status(&parts, repo_root);
 
         let duration_ms = start.elapsed().as_millis() as u64;
         durations.push(duration_ms);
@@ -319,10 +313,12 @@ mod tests {
     fn test_run_benchmark_iterations_strict_assertions() {
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
-
-        let report =
-            run_benchmark_iterations("python3 -c \"import time; time.sleep(0.01)\"", 2, &base)
-                .unwrap();
+        let py_cmd = if cfg!(windows) {
+            "python -c \"import time; time.sleep(0.01)\""
+        } else {
+            "python3 -c \"import time; time.sleep(0.01)\""
+        };
+        let report = run_benchmark_iterations(py_cmd, 2, &base).unwrap();
         assert_eq!(report.iterations, 2);
         assert_eq!(report.pass_count, 2);
         assert_eq!(report.pass_ratio, 1.0);
@@ -367,8 +363,14 @@ mod tests {
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
 
+        let py_cmd = if cfg!(windows) {
+            "python -c \"import time; time.sleep(0.05)\""
+        } else {
+            "python3 -c \"import time; time.sleep(0.05)\""
+        };
+
         let args = RunBenchmarkArgs {
-            cmd: "python3 -c \"import time; time.sleep(0.05)\"".to_string(),
+            cmd: py_cmd.to_string(),
             baseline_cmd: None,
             iterations: 2,
             assert_max_duration_ms: Some(1),
@@ -427,7 +429,8 @@ mod tests {
         let plugin = base.join("custom_evaluator.py");
         fs::write(&plugin, "print('memory_mb:42.0')\n").unwrap();
 
-        let output = std::process::Command::new("python3")
+        let py_bin = if cfg!(windows) { "python" } else { "python3" };
+        let output = std::process::Command::new(py_bin)
             .arg(&plugin)
             .output()
             .unwrap();

@@ -1,9 +1,9 @@
 use agent_skills_core::path_safety::sanitize_path;
+use agent_skills_core::process_exec::run_with_windows_fallback_output;
 use clap::Args;
 use serde_json::json;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
 #[derive(Args, Debug, Clone)]
 pub struct TddArgs {
@@ -66,10 +66,11 @@ pub fn detect_test_runner(workspace_dir: &Path) -> Option<(String, Vec<String>)>
     };
 
     if has_py_tests(workspace_dir) {
+        let py_bin = if cfg!(windows) { "python" } else { "python3" };
         return Some((
             "unittest".to_string(),
             vec![
-                "python3".to_string(),
+                py_bin.to_string(),
                 "-m".to_string(),
                 "unittest".to_string(),
                 "discover".to_string(),
@@ -122,10 +123,9 @@ pub fn run_test_command(cmd: &[String], cwd: &Path) -> (i32, String, String) {
         return (1, String::new(), "Empty command provided.".to_string());
     }
 
-    let program = &cmd[0];
-    let args = &cmd[1..];
+    let output_res = run_with_windows_fallback_output(cmd, cwd);
 
-    match Command::new(program).args(args).current_dir(cwd).output() {
+    match output_res {
         Ok(output) => {
             let code = output.status.code().unwrap_or(1);
             let stdout = String::from_utf8_lossy(&output.stdout).to_string();
@@ -369,8 +369,9 @@ mod tests {
         // rather than only through the --verify-red composed wrapper.
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
+        let py_bin = if cfg!(windows) { "python" } else { "python3" };
         let cmd = vec![
-            "python3".to_string(),
+            py_bin.to_string(),
             "-c".to_string(),
             "import sys; sys.exit(0)".to_string(),
         ];
@@ -387,8 +388,9 @@ mod tests {
         // Python: test_run_test_command_failure — PARTIAL, direct call with a failing command
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
+        let py_bin = if cfg!(windows) { "python" } else { "python3" };
         let cmd = vec![
-            "python3".to_string(),
+            py_bin.to_string(),
             "-c".to_string(),
             "import sys; sys.exit(1)".to_string(),
         ];

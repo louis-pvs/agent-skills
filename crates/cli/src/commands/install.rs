@@ -2,8 +2,74 @@ use agent_skills_core::depgraph::{generate_lockfile, verify_graph};
 use clap::Args;
 use std::collections::BTreeMap;
 use std::fs;
-use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
+
+#[cfg(unix)]
+fn install_skill_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::os::unix::fs::symlink(src, dst)
+}
+
+#[cfg(windows)]
+fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let from = entry.path();
+        let to = dst.join(entry.file_name());
+        if ty.is_dir() {
+            copy_dir_all(&from, &to)?;
+        } else {
+            fs::copy(&from, &to)?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn install_skill_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
+    copy_dir_all(src, dst)
+}
+
+/// Recursively compares two directory trees by relative path and file content.
+/// Used to detect a stale copy-installed skill (Windows) where only comparing
+/// SKILL.md would miss changes to scripts/references files (#1122-style drift).
+fn dirs_equal(a: &Path, b: &Path) -> bool {
+    fn collect_files(
+        root: &Path,
+        prefix: &Path,
+        out: &mut BTreeMap<PathBuf, PathBuf>,
+    ) -> std::io::Result<()> {
+        for entry in fs::read_dir(root)? {
+            let entry = entry?;
+            let ty = entry.file_type()?;
+            let rel = prefix.join(entry.file_name());
+            if ty.is_dir() {
+                collect_files(&entry.path(), &rel, out)?;
+            } else {
+                out.insert(rel, entry.path());
+            }
+        }
+        Ok(())
+    }
+
+    let mut files_a = BTreeMap::new();
+    let mut files_b = BTreeMap::new();
+    if collect_files(a, Path::new(""), &mut files_a).is_err()
+        || collect_files(b, Path::new(""), &mut files_b).is_err()
+    {
+        return false;
+    }
+
+    if files_a.keys().ne(files_b.keys()) {
+        return false;
+    }
+
+    files_a.iter().all(|(rel, path_a)| {
+        let path_b = &files_b[rel];
+        matches!((fs::read(path_a), fs::read(path_b)), (Ok(ca), Ok(cb)) if ca == cb)
+    })
+}
 
 #[derive(Args, Debug, Clone)]
 pub struct InstallArgs {
@@ -69,23 +135,42 @@ pub fn install_skill_symlink(skill_dir: &Path, target_base_dir: &Path, dry_run: 
     }
 
     if target_link.is_symlink() || target_link.exists() {
-        if let Ok(current_target) = fs::read_link(&target_link) {
-            if current_target
-                == skill_dir
-                    .canonicalize()
-                    .unwrap_or_else(|_| skill_dir.to_path_buf())
-                || current_target == skill_dir
-            {
-                return format!(
-                    "[EXISTS] {skill_name} already linked in {}",
-                    target_base_dir.display()
-                );
+        let normalize = |p: &Path| -> PathBuf {
+            let s = p.to_string_lossy();
+            let stripped = s.strip_prefix(r"\\?\").unwrap_or(&s);
+            PathBuf::from(stripped)
+        };
+
+        let skill_canonical = skill_dir
+            .canonicalize()
+            .unwrap_or_else(|_| skill_dir.to_path_buf());
+        let norm_skill_canonical = normalize(&skill_canonical);
+        let norm_skill_orig = normalize(skill_dir);
+
+        let is_same = if target_link.is_symlink() {
+            if let Ok(current_target) = fs::read_link(&target_link) {
+                let norm_target = normalize(&current_target);
+                norm_target == norm_skill_canonical || norm_target == norm_skill_orig
+            } else {
+                false
             }
+        } else if target_link.is_dir() && target_link.join("SKILL.md").exists() {
+            dirs_equal(skill_dir, &target_link)
+        } else {
+            false
+        };
+
+        if is_same {
+            return format!(
+                "[EXISTS] {skill_name} already linked in {}",
+                target_base_dir.display()
+            );
         }
 
         if !dry_run {
-            let _ = fs::remove_file(&target_link);
             let _ = fs::remove_dir_all(&target_link);
+            let _ = fs::remove_file(&target_link);
+            let _ = fs::remove_dir(&target_link);
         }
     }
 
@@ -96,7 +181,7 @@ pub fn install_skill_symlink(skill_dir: &Path, target_base_dir: &Path, dry_run: 
         );
     }
 
-    match symlink(skill_dir, &target_link) {
+    match install_skill_dir(skill_dir, &target_link) {
         Ok(_) => format!("[LINKED] {skill_name} -> {}", target_link.display()),
         Err(e) => format!(
             "[ERROR] Failed to link {skill_name} in {}: {e}",
@@ -125,18 +210,22 @@ pub fn uninstall_skill_symlink(skill_dir: &Path, target_base_dir: &Path, dry_run
     }
 
     if target_link.is_symlink() || target_link.is_file() {
-        if let Err(e) = fs::remove_file(&target_link) {
-            return format!(
-                "[ERROR] Failed to remove link {}: {e}",
-                target_link.display()
-            );
+        if let Err(_e) = fs::remove_file(&target_link) {
+            if let Err(e2) = fs::remove_dir(&target_link) {
+                return format!(
+                    "[ERROR] Failed to remove link {}: {e2}",
+                    target_link.display()
+                );
+            }
         }
     } else if target_link.is_dir() {
-        if let Err(e) = fs::remove_dir_all(&target_link) {
-            return format!(
-                "[ERROR] Failed to remove dir {}: {e}",
-                target_link.display()
-            );
+        if let Err(_e) = fs::remove_dir(&target_link) {
+            if let Err(e2) = fs::remove_dir_all(&target_link) {
+                return format!(
+                    "[ERROR] Failed to remove dir {}: {e2}",
+                    target_link.display()
+                );
+            }
         }
     }
 
@@ -218,6 +307,8 @@ mod tests {
         assert!(result.contains("[LINKED]"));
 
         let link_path = target_dir.join("test-skill");
+        assert!(link_path.exists());
+        #[cfg(unix)]
         assert!(link_path.is_symlink());
 
         let uninst_res = uninstall_skill_symlink(&skill_dir, &target_dir, false);

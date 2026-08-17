@@ -1,4 +1,5 @@
 use agent_skills_core::path_safety::sanitize_path;
+use agent_skills_core::process_exec::run_with_windows_fallback_output;
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -65,9 +66,6 @@ pub fn run_anneal_loop(
         return Err(anyhow::anyhow!("Command string is empty"));
     }
 
-    let program = &parts[0];
-    let args = &parts[1..];
-
     let mut attempts = 0;
     let mut converged = false;
     let mut last_stdout = String::new();
@@ -75,10 +73,7 @@ pub fn run_anneal_loop(
 
     while attempts < max_iterations {
         attempts += 1;
-        let output = Command::new(program)
-            .args(args)
-            .current_dir(repo_root)
-            .output();
+        let output = run_with_windows_fallback_output(&parts, repo_root);
 
         if let Ok(out) = output {
             last_stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -200,9 +195,13 @@ mod tests {
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
 
-        let report =
-            run_anneal_loop("python3 -c \"import sys; sys.exit(0)\"", 3, false, &base).unwrap();
-        assert_eq!(report.cmd, "python3 -c \"import sys; sys.exit(0)\"");
+        let py_cmd = if cfg!(windows) {
+            "python -c \"import sys; sys.exit(0)\""
+        } else {
+            "python3 -c \"import sys; sys.exit(0)\""
+        };
+        let report = run_anneal_loop(py_cmd, 3, false, &base).unwrap();
+        assert_eq!(report.cmd, py_cmd);
         assert_eq!(report.max_iterations, 3);
         assert_eq!(report.attempts, 1);
         assert!(report.converged);

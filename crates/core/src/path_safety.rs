@@ -361,7 +361,33 @@ mod tests {
         let outside_path = outside.path().canonicalize().unwrap();
 
         let symlink_path = base.join("escape_link");
+        #[cfg(unix)]
         std::os::unix::fs::symlink(&outside_path, &symlink_path).unwrap();
+        #[cfg(windows)]
+        if std::os::windows::fs::symlink_dir(&outside_path, &symlink_path).is_err() {
+            // Unprivileged symlink creation fails without Developer Mode. Fall back to an
+            // NTFS junction via `mklink /J`, which needs no special privilege, so the CWE-22
+            // check still gets exercised on ordinary Windows CI instead of silently no-op'ing
+            // (an unprivileged skip here would give zero signal if sanitize_path regressed).
+            let junction_ok = std::process::Command::new("cmd")
+                .args([
+                    "/C",
+                    "mklink",
+                    "/J",
+                    &symlink_path.display().to_string(),
+                    &outside_path.display().to_string(),
+                ])
+                .output()
+                .map(|out| out.status.success())
+                .unwrap_or(false);
+            if !junction_ok {
+                eprintln!(
+                    "SKIPPED test_symlink_to_outside_rejected: neither symlink nor junction \
+                     creation is available in this environment."
+                );
+                return;
+            }
+        }
 
         // Resolving the symlink should detect that its real path is outside the base
         let result = sanitize_path("escape_link", Some(&base));

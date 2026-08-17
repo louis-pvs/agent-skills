@@ -323,7 +323,8 @@ fn command_exists(cmd: &str) -> bool {
 
 #[allow(dead_code)]
 fn command_exists_with_path(cmd: &str, path_override: Option<&str>) -> bool {
-    let mut command = Command::new("which");
+    let program = if cfg!(windows) { "where" } else { "which" };
+    let mut command = Command::new(program);
     command.arg(cmd);
     if let Some(path) = path_override {
         command.env("PATH", path);
@@ -1271,8 +1272,16 @@ result = target()
     #[test]
     fn test_prefers_ripgrep() {
         let dir = tempdir().unwrap();
+        #[cfg(windows)]
+        let rg_path = dir.path().join("rg.bat");
+        #[cfg(not(windows))]
         let rg_path = dir.path().join("rg");
+
+        #[cfg(windows)]
+        fs::write(&rg_path, "@exit /b 0\n").unwrap();
+        #[cfg(not(windows))]
         fs::write(&rg_path, "#!/bin/sh\nexit 0\n").unwrap();
+
         #[cfg(unix)]
         {
             let mut perms = fs::metadata(&rg_path).unwrap().permissions();
@@ -1280,7 +1289,8 @@ result = target()
             fs::set_permissions(&rg_path, perms).unwrap();
         }
         let original_path = std::env::var("PATH").unwrap_or_default();
-        let scoped_path = format!("{}:{}", dir.path().display(), original_path);
+        let sep = if cfg!(windows) { ";" } else { ":" };
+        let scoped_path = format!("{}{}{}", dir.path().display(), sep, original_path);
 
         let backend = detect_symbol_search_backend_with_path(Some(&scoped_path));
 

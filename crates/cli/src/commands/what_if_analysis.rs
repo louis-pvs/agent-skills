@@ -288,10 +288,11 @@ pub fn preempt_failure_modes(symbol: &str, file_path: &Path) -> anyhow::Result<V
 #[allow(dead_code)]
 pub fn check_council_availability() -> Vec<(String, bool)> {
     let binaries = ["claude", "gemini", "gh-copilot", "aider"];
+    let program = if cfg!(windows) { "where" } else { "which" };
     binaries
         .iter()
         .map(|binary| {
-            let available = Command::new("which")
+            let available = Command::new(program)
                 .arg(binary)
                 .output()
                 .map(|output| output.status.success())
@@ -421,6 +422,13 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
+    fn file_name_string(p: &Path) -> String {
+        p.file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string()
+    }
+
     #[test]
     fn test_analyze_symbol_blast_radius_strict_assertions() {
         let dir = tempdir().unwrap();
@@ -465,34 +473,28 @@ mod tests {
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
 
-        // This file name contains "test" as a substring but is NOT a test file
-        let contest_file = base.join("contest_scores.py");
-        fs::write(&contest_file, "def score(): pass\n").unwrap();
-        let latest_file = base.join("latest_release.py");
-        fs::write(&latest_file, "def release(): pass\n").unwrap();
+        // These file names contain "test" as a substring but are NOT test files
+        for (name, content) in [
+            ("contest_scores.py", "def score(): pass\n"),
+            ("latest_release.py", "def release(): pass\n"),
+        ] {
+            fs::write(base.join(name), content).unwrap();
+        }
 
         let report = analyze_symbol_blast_radius("score", &base).unwrap();
         let test_file_names: Vec<String> = report
             .test_files
             .iter()
-            .map(|f| {
-                f.file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string()
-            })
+            .map(|f| file_name_string(f))
             .collect();
 
-        assert!(
-            !test_file_names.iter().any(|n| n == "contest_scores.py"),
-            "contest_scores.py must NOT be classified as a test file (naive substring match regression), but it was: {:?}",
-            test_file_names
-        );
-        assert!(
-            !test_file_names.iter().any(|n| n == "latest_release.py"),
-            "latest_release.py must NOT be classified as a test file (naive substring match regression), but it was: {:?}",
-            test_file_names
-        );
+        for name in ["contest_scores.py", "latest_release.py"] {
+            assert!(
+                !test_file_names.iter().any(|n| n == name),
+                "{name} must NOT be classified as a test file (naive substring match regression), but it was: {:?}",
+                test_file_names
+            );
+        }
     }
 
     #[test]
@@ -506,12 +508,7 @@ mod tests {
         let doc_names: Vec<String> = report
             .doc_files
             .iter()
-            .map(|f| {
-                f.file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string()
-            })
+            .map(|f| file_name_string(f))
             .collect();
         assert!(
             doc_names.contains(&"README.md".to_string()),
