@@ -2,17 +2,15 @@
 
 Use these steps only when a host agent UI supports native checklist updates.
 
-## Checklist flow
+## Checklist Flow
 
-1. Run `council.sh wait` once to seed the cursor and get the JSON payload.
-2. Update the host's native checklist UI using the payload (if provided).
-3. Repeat `wait` until progress changes, then update the UI again.
-4. Finish with `results` and `clean`.
+1. Run `agent-skills agent-council wait "$JOB_DIR"` to monitor job progress.
+2. Update the host's native checklist UI as member outputs are processed.
+3. Finish with `agent-skills agent-council results "$JOB_DIR"` and `agent-skills agent-council clean "$JOB_DIR"`.
 
-## Behavior notes
+## Behavior Notes
 
-- Do not run a blocking wait before the first checklist update, or the Plan UI may not appear.
-- Keep exactly one in_progress item while work remains.
-- Preserve existing checklist items and append the [Council] section.
-- Avoid a long while loop in a single tool call; update after each wait return.
-- Use `--bucket 1` for per-member updates when needed.
+- Keep exactly one `in_progress` item while member queries are executing.
+- Preserve existing checklist items and append the `[Council]` section.
+- Ensure all configured members are listed with their status (`Responded`, `Missing CLI`, `No Response`).
+- Avoid blocking while loops in a single tool call; check status after each wait return.

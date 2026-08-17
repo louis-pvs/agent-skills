@@ -16,7 +16,7 @@ council:
       emoji: "🤖"
       color: "BLUE"
 
-    - name: "gemini"
+    - name: "antigravity"
       command: "agy -p"
       emoji: "💎"
       color: "GREEN"

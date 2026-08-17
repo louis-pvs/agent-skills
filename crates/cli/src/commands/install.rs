@@ -345,6 +345,15 @@ pub fn ensure_shell_profile_environment(dry_run: bool) -> Vec<String> {
                 messages.push(msg);
             }
         }
+
+        // Also configure Git Bash / MSYS2 profiles on Windows if present or needed
+        let bash_cargo_line = "export PATH=\"$HOME/.cargo/bin:$PATH\"";
+        let bash_profiles = vec![home.join(".bashrc"), home.join(".bash_profile")];
+        for path in bash_profiles {
+            if let Some(msg) = configure_file_with_cargo_path(&path, bash_cargo_line, dry_run) {
+                messages.push(msg);
+            }
+        }
     }
 
     #[cfg(unix)]

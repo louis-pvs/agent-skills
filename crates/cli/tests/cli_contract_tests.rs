@@ -318,3 +318,26 @@ fn test_agent_creator_scaffold_dry_run() {
         "[DRY RUN] Would create agent file",
     ));
 }
+
+#[test]
+fn test_agent_council_doctor_cli() {
+    let mut cmd = Command::cargo_bin("agent-skills").unwrap();
+    cmd.args(["agent-council", "doctor"]);
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "=== Agent Council Environment Doctor ===",
+        ))
+        .stdout(predicate::str::contains(
+            "Member CLI Health & Availability Checks:",
+        ));
+}
+
+#[test]
+fn test_agent_council_doctor_verbose_cli() {
+    let mut cmd = Command::cargo_bin("agent-skills").unwrap();
+    cmd.args(["agent-council", "doctor", "--verbose"]);
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Enriched PATH Search Locations:"));
+}

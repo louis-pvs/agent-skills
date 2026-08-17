@@ -9,6 +9,10 @@ use std::path::{Path, PathBuf};
 pub struct StartCouncilArgs {
     /// The prompt question to send to member AI sub-agents
     pub question: String,
+
+    /// Preview commands without actually spawning subprocesses
+    #[arg(long)]
+    pub dry_run: bool,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -18,12 +22,29 @@ pub struct JobPathArgs {
 }
 
 #[derive(Args, Debug, Clone)]
+pub struct WaitArgs {
+    /// Path or ID of the job directory
+    pub job_path: String,
+
+    /// Maximum timeout in seconds to wait for member processes (default: 120)
+    #[arg(long, default_value_t = 120)]
+    pub timeout: u64,
+}
+
+#[derive(Args, Debug, Clone)]
 pub struct ResultsArgs {
     /// Path or ID of the job directory
     pub job_path: String,
 
     /// Print out individual response output from each sub-agent member (default: true)
     #[arg(long, default_value_t = true)]
+    pub verbose: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct DoctorArgs {
+    /// Show verbose diagnostic information
+    #[arg(long)]
     pub verbose: bool,
 }
 
@@ -37,6 +58,8 @@ pub enum AgentCouncilSubcommand {
     Results(ResultsArgs),
     /// Safely remove job directory
     Clean(JobPathArgs),
+    /// Diagnose council member CLI availability and environment health
+    Doctor(DoctorArgs),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -54,7 +77,7 @@ pub fn load_default_council_config() -> Vec<CouncilMember> {
             emoji: "🧠".to_string(),
         },
         CouncilMember {
-            name: "gemini".to_string(),
+            name: "antigravity".to_string(),
             command: "agy -p".to_string(),
             emoji: "💎".to_string(),
         },
@@ -118,19 +141,143 @@ pub fn generate_job_id(question: &str) -> String {
     format!("job_{:016x}", hasher.finish())
 }
 
-pub fn check_cli_available(cmd: &str) -> bool {
-    let binary = cmd.split_whitespace().next().unwrap_or(cmd);
-    if let Ok(path) = std::env::var("PATH") {
-        for dir in std::env::split_paths(&path) {
-            if dir.join(binary).is_file() {
-                return true;
+/// Enriches current PATH with standard user package manager directories
+/// to ensure child sub-shells and IDE terminals locate installed CLIs.
+pub fn get_enriched_path() -> std::ffi::OsString {
+    let current = std::env::var_os("PATH").unwrap_or_default();
+    let mut paths: Vec<PathBuf> = std::env::split_paths(&current).collect();
+
+    if let Some(home) = dirs::home_dir() {
+        let candidates = [
+            home.join(".cargo").join("bin"),
+            home.join("AppData").join("Roaming").join("npm"),
+            home.join("AppData").join("Local").join("Programs"),
+            home.join("AppData").join("Local").join("agy").join("bin"),
+            home.join(".npm-global").join("bin"),
+            home.join("scoop").join("shims"),
+            home.join(".local").join("bin"),
+            PathBuf::from(r"C:\Program Files\nodejs"),
+            PathBuf::from(r"C:\Program Files\GitHub CLI"),
+            PathBuf::from("/usr/local/bin"),
+            PathBuf::from("/opt/homebrew/bin"),
+        ];
+
+        for c in candidates {
+            if c.exists() && !paths.contains(&c) {
+                paths.push(c);
             }
         }
     }
-    false
+
+    std::env::join_paths(paths).unwrap_or(current)
 }
 
-pub fn create_job_directory(question: &str, repo_root: &Path) -> anyhow::Result<PathBuf> {
+/// Searches the enriched PATH for a command binary (resolving extensions on Windows).
+pub fn find_cli_binary(cmd: &str) -> Option<PathBuf> {
+    let raw_bin = cmd.split_whitespace().next().unwrap_or(cmd);
+    let enriched_path = get_enriched_path();
+
+    let pathext =
+        std::env::var("PATHEXT").unwrap_or_else(|_| ".EXE;.CMD;.BAT;.COM;.PS1".to_string());
+    let exts: Vec<&str> = if cfg!(windows) {
+        pathext
+            .split(';')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect()
+    } else {
+        vec![""]
+    };
+
+    // 1. Direct search for raw_bin
+    for dir in std::env::split_paths(&enriched_path) {
+        if cfg!(windows) {
+            for ext in &exts {
+                let mut ext_name = ext.to_string();
+                if !ext_name.starts_with('.') {
+                    ext_name = format!(".{}", ext_name);
+                }
+                let cand = dir.join(format!("{}{}", raw_bin, ext_name));
+                if cand.is_file() {
+                    return Some(cand);
+                }
+                let cand_lower = dir.join(format!("{}{}", raw_bin, ext_name.to_lowercase()));
+                if cand_lower.is_file() {
+                    return Some(cand_lower);
+                }
+            }
+        }
+        let direct = dir.join(raw_bin);
+        if direct.is_file() {
+            return Some(direct);
+        }
+    }
+
+    // 2. Smart fallback aliases
+    let fallback_aliases: Vec<&str> = match raw_bin {
+        "agy" => vec!["antigravity"],
+        "antigravity" => vec!["agy"],
+        "copilot" => vec!["gh"],
+        "claude" => vec!["claude-code"],
+        _ => vec![],
+    };
+
+    for alias in fallback_aliases {
+        for dir in std::env::split_paths(&enriched_path) {
+            if cfg!(windows) {
+                for ext in &exts {
+                    let mut ext_name = ext.to_string();
+                    if !ext_name.starts_with('.') {
+                        ext_name = format!(".{}", ext_name);
+                    }
+                    let cand = dir.join(format!("{}{}", alias, ext_name));
+                    if cand.is_file() {
+                        return Some(cand);
+                    }
+                }
+            }
+            let direct = dir.join(alias);
+            if direct.is_file() {
+                return Some(direct);
+            }
+        }
+    }
+
+    None
+}
+
+pub fn check_cli_available(cmd: &str) -> bool {
+    find_cli_binary(cmd).is_some()
+}
+
+pub fn is_pid_alive(pid: u32) -> bool {
+    #[cfg(unix)]
+    {
+        std::process::Command::new("kill")
+            .args(["-0", &pid.to_string()])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    }
+    #[cfg(windows)]
+    {
+        let output = std::process::Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {}", pid), "/NH"])
+            .output();
+        if let Ok(out) = output {
+            let s = String::from_utf8_lossy(&out.stdout);
+            s.contains(&pid.to_string())
+        } else {
+            false
+        }
+    }
+}
+
+pub fn create_job_directory(
+    question: &str,
+    repo_root: &Path,
+    dry_run: bool,
+) -> anyhow::Result<PathBuf> {
     let job_id = generate_job_id(question);
     let jobs_dir = repo_root.join("skills").join("agent-council").join(".jobs");
     let job_dir = jobs_dir.join(&job_id);
@@ -143,14 +290,84 @@ pub fn create_job_directory(question: &str, repo_root: &Path) -> anyhow::Result<
         .map_err(|e| anyhow::anyhow!("Failed to write prompt.txt: {e}"))?;
 
     let members = load_council_members(repo_root);
-    let any_missing_cli = members.iter().any(|m| !check_cli_available(&m.command));
+    let mut member_details = Vec::new();
+    let mut missing_members = Vec::new();
+    let enriched_path = get_enriched_path();
+
+    for m in &members {
+        let bin_opt = find_cli_binary(&m.command);
+        let available = bin_opt.is_some();
+        if !available {
+            missing_members.push(m.name.clone());
+        }
+
+        let bin_path_str = bin_opt.as_ref().map(|p| p.to_string_lossy().to_string());
+
+        member_details.push(serde_json::json!({
+            "name": m.name,
+            "command": m.command,
+            "emoji": m.emoji,
+            "available": available,
+            "binary_path": bin_path_str,
+        }));
+
+        if let Some(bin_path) = bin_opt {
+            if !dry_run {
+                let out_file_path = job_dir.join(format!("{}.response.txt", m.name));
+                let err_file_path = job_dir.join(format!("{}.err", m.name));
+
+                let out_file = fs::File::create(&out_file_path).ok();
+                let err_file = fs::File::create(&err_file_path).ok();
+
+                if let (Some(out_f), Some(err_f)) = (out_file, err_file) {
+                    let parts = shlex::split(&m.command).unwrap_or_else(|| vec![m.command.clone()]);
+                    let mut cmd = if cfg!(windows) {
+                        let mut c = std::process::Command::new("cmd.exe");
+                        c.arg("/C");
+                        c.arg(&bin_path);
+                        c
+                    } else {
+                        std::process::Command::new(&bin_path)
+                    };
+                    cmd.env("PATH", &enriched_path);
+                    cmd.current_dir(repo_root);
+
+                    if parts.len() > 1 {
+                        for arg in &parts[1..] {
+                            cmd.arg(arg);
+                        }
+                    }
+                    cmd.arg(question);
+
+                    cmd.stdout(std::process::Stdio::from(out_f));
+                    cmd.stderr(std::process::Stdio::from(err_f));
+
+                    match cmd.spawn() {
+                        Ok(child) => {
+                            let pid_file = job_dir.join(format!("{}.pid", m.name));
+                            let _ = fs::write(pid_file, child.id().to_string());
+                        }
+                        Err(e) => {
+                            let _ = fs::write(
+                                &err_file_path,
+                                format!("Failed to spawn child process: {e}\n"),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     let meta = serde_json::json!({
         "job_id": job_id,
         "question": question,
         "members": members,
-        "missing_cli": any_missing_cli,
-        "status": "pending"
+        "member_details": member_details,
+        "missing_cli": !missing_members.is_empty(),
+        "missing_members": missing_members,
+        "status": if dry_run { "dry_run" } else { "running" },
+        "created_at": chrono::Utc::now().to_rfc3339(),
     });
 
     let meta_file = job_dir.join("meta.json");
@@ -194,7 +411,10 @@ pub fn read_subagent_responses(job_dir: &Path) -> anyhow::Result<Vec<(String, St
             };
 
             if let Ok(text) = fs::read_to_string(&p) {
-                responses.push((agent_name, text));
+                let trimmed = text.trim();
+                if !trimmed.is_empty() {
+                    responses.push((agent_name, trimmed.to_string()));
+                }
             }
         }
     }
@@ -203,13 +423,111 @@ pub fn read_subagent_responses(job_dir: &Path) -> anyhow::Result<Vec<(String, St
     Ok(responses)
 }
 
+pub fn run_doctor_command(repo_root: &Path, verbose: bool) -> anyhow::Result<()> {
+    println!("=== Agent Council Environment Doctor ===");
+    let members = load_council_members(repo_root);
+    let enriched_path = get_enriched_path();
+
+    if verbose {
+        println!("\nEnriched PATH Search Locations:");
+        for p in std::env::split_paths(&enriched_path) {
+            println!("  - {}", p.display());
+        }
+        println!();
+    }
+
+    println!("\nMember CLI Health & Availability Checks:");
+    let mut available_count = 0;
+
+    for m in &members {
+        let bin_opt = find_cli_binary(&m.command);
+        match bin_opt {
+            Some(bin_path) => {
+                available_count += 1;
+                // Attempt to run --version to query version
+                let mut cmd = if cfg!(windows) {
+                    let mut c = std::process::Command::new("cmd.exe");
+                    c.arg("/C");
+                    c.arg(&bin_path);
+                    c
+                } else {
+                    std::process::Command::new(&bin_path)
+                };
+                let version_output = cmd
+                    .arg("--version")
+                    .env("PATH", &enriched_path)
+                    .output()
+                    .ok()
+                    .and_then(|o| {
+                        if o.status.success() {
+                            Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| "detected".to_string());
+
+                let first_line = version_output.lines().next().unwrap_or("detected");
+                println!(
+                    "✅ [READY]   {} {} (`{}`)\n     Binary: {}\n     Version: {}",
+                    m.emoji,
+                    m.name,
+                    m.command,
+                    bin_path.display(),
+                    first_line
+                );
+            }
+            None => {
+                let suggestion = match m.name.as_str() {
+                    "claude" => "npm install -g @anthropic-ai/claude-code",
+                    "antigravity" => {
+                        if cfg!(windows) {
+                            "irm https://antigravity.google/cli/install.ps1 | iex"
+                        } else {
+                            "curl -fsSL https://antigravity.google/cli/install.sh | bash"
+                        }
+                    }
+                    "copilot" => "npm install -g @github/copilot (or install GitHub CLI: gh extension install github/gh-copilot)",
+                    "codex" => "npm install -g @openai/codex",
+                    _ => "Install the CLI and ensure its directory is in PATH.",
+                };
+                println!(
+                    "❌ [MISSING] {} {} (`{}`)\n     Status: Executable not found in PATH\n     💡 Fix: {}",
+                    m.emoji,
+                    m.name,
+                    m.command,
+                    suggestion
+                );
+            }
+        }
+        println!();
+    }
+
+    println!("=== Summary ===");
+    println!(
+        "Available: {}/{} configured members ready.",
+        available_count,
+        members.len()
+    );
+
+    if available_count == 0 {
+        println!("⚠️ No member CLIs were detected. Please install at least one CLI before running council queries.");
+    } else if available_count < members.len() {
+        println!("ℹ️ Some members are missing, but council can run with available members.");
+    } else {
+        println!("✨ All council member CLIs are configured and ready for parallel execution!");
+    }
+
+    Ok(())
+}
+
 pub fn run_agent_council_command(
     subcommand: &AgentCouncilSubcommand,
     repo_root: &Path,
 ) -> anyhow::Result<()> {
     match subcommand {
         AgentCouncilSubcommand::Start(args) => {
-            let job_dir = create_job_directory(&args.question, repo_root)?;
+            let job_dir = create_job_directory(&args.question, repo_root, args.dry_run)?;
             println!("{}", job_dir.display());
             Ok(())
         }
@@ -221,6 +539,35 @@ pub fn run_agent_council_command(
                     target.display()
                 ));
             }
+
+            // Read PIDs and wait with timeout
+            let timeout_secs = 120;
+            let start_time = std::time::Instant::now();
+
+            loop {
+                let mut any_running = false;
+                if let Ok(entries) = fs::read_dir(&target) {
+                    for entry in entries.flatten() {
+                        let p = entry.path();
+                        if p.is_file() && p.extension().is_some_and(|ext| ext == "pid") {
+                            if let Ok(pid_str) = fs::read_to_string(&p) {
+                                if let Ok(pid) = pid_str.trim().parse::<u32>() {
+                                    if is_pid_alive(pid) {
+                                        any_running = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if !any_running || start_time.elapsed().as_secs() >= timeout_secs {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+
             println!("Job processes completed at: {}", target.display());
             Ok(())
         }
@@ -229,18 +576,114 @@ pub fn run_agent_council_command(
             let prompt_path = target.join("prompt.txt");
             let prompt =
                 fs::read_to_string(&prompt_path).unwrap_or_else(|_| "Unknown prompt".to_string());
-            println!("--- Agent Council Synthesis ---");
-            println!("Prompt: {prompt}");
 
-            if args.verbose {
-                let responses = read_subagent_responses(&target)?;
-                for (agent_name, response_text) in responses {
-                    println!("\n=== Sub-Agent: {} ===", agent_name);
-                    println!("{response_text}");
+            let configured_members =
+                if let Ok(meta_text) = fs::read_to_string(target.join("meta.json")) {
+                    if let Ok(meta_json) = serde_json::from_str::<serde_json::Value>(&meta_text) {
+                        if let Some(m_array) = meta_json.get("members").and_then(|m| m.as_array()) {
+                            let members: Vec<CouncilMember> =
+                                serde_json::from_value(serde_json::Value::Array(m_array.clone()))
+                                    .unwrap_or_else(|_| load_council_members(repo_root));
+                            members
+                        } else {
+                            load_council_members(repo_root)
+                        }
+                    } else {
+                        load_council_members(repo_root)
+                    }
+                } else {
+                    load_council_members(repo_root)
+                };
+
+            let responses = read_subagent_responses(&target)?;
+            let response_map: std::collections::HashMap<String, String> =
+                responses.into_iter().collect();
+
+            println!("--- Agent Council Report ---");
+            println!("Prompt: {prompt}\n");
+
+            println!("=== Council Member Status ===");
+            let mut responded_count = 0;
+            let mut failed_members = Vec::new();
+
+            for member in &configured_members {
+                let cli_available = check_cli_available(&member.command);
+                if let Some(response_text) = response_map.get(&member.name) {
+                    responded_count += 1;
+                    println!(
+                        "- {} {} (`{}`): Responded ({} chars)",
+                        member.emoji,
+                        member.name,
+                        member.command,
+                        response_text.len()
+                    );
+                } else if !cli_available {
+                    failed_members.push((
+                        member.name.clone(),
+                        format!("CLI not available in PATH (`{}`)", member.command),
+                    ));
+                    println!(
+                        "- {} {} (`{}`): ⚠️ Missing CLI (not found in PATH)",
+                        member.emoji, member.name, member.command
+                    );
+                } else {
+                    failed_members.push((
+                        member.name.clone(),
+                        "No response or empty output returned".to_string(),
+                    ));
+                    println!(
+                        "- {} {} (`{}`): ⚠️ No response received",
+                        member.emoji, member.name, member.command
+                    );
                 }
             }
 
-            println!("\nSynthesized responses across council members.");
+            if args.verbose {
+                println!("\n=== Member Responses ===");
+                for member in &configured_members {
+                    if let Some(response_text) = response_map.get(&member.name) {
+                        println!("\n--- {} {} ---", member.emoji, member.name);
+                        println!("{response_text}");
+                    } else if !check_cli_available(&member.command) {
+                        println!("\n--- {} {} ---", member.emoji, member.name);
+                        println!("⚠️ [ERROR] Member CLI is not usable: executable for '{}' was not found in PATH.", member.command);
+                    } else {
+                        println!("\n--- {} {} ---", member.emoji, member.name);
+                        println!(
+                            "⚠️ [WARNING] No response was returned by member CLI ('{}').",
+                            member.command
+                        );
+                    }
+                }
+            }
+
+            println!("\n=== Summary ===");
+            if responded_count == 0 {
+                println!(
+                    "❌ ERROR: None of the {} configured council members returned a response.",
+                    configured_members.len()
+                );
+                println!("Please verify your CLI installations via 'agent-skills agent-council doctor' and check 'council.config.yaml'.");
+            } else if !failed_members.is_empty() {
+                let failed_names: Vec<String> =
+                    failed_members.iter().map(|(n, _)| n.clone()).collect();
+                println!(
+                    "⚠️ WARNING: {} of {} configured members failed or were unavailable ({}).",
+                    failed_members.len(),
+                    configured_members.len(),
+                    failed_names.join(", ")
+                );
+                println!(
+                    "Synthesized responses from {} active member(s).",
+                    responded_count
+                );
+            } else {
+                println!(
+                    "✅ All {} configured council members responded successfully.",
+                    configured_members.len()
+                );
+            }
+
             Ok(())
         }
         AgentCouncilSubcommand::Clean(args) => {
@@ -255,6 +698,7 @@ pub fn run_agent_council_command(
                 ))
             }
         }
+        AgentCouncilSubcommand::Doctor(args) => run_doctor_command(repo_root, args.verbose),
     }
 }
 
@@ -268,7 +712,7 @@ mod tests {
         let members = load_default_council_config();
         assert_eq!(members.len(), 3);
         assert_eq!(members[0].name, "claude");
-        assert_eq!(members[1].name, "gemini");
+        assert_eq!(members[1].name, "antigravity");
         assert_eq!(members[2].name, "copilot");
     }
 
@@ -276,7 +720,7 @@ mod tests {
     fn test_agent_council_job_lifecycle_strict_assertions() {
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
-        let job_dir = create_job_directory("Should we use Rust?", &base).unwrap();
+        let job_dir = create_job_directory("Should we use Rust?", &base, true).unwrap();
         assert!(job_dir.exists());
         assert!(job_dir.join("prompt.txt").exists());
         assert!(job_dir.join("meta.json").exists());
@@ -286,17 +730,21 @@ mod tests {
     fn test_agent_council_results_verbose_by_default_strict_assertions() {
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
-        let job_dir = create_job_directory("Should we use Rust?", &base).unwrap();
+        let job_dir = create_job_directory("Should we use Rust?", &base, true).unwrap();
 
         fs::write(job_dir.join("claude.response.txt"), "Claude says yes").unwrap();
-        fs::write(job_dir.join("gemini.response.txt"), "Gemini says yes").unwrap();
+        fs::write(
+            job_dir.join("antigravity.response.txt"),
+            "Antigravity says yes",
+        )
+        .unwrap();
 
         let responses = read_subagent_responses(&job_dir).unwrap();
         assert_eq!(responses.len(), 2);
-        assert_eq!(responses[0].0, "claude");
-        assert_eq!(responses[0].1, "Claude says yes");
-        assert_eq!(responses[1].0, "gemini");
-        assert_eq!(responses[1].1, "Gemini says yes");
+        assert_eq!(responses[0].0, "antigravity");
+        assert_eq!(responses[0].1, "Antigravity says yes");
+        assert_eq!(responses[1].0, "claude");
+        assert_eq!(responses[1].1, "Claude says yes");
     }
 
     #[test]
@@ -322,41 +770,37 @@ mod tests {
 
     #[test]
     fn test_generate_job_id() {
-        // Python: test_generate_job_id — job ID must be deterministic hash of question, not timestamp
-        // Feature absent: Rust uses timestamps like job_20240101_120000 — no dedup by question
         let question = "What is the capital of France?";
         let dir = tempdir().unwrap();
-        let job = create_job_directory(question, dir.path()).unwrap();
+        let job = create_job_directory(question, dir.path(), true).unwrap();
         let id = job.file_name().unwrap().to_str().unwrap().to_string();
 
-        // A deterministic content-hash ID must NOT look like a timestamp
         let timestamp_pattern = regex::Regex::new(r"job_\d{8}_\d{6}").unwrap();
         assert!(
             !timestamp_pattern.is_match(&id),
-            "job ID must be a deterministic content hash of the question, not a timestamp. Got: {id} — timestamp-based IDs cannot deduplicate same-question requests"
+            "job ID must be a deterministic content hash of the question, not a timestamp. Got: {id}"
         );
     }
 
     #[test]
     fn test_create_job_missing_cli() {
-        // Python: test_create_job_missing_cli — meta.json must record missing_cli state
-        // Feature absent: no CLI-existence check or missing_cli state
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
-        let job_dir = create_job_directory("Test missing CLI", &base).unwrap();
+        let job_dir = create_job_directory("Test missing CLI", &base, true).unwrap();
 
         let meta_content = fs::read_to_string(job_dir.join("meta.json")).unwrap();
         assert!(
             meta_content.contains("missing_cli"),
-            "meta.json must record missing_cli:true when the CLI binary is not found in PATH, got: {meta_content}"
+            "meta.json must record missing_cli state, got: {meta_content}"
+        );
+        assert!(
+            meta_content.contains("member_details"),
+            "meta.json must record member_details, got: {meta_content}"
         );
     }
 
     #[test]
     fn test_load_council_members_reads_config_yaml() {
-        // Python: test_load_config_adr0005 — load_council_members (not just the generic
-        // load_skill_config loader) must parse a real on-disk config.yaml into CouncilMember
-        // structs, rather than only ever falling back to the hardcoded 3-member default.
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
         let council_skill_dir = base.join("skills").join("agent-council");
@@ -371,7 +815,7 @@ mod tests {
         assert_eq!(
             members.len(),
             1,
-            "load_council_members must read the real on-disk config, not fall back to the hardcoded default, got: {members:?}"
+            "load_council_members must read the real on-disk config, got: {members:?}"
         );
         assert_eq!(members[0].name, "real_agent");
         assert_eq!(members[0].command, "real-cli -p");
@@ -379,11 +823,9 @@ mod tests {
 
     #[test]
     fn test_create_and_clean_job_full_lifecycle() {
-        // Python: test_create_and_clean_job — extends the existing lifecycle test with the
-        // Clean subcommand: after creating a job, running Clean must remove the job directory.
         let dir = tempdir().unwrap();
         let base = dir.path().canonicalize().unwrap();
-        let job_dir = create_job_directory("Should we use Rust?", &base).unwrap();
+        let job_dir = create_job_directory("Should we use Rust?", &base, true).unwrap();
         assert!(job_dir.exists());
 
         let job_path = job_dir.to_string_lossy().to_string();
@@ -393,6 +835,79 @@ mod tests {
         assert!(
             !job_dir.exists(),
             "Clean subcommand must remove the job directory via safe_rmtree"
+        );
+    }
+
+    #[test]
+    fn test_run_agent_council_results_outputs_status_and_warnings() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let job_dir = create_job_directory("Which database to choose?", &base, true).unwrap();
+
+        fs::write(
+            job_dir.join("claude.response.txt"),
+            "PostgreSQL is recommended.",
+        )
+        .unwrap();
+
+        let results_args = ResultsArgs {
+            job_path: job_dir.to_string_lossy().to_string(),
+            verbose: true,
+        };
+
+        let result =
+            run_agent_council_command(&AgentCouncilSubcommand::Results(results_args), &base);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_doctor_command_runs_cleanly() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let res = run_doctor_command(&base, false);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_doctor_command_verbose_runs_cleanly() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let res = run_doctor_command(&base, true);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_get_enriched_path_returns_non_empty_paths() {
+        let enriched = get_enriched_path();
+        let paths: Vec<PathBuf> = std::env::split_paths(&enriched).collect();
+        assert!(
+            !paths.is_empty(),
+            "get_enriched_path must return non-empty PATH list"
+        );
+    }
+
+    #[test]
+    fn test_find_cli_binary_non_existent_returns_none() {
+        let res = find_cli_binary("completely_non_existent_binary_xyz_999");
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn test_agent_council_wait_non_existent_pid() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let job_dir = create_job_directory("Should we use Rust?", &base, true).unwrap();
+
+        // Write a mock pid that is already dead / non-existent (e.g. 999999)
+        fs::write(job_dir.join("antigravity.pid"), "999999").unwrap();
+
+        let wait_args = JobPathArgs {
+            job_path: job_dir.to_string_lossy().to_string(),
+        };
+        let res = run_agent_council_command(&AgentCouncilSubcommand::Wait(wait_args), &base);
+        assert!(
+            res.is_ok(),
+            "Wait must return Ok even if processes already finished"
         );
     }
 }
