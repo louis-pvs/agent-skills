@@ -28,6 +28,6 @@ council:
       color: "BLUE"
 
   settings:
-    exclude_chairman_from_members: true
+    exclude_chairman_from_members: false
     timeout: 120
 

@@ -33,5 +33,6 @@ council:
   # Execution settings
   settings:
     timeout: 120 # Timeout seconds per agent (0 to disable)
-    exclude_chairman_from_members: true # Avoid calling the chairman as a member to prevent duplicate instances
+    exclude_chairman_from_members: false # Include chairman CLI as an active voting member
+
 
