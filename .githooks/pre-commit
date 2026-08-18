@@ -17,10 +17,10 @@ echo "Running Cargo unit test suite..."
 cargo test --workspace
 
 echo "Running Rust agent-skills depgraph verification..."
-cargo run -p agent-skills -- depgraph --verify
+cargo run -p agent-skills-cli -- depgraph --verify
 
 echo "Running Rust agent-skills lint-scripts compliance check..."
-cargo run -p agent-skills -- lint-scripts
+cargo run -p agent-skills-cli -- lint-scripts
 
 echo "Running markdownlint check..."
 npx markdownlint-cli --ignore "graphify-out/**" "**/*.md"

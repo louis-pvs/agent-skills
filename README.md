@@ -55,11 +55,11 @@ cargo build --release
 To automatically make all 17 skills available across your supported AI Coding Assistants:
 
 ```bash
-# Execute the native installer
+# Execute the native installer (recommended)
 agent-skills install
 
-# Or run via Cargo within repo root
-cargo run -p agent-skills -- install
+# Or run from source during local development
+cargo run -p agent-skills-cli -- install
 ```
 
 `agent-skills install` automatically validates the skill dependency graph and creates global symlinks across:

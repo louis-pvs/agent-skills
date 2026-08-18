@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "agent-skills"
+name = "agent-skills-cli"
 version = "0.1.0"
 dependencies = [
  "agent_skills_core",

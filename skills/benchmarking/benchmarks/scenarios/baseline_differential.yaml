@@ -1,0 +1,15 @@
+version: "1.0.0"
+skill: "benchmarking"
+scenario_id: "baseline_differential"
+description: "Differential baseline testing comparing target vs baseline commands with telemetry delta"
+complexity: "high"
+max_turns: 10
+timeout_seconds: 90
+prompt: |
+  Execute differential benchmark comparing `cargo test` against baseline command `cargo test -- --nocapture` over 5 iterations, producing structured JSON telemetry for CI gating.
+eval_criteria:
+  assertions:
+    - type: "regex_match"
+      pattern: "delta_ms"
+    - type: "max_tool_calls"
+      threshold: 6.0

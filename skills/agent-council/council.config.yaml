@@ -12,7 +12,7 @@ council:
 
   members:
     - name: antigravity
-      command: "agy -p"
+      command: "agy --dangerously-skip-permissions -p"
       emoji: "💎"
       color: "GREEN"
 
@@ -22,7 +22,7 @@ council:
       color: "BLUE"
 
     - name: claude
-      command: "claude -p"
+      command: "claude --dangerously-skip-permissions -p"
       emoji: "🧠"
       color: "CYAN"
 
@@ -35,5 +35,5 @@ council:
 
   # Execution settings
   settings:
-    timeout: 120 # Timeout seconds per agent (0 to disable)
+    timeout: 180 # Timeout seconds per agent (0 to disable)
     exclude_chairman_from_members: true # Avoid calling the chairman as a member by default

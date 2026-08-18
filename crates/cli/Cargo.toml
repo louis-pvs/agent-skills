@@ -1,8 +1,12 @@
 [package]
-name = "agent-skills"
+name = "agent-skills-cli"
 version = "0.1.0"
 edition = "2021"
 description = "Unified CLI for Agent Skills automation"
+
+[[bin]]
+name = "agent-skills"
+path = "src/main.rs"
 
 [dependencies]
 agent_skills_core = { path = "../core" }

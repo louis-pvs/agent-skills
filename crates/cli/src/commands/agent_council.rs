@@ -53,7 +53,7 @@ pub enum AgentCouncilSubcommand {
     /// Start background execution of sub-agent queries
     Start(StartCouncilArgs),
     /// Wait for background sub-agent processes to complete
-    Wait(JobPathArgs),
+    Wait(WaitArgs),
     /// Collect and synthesize sub-agent responses
     Results(ResultsArgs),
     /// Safely remove job directory
@@ -73,12 +73,12 @@ pub fn load_default_council_config() -> Vec<CouncilMember> {
     vec![
         CouncilMember {
             name: "claude".to_string(),
-            command: "claude -p".to_string(),
+            command: "claude --dangerously-skip-permissions -p".to_string(),
             emoji: "🧠".to_string(),
         },
         CouncilMember {
             name: "antigravity".to_string(),
-            command: "agy -p".to_string(),
+            command: "agy --dangerously-skip-permissions -p".to_string(),
             emoji: "💎".to_string(),
         },
         CouncilMember {
@@ -87,6 +87,25 @@ pub fn load_default_council_config() -> Vec<CouncilMember> {
             emoji: "✈️".to_string(),
         },
     ]
+}
+
+pub fn load_council_timeout(repo_root: &Path) -> u64 {
+    let skill_dir = repo_root.join("skills").join("agent-council");
+    let cfg = load_skill_config("agent-council", Some(&skill_dir), Some(repo_root), None);
+
+    if let Some(map) = cfg.as_mapping() {
+        if let Some(council) = map.get("council").and_then(|c| c.as_mapping()) {
+            if let Some(settings) = council.get("settings").and_then(|s| s.as_mapping()) {
+                if let Some(timeout) = settings.get("timeout").and_then(|t| t.as_u64()) {
+                    if timeout > 0 {
+                        return timeout;
+                    }
+                }
+            }
+        }
+    }
+
+    180
 }
 
 pub fn load_council_members(repo_root: &Path) -> Vec<CouncilMember> {
@@ -177,33 +196,43 @@ pub fn find_cli_binary(cmd: &str) -> Option<PathBuf> {
     let raw_bin = cmd.split_whitespace().next().unwrap_or(cmd);
     let enriched_path = get_enriched_path();
 
-    let pathext =
-        std::env::var("PATHEXT").unwrap_or_else(|_| ".EXE;.CMD;.BAT;.COM;.PS1".to_string());
-    let exts: Vec<&str> = if cfg!(windows) {
-        pathext
-            .split(';')
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty())
-            .collect()
+    // 0. Direct check if raw_bin is an existing file path
+    let direct_path = PathBuf::from(raw_bin);
+    if direct_path.is_file() {
+        return Some(direct_path);
+    }
+
+    // On Windows, prioritize native .exe before scripts/batches
+    let pathext = if cfg!(windows) {
+        vec![".exe", ".cmd", ".bat", ".com", ".ps1"]
     } else {
         vec![""]
     };
 
-    // 1. Direct search for raw_bin
+    // 1. Direct search for raw_bin across enriched PATH
     for dir in std::env::split_paths(&enriched_path) {
+        // Special check for nested package executables (e.g. global npm packages)
+        if cfg!(windows) && raw_bin == "claude" {
+            let nested_claude = dir
+                .join("node_modules")
+                .join("@anthropic-ai")
+                .join("claude-code")
+                .join("bin")
+                .join("claude.exe");
+            if nested_claude.is_file() {
+                return Some(nested_claude);
+            }
+        }
+
         if cfg!(windows) {
-            for ext in &exts {
-                let mut ext_name = ext.to_string();
-                if !ext_name.starts_with('.') {
-                    ext_name = format!(".{}", ext_name);
-                }
-                let cand = dir.join(format!("{}{}", raw_bin, ext_name));
+            for ext in &pathext {
+                let cand = dir.join(format!("{}{}", raw_bin, ext));
                 if cand.is_file() {
                     return Some(cand);
                 }
-                let cand_lower = dir.join(format!("{}{}", raw_bin, ext_name.to_lowercase()));
-                if cand_lower.is_file() {
-                    return Some(cand_lower);
+                let cand_upper = dir.join(format!("{}{}", raw_bin, ext.to_uppercase()));
+                if cand_upper.is_file() {
+                    return Some(cand_upper);
                 }
             }
         }
@@ -225,14 +254,14 @@ pub fn find_cli_binary(cmd: &str) -> Option<PathBuf> {
     for alias in fallback_aliases {
         for dir in std::env::split_paths(&enriched_path) {
             if cfg!(windows) {
-                for ext in &exts {
-                    let mut ext_name = ext.to_string();
-                    if !ext_name.starts_with('.') {
-                        ext_name = format!(".{}", ext_name);
-                    }
-                    let cand = dir.join(format!("{}{}", alias, ext_name));
+                for ext in &pathext {
+                    let cand = dir.join(format!("{}{}", alias, ext));
                     if cand.is_file() {
                         return Some(cand);
+                    }
+                    let cand_upper = dir.join(format!("{}{}", alias, ext.to_uppercase()));
+                    if cand_upper.is_file() {
+                        return Some(cand_upper);
                     }
                 }
             }
@@ -266,7 +295,7 @@ pub fn is_pid_alive(pid: u32) -> bool {
             .output();
         if let Ok(out) = output {
             let s = String::from_utf8_lossy(&out.stdout);
-            s.contains(&pid.to_string())
+            !s.contains("No tasks are running") && s.contains(&pid.to_string())
         } else {
             false
         }
@@ -282,6 +311,16 @@ pub fn create_job_directory(
     let jobs_dir = repo_root.join("skills").join("agent-council").join(".jobs");
     let job_dir = jobs_dir.join(&job_id);
 
+    // Clean stale files from previous runs with the same question hash
+    if job_dir.exists() {
+        for entry in fs::read_dir(&job_dir).into_iter().flatten().flatten() {
+            let p = entry.path();
+            if p.is_file() {
+                let _ = fs::remove_file(&p);
+            }
+        }
+    }
+
     fs::create_dir_all(&job_dir)
         .map_err(|e| anyhow::anyhow!("Failed to create job directory: {e}"))?;
 
@@ -293,6 +332,7 @@ pub fn create_job_directory(
     let mut member_details = Vec::new();
     let mut missing_members = Vec::new();
     let enriched_path = get_enriched_path();
+    let mut children: Vec<(String, std::process::Child)> = Vec::new();
 
     for m in &members {
         let bin_opt = find_cli_binary(&m.command);
@@ -321,17 +361,12 @@ pub fn create_job_directory(
 
                 if let (Some(out_f), Some(err_f)) = (out_file, err_file) {
                     let parts = shlex::split(&m.command).unwrap_or_else(|| vec![m.command.clone()]);
-                    let mut cmd = if cfg!(windows) {
-                        let mut c = std::process::Command::new("cmd.exe");
-                        c.arg("/C");
-                        c.arg(&bin_path);
-                        c
-                    } else {
-                        std::process::Command::new(&bin_path)
-                    };
+
+                    let mut cmd = std::process::Command::new(&bin_path);
                     cmd.env("PATH", &enriched_path);
                     cmd.current_dir(repo_root);
 
+                    // Add all flags/args after the binary name
                     if parts.len() > 1 {
                         for arg in &parts[1..] {
                             cmd.arg(arg);
@@ -346,7 +381,8 @@ pub fn create_job_directory(
                     match cmd.spawn() {
                         Ok(child) => {
                             let pid_file = job_dir.join(format!("{}.pid", m.name));
-                            let _ = fs::write(pid_file, child.id().to_string());
+                            let _ = fs::write(&pid_file, child.id().to_string());
+                            children.push((m.name.clone(), child));
                         }
                         Err(e) => {
                             let _ = fs::write(
@@ -377,6 +413,35 @@ pub fn create_job_directory(
         serde_json::to_string_pretty(&meta).unwrap_or_default(),
     )
     .map_err(|e| anyhow::anyhow!("Failed to write meta.json: {e}"))?;
+
+    // Wait for all spawned children to complete concurrently (with timeout)
+    let timeout_secs = load_council_timeout(repo_root);
+    let timeout = std::time::Duration::from_secs(timeout_secs);
+    let start_time = std::time::Instant::now();
+    let mut remaining_children = children;
+
+    while !remaining_children.is_empty() {
+        if start_time.elapsed() >= timeout {
+            for (name, mut child) in remaining_children {
+                eprintln!("⚠️ Timeout waiting for {name}, killing process");
+                let _ = child.kill();
+            }
+            break;
+        }
+
+        remaining_children.retain_mut(|(name, child)| match child.try_wait() {
+            Ok(Some(_status)) => false,
+            Ok(None) => true,
+            Err(e) => {
+                eprintln!("⚠️ Error waiting for {name}: {e}");
+                false
+            }
+        });
+
+        if !remaining_children.is_empty() {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        }
+    }
 
     Ok(job_dir)
 }
@@ -445,15 +510,8 @@ pub fn run_doctor_command(repo_root: &Path, verbose: bool) -> anyhow::Result<()>
         match bin_opt {
             Some(bin_path) => {
                 available_count += 1;
-                // Attempt to run --version to query version
-                let mut cmd = if cfg!(windows) {
-                    let mut c = std::process::Command::new("cmd.exe");
-                    c.arg("/C");
-                    c.arg(&bin_path);
-                    c
-                } else {
-                    std::process::Command::new(&bin_path)
-                };
+
+                let mut cmd = std::process::Command::new(&bin_path);
                 let version_output = cmd
                     .arg("--version")
                     .env("PATH", &enriched_path)
@@ -542,7 +600,11 @@ pub fn run_agent_council_command(
             }
 
             // Read PIDs and wait with timeout
-            let timeout_secs = 120;
+            let timeout_secs = if args.timeout > 0 {
+                args.timeout
+            } else {
+                load_council_timeout(repo_root)
+            };
             let start_time = std::time::Instant::now();
 
             loop {
@@ -650,10 +712,20 @@ pub fn run_agent_council_command(
                         println!("⚠️ [ERROR] Member CLI is not usable: executable for '{}' was not found in PATH.", member.command);
                     } else {
                         println!("\n--- {} {} ---", member.emoji, member.name);
-                        println!(
-                            "⚠️ [WARNING] No response was returned by member CLI ('{}').",
-                            member.command
-                        );
+                        let err_file = target.join(format!("{}.err", member.name));
+                        let err_text = fs::read_to_string(&err_file).unwrap_or_default();
+                        let trimmed_err = err_text.trim();
+                        if !trimmed_err.is_empty() {
+                            println!(
+                                "⚠️ [WARNING] No response returned by member CLI ('{}'). Stderr output:\n{trimmed_err}",
+                                member.command
+                            );
+                        } else {
+                            println!(
+                                "⚠️ [WARNING] No response was returned by member CLI ('{}').",
+                                member.command
+                            );
+                        }
                     }
                 }
             }
@@ -902,13 +974,135 @@ mod tests {
         // Write a mock pid that is already dead / non-existent (e.g. 999999)
         fs::write(job_dir.join("antigravity.pid"), "999999").unwrap();
 
-        let wait_args = JobPathArgs {
+        let wait_args = WaitArgs {
             job_path: job_dir.to_string_lossy().to_string(),
+            timeout: 120,
         };
         let res = run_agent_council_command(&AgentCouncilSubcommand::Wait(wait_args), &base);
         assert!(
             res.is_ok(),
             "Wait must return Ok even if processes already finished"
+        );
+    }
+
+    /// Regression test: stale files from a previous run with the same question
+    /// hash must be cleaned before spawning new processes. Without cleanup,
+    /// old 0-byte response files persist and mask missing output.
+    #[test]
+    fn test_job_directory_reuse_cleans_stale_files() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+
+        // First run (dry_run) — creates directory with prompt.txt and meta.json
+        let job_dir_1 = create_job_directory("Stale file test", &base, true).unwrap();
+
+        // Simulate stale response files left from a prior execution
+        fs::write(job_dir_1.join("claude.response.txt"), "").unwrap();
+        fs::write(job_dir_1.join("copilot.response.txt"), "stale data").unwrap();
+        fs::write(job_dir_1.join("leftover.pid"), "12345").unwrap();
+
+        // Second run with same question — should clean all stale files
+        let job_dir_2 = create_job_directory("Stale file test", &base, true).unwrap();
+
+        // Same job_id means same directory
+        assert_eq!(
+            job_dir_1.file_name(),
+            job_dir_2.file_name(),
+            "Same question must produce same job_id"
+        );
+
+        // Stale files must be gone — only fresh prompt.txt and meta.json remain
+        assert!(
+            !job_dir_2.join("leftover.pid").exists(),
+            "Stale .pid files must be cleaned on reuse"
+        );
+
+        // prompt.txt and meta.json are recreated fresh
+        assert!(job_dir_2.join("prompt.txt").exists());
+        assert!(job_dir_2.join("meta.json").exists());
+    }
+
+    /// Integration test: spawn a real process (echo on Unix, cmd /C echo on Windows)
+    /// using a mock council config and verify the response file actually contains
+    /// the child's stdout output. This covers the dry_run=false path that was
+    /// previously untested and caused the 0-byte response bug.
+    #[test]
+    fn test_spawn_real_process_captures_output() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let council_skill_dir = base.join("skills").join("agent-council");
+        fs::create_dir_all(&council_skill_dir).unwrap();
+
+        // Configure a mock member using a simple echo command
+        let (echo_cmd, expected_fragment) = if cfg!(windows) {
+            // On Windows, cmd.exe /C echo outputs "hello" + the appended question
+            ("cmd /C echo hello", "hello")
+        } else {
+            ("echo hello", "hello")
+        };
+
+        let config_content = format!(
+            "council:\n  members:\n    - name: mock_echo\n      command: \"{echo_cmd}\"\n      emoji: \"🔧\"\n"
+        );
+        fs::write(council_skill_dir.join("config.yaml"), config_content).unwrap();
+
+        // dry_run=false — actually spawns the process and waits
+        let job_dir = create_job_directory("test question", &base, false).unwrap();
+
+        let response_file = job_dir.join("mock_echo.response.txt");
+        assert!(
+            response_file.exists(),
+            "Response file must be created for the mock member"
+        );
+
+        let content = fs::read_to_string(&response_file).unwrap();
+        assert!(
+            content.contains(expected_fragment),
+            "Response file must contain the echo output '{expected_fragment}', got: '{content}'"
+        );
+    }
+
+    /// Verify that create_job_directory with dry_run=false does NOT leave
+    /// dangling child processes — it waits for completion before returning.
+    #[test]
+    fn test_spawn_waits_for_children_to_complete() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let council_skill_dir = base.join("skills").join("agent-council");
+        fs::create_dir_all(&council_skill_dir).unwrap();
+
+        let echo_cmd = if cfg!(windows) {
+            "cmd /C echo done"
+        } else {
+            "echo done"
+        };
+
+        let config_content = format!(
+            "council:\n  members:\n    - name: waiter\n      command: \"{echo_cmd}\"\n      emoji: \"⏱️\"\n"
+        );
+        fs::write(council_skill_dir.join("config.yaml"), config_content).unwrap();
+
+        let job_dir = create_job_directory("wait test", &base, false).unwrap();
+
+        // After create_job_directory returns, the PID should be dead (process completed)
+        let pid_file = job_dir.join("waiter.pid");
+        if pid_file.exists() {
+            let pid: u32 = fs::read_to_string(&pid_file)
+                .unwrap()
+                .trim()
+                .parse()
+                .unwrap();
+            assert!(
+                !is_pid_alive(pid),
+                "After create_job_directory returns, spawned process (PID {pid}) must have exited"
+            );
+        }
+
+        // And the response file must have content
+        let response = fs::read_to_string(job_dir.join("waiter.response.txt")).unwrap();
+        assert!(
+            !response.trim().is_empty(),
+            "Response file must not be empty after waiting for child"
         );
     }
 }

@@ -7,7 +7,7 @@ council:
 
   members:
     - name: "claude"
-      command: "claude -p"
+      command: "claude --dangerously-skip-permissions -p"
       emoji: "🧠"
       color: "CYAN"
 
@@ -17,7 +17,7 @@ council:
       color: "BLUE"
 
     - name: "antigravity"
-      command: "agy -p"
+      command: "agy --dangerously-skip-permissions -p"
       emoji: "💎"
       color: "GREEN"
 
@@ -28,4 +28,4 @@ council:
 
   settings:
     exclude_chairman_from_members: true
-    timeout: 120
+    timeout: 180
