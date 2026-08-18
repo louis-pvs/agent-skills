@@ -4,12 +4,10 @@
   "topological_order": [
     "agent-council",
     "agent-creator",
-    "architecture-auditor",
     "architecture-decision-records",
     "capability-gap-analyzer",
     "code-janitor",
     "context-gatherer",
-    "domain-modeling",
     "git-conflict-resolver",
     "self-progress",
     "skill-creator",
@@ -39,37 +37,15 @@
       "transitive_enhances": [],
       "path": "skills/agent-creator"
     },
-    "architecture-auditor": {
-      "name": "architecture-auditor",
-      "version": "1.0.0",
-      "requires": [],
-      "enhances": [
-        "domain-modeling"
-      ],
-      "transitive_requires": [],
-      "transitive_enhances": [
-        "architecture-auditor",
-        "context-gatherer",
-        "domain-modeling",
-        "graphify"
-      ],
-      "path": "skills/architecture-auditor"
-    },
     "architecture-decision-records": {
       "name": "architecture-decision-records",
       "version": "1.0.0",
       "requires": [],
       "enhances": [
-        "tech-doc-writer",
-        "architecture-auditor",
-        "domain-modeling"
+        "tech-doc-writer"
       ],
       "transitive_requires": [],
       "transitive_enhances": [
-        "architecture-auditor",
-        "context-gatherer",
-        "domain-modeling",
-        "graphify",
         "tech-doc-writer"
       ],
       "path": "skills/architecture-decision-records"
@@ -81,16 +57,12 @@
         "tdd"
       ],
       "enhances": [
-        "self-annealer",
-        "architecture-auditor"
+        "self-annealer"
       ],
       "transitive_requires": [
         "tdd"
       ],
       "transitive_enhances": [
-        "architecture-auditor",
-        "context-gatherer",
-        "domain-modeling",
         "graphify",
         "self-annealer"
       ],
@@ -133,23 +105,6 @@
         "graphify"
       ],
       "path": "skills/context-gatherer"
-    },
-    "domain-modeling": {
-      "name": "domain-modeling",
-      "version": "1.0.0",
-      "requires": [],
-      "enhances": [
-        "architecture-auditor",
-        "context-gatherer"
-      ],
-      "transitive_requires": [],
-      "transitive_enhances": [
-        "architecture-auditor",
-        "context-gatherer",
-        "domain-modeling",
-        "graphify"
-      ],
-      "path": "skills/domain-modeling"
     },
     "git-conflict-resolver": {
       "name": "git-conflict-resolver",
@@ -229,32 +184,18 @@
       "name": "tdd",
       "version": "1.0.0",
       "requires": [],
-      "enhances": [
-        "domain-modeling"
-      ],
+      "enhances": [],
       "transitive_requires": [],
-      "transitive_enhances": [
-        "architecture-auditor",
-        "context-gatherer",
-        "domain-modeling",
-        "graphify"
-      ],
+      "transitive_enhances": [],
       "path": "skills/tdd"
     },
     "tech-doc-writer": {
       "name": "tech-doc-writer",
       "version": "1.0.0",
       "requires": [],
-      "enhances": [
-        "domain-modeling"
-      ],
+      "enhances": [],
       "transitive_requires": [],
-      "transitive_enhances": [
-        "architecture-auditor",
-        "context-gatherer",
-        "domain-modeling",
-        "graphify"
-      ],
+      "transitive_enhances": [],
       "path": "skills/tech-doc-writer"
     },
     "what-if-analysis": {
@@ -270,9 +211,7 @@
       "transitive_requires": [],
       "transitive_enhances": [
         "agent-council",
-        "architecture-auditor",
         "context-gatherer",
-        "domain-modeling",
         "graphify",
         "self-annealer",
         "tdd"

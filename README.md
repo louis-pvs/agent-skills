@@ -6,19 +6,17 @@ Engineered with a high-performance **compiled Rust core** (`agent-skills` CLI bi
 
 ---
 
-## 🚀 Available Skills (17/17 Native Rust Subcommands)
+## 🚀 Available Skills (15 Native Rust Subcommands + Graphify)
 
 | Skill | Description | Rust CLI Subcommand | Path |
 | :--- | :--- | :--- | :--- |
 | **`agent-council`** | Collect and synthesize opinions from multiple AI agents into a unified recommendation. | `agent-skills agent-council` | [`skills/agent-council`](skills/agent-council/SKILL.md) |
 | **`agent-creator`** | Create, scaffold, configure, and validate Antigravity Custom Agents (`.agents/agents/*.md`). | `agent-skills agent-creator` | [`skills/agent-creator`](skills/agent-creator/SKILL.md) |
-| **`architecture-auditor`** | Audit codebases against software design principles (SOLID, DRY, YAGNI, KISS, CUPID). | `agent-skills architecture-auditor` | [`skills/architecture-auditor`](skills/architecture-auditor/SKILL.md) |
 | **`architecture-decision-records`** | Log, index, supersede, and audit Architectural Decision Records (ADRs) following MADR standards. | `agent-skills adr` | [`skills/architecture-decision-records`](skills/architecture-decision-records/SKILL.md) |
 | **`benchmarking`** | Empirical performance benchmarking, baseline differential analysis, and metric evaluations. | `agent-skills benchmarking` | [`skills/benchmarking`](skills/benchmarking/SKILL.md) |
 | **`capability-gap-analyzer`** | Measure capability distance between registered agent skills and target project domains. | `agent-skills capability-gap-analyzer` | [`skills/capability-gap-analyzer`](skills/capability-gap-analyzer/SKILL.md) |
-| **`code-janitor`** | Automated code hygiene scanner for dead code, oversized functions, and deep nesting. | `agent-skills code-janitor` | [`skills/code-janitor`](skills/code-janitor/SKILL.md) |
+| **`code-janitor`** | Automated code hygiene scanner for dead code, oversized functions, and design principles (SOLID/CUPID/DRY). | `agent-skills code-janitor` | [`skills/code-janitor`](skills/code-janitor/SKILL.md) |
 | **`context-gatherer`** | Gather deep codebase context: git temporal coupling, symbol navigation, and AST search. | `agent-skills context-gatherer` | [`skills/context-gatherer`](skills/context-gatherer/SKILL.md) |
-| **`domain-modeling`** | Design and model business domain entities, aggregate boundaries, and DDD lifecycles. | `agent-skills domain-modeling` | [`skills/domain-modeling`](skills/domain-modeling/SKILL.md) |
 | **`git-conflict-resolver`** | Intelligently resolve Git rebase or merge conflicts using 3-way markers and commit context. | `agent-skills git-conflict-resolver` | [`skills/git-conflict-resolver`](skills/git-conflict-resolver/SKILL.md) |
 | **`self-annealer`** | Enforce bounded self-healing repair loops with strict iteration limits and automated git rollback. | `agent-skills self-annealer` | [`skills/self-annealer`](skills/self-annealer/SKILL.md) |
 | **`self-progress`** | Identify session capability gaps, user corrections, and retrospective growth opportunities. | `agent-skills self-progress` | [`skills/self-progress`](skills/self-progress/SKILL.md) |

@@ -15,8 +15,6 @@ The skill consists of three layers:
 
 ## Relationship to Other Skills
 
-- **`architecture-auditor`**: Evaluates high-level design principles (SOLID, CUPID).
-  Code Janitor focuses on file/function-level hygiene.
 - **`self-annealer`**: Provides bounded repair loops. Code Janitor can be used within
   an anneal loop to fix detected smells incrementally.
 - **`tdd`**: Test-Driven Development workflow. Code Janitor respects test guard rails

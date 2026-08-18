@@ -41,7 +41,7 @@ Apply the **Principle of Least Privilege**:
 
 - **Tools**: Only grant tools strictly required for the role (refer to [least-privilege-tools.md](references/least-privilege-tools.md)).
   - Default to read-only (`view_file`, `grep_search`, `ask_question`) unless code authoring or execution is explicitly required.
-- **Skills**: Pre-attach modular skills from `.agents/skills/` (e.g. `tdd`, `code-janitor`, `domain-modeling`) rather than bloating the system prompt.
+- **Skills**: Pre-attach modular skills from `.agents/skills/` (e.g. `tdd`, `code-janitor`, `self-annealer`) rather than bloating the system prompt.
 
 ### 3. Scaffold Agent Markdown File
 

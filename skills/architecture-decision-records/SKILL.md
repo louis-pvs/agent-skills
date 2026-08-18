@@ -3,8 +3,6 @@ name: architecture-decision-records
 description: Create, index, supersede, and audit Architectural Decision Records (ADRs) following MADR/Nygard specifications with status state-machines and automated index maintenance.
 enhances:
   - tech-doc-writer
-  - architecture-auditor
-  - domain-modeling
 version: 1.0.0
 ---
 
@@ -38,8 +36,8 @@ flowchart TD
 
 - Collect decision drivers, constraints, considered alternatives, and consequences.
 - If the architectural direction or template format (MADR vs Nygard) is undecided, prompt the user via `ask_question` with `(Recommended)` first-choice options.
-- If domain boundaries or aggregate concepts are affected, refer to [domain-modeling](../domain-modeling/SKILL.md).
-- If evaluating design principles (SOLID/DRY/YAGNI), refer to [architecture-auditor](../architecture-auditor/SKILL.md).
+- If domain boundaries or aggregate concepts are affected, refer to [references/ddd-patterns.md](references/ddd-patterns.md) and [references/state-machines.md](references/state-machines.md).
+- If evaluating design principles (SOLID/DRY/YAGNI), refer to [code-janitor](../code-janitor/SKILL.md).
 
 ### 2. Scaffold Next Sequential ADR
 

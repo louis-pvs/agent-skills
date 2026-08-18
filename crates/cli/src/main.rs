@@ -6,9 +6,6 @@ mod commands;
 use commands::adr::{run_adr_command, AdrSubcommand};
 use commands::agent_council::{run_agent_council_command, AgentCouncilSubcommand};
 use commands::agent_creator::{scaffold_agent, validate_agent, AgentCreatorSubcommand};
-use commands::architecture_auditor::{
-    run_architecture_auditor_command, ArchitectureAuditorSubcommand,
-};
 use commands::benchmarking::{run_benchmarking_command, BenchmarkingSubcommand};
 use commands::capability_gap_analyzer::{
     run_capability_gap_analyzer_command, CapabilityGapAnalyzerSubcommand,
@@ -16,7 +13,6 @@ use commands::capability_gap_analyzer::{
 use commands::code_janitor::{run_code_janitor_command, CodeJanitorSubcommand};
 use commands::context_gatherer::{run_context_gatherer_command, ContextGathererSubcommand};
 use commands::depgraph::{run_depgraph, DepgraphArgs};
-use commands::domain_modeling::{run_domain_modeling_command, DomainModelingSubcommand};
 use commands::git_conflict_resolver::{
     run_git_conflict_resolver_command, GitConflictResolverSubcommand,
 };
@@ -69,11 +65,6 @@ enum Commands {
         #[command(subcommand)]
         subcommand: AgentCouncilSubcommand,
     },
-    /// Architecture Auditor design principle audit tool (check, analyze)
-    ArchitectureAuditor {
-        #[command(subcommand)]
-        subcommand: ArchitectureAuditorSubcommand,
-    },
     /// Benchmarking empirical performance verification tool (check, run)
     Benchmarking {
         #[command(subcommand)]
@@ -93,11 +84,6 @@ enum Commands {
     ContextGatherer {
         #[command(subcommand)]
         subcommand: ContextGathererSubcommand,
-    },
-    /// Domain Modeling DDD tools (check, scaffold-entity)
-    DomainModeling {
-        #[command(subcommand)]
-        subcommand: DomainModelingSubcommand,
     },
     /// Git Conflict Resolver 3-way merge/rebase analysis tool (check, analyze)
     GitConflictResolver {
@@ -204,9 +190,6 @@ fn main() -> ExitCode {
         Commands::AgentCouncil { subcommand } => {
             run(run_agent_council_command(&subcommand, &repo_root))
         }
-        Commands::ArchitectureAuditor { subcommand } => {
-            run(run_architecture_auditor_command(&subcommand, &repo_root))
-        }
         Commands::Benchmarking { subcommand } => {
             run(run_benchmarking_command(&subcommand, &repo_root))
         }
@@ -218,9 +201,6 @@ fn main() -> ExitCode {
         }
         Commands::ContextGatherer { subcommand } => {
             run(run_context_gatherer_command(&subcommand, &repo_root))
-        }
-        Commands::DomainModeling { subcommand } => {
-            run(run_domain_modeling_command(&subcommand, &repo_root))
         }
         Commands::GitConflictResolver { subcommand } => {
             run(run_git_conflict_resolver_command(&subcommand, &repo_root))

@@ -37,7 +37,6 @@ fn test_cli_subcommands_help() {
         "skill-creator",
         "skill-evaluator",
         "what-if-analysis",
-        "domain-modeling",
         "git-conflict-resolver",
         "tdd",
         "tech-doc-writer",

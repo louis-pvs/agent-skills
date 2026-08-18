@@ -54,7 +54,7 @@ agent-skills/
 │   └── core/                   # Package: agent_skills_core (Path safety, depgraph, config)
 ├── docs/adr/                   # Architectural Decision Records (MADR)
 ├── graphify-out/               # Pre-built architectural knowledge graph
-└── skills/                     # 17 Agent Skills conforming to agentskills.io standard
+└── skills/                     # 16 Agent Skills conforming to agentskills.io standard
 ```
 
 ---

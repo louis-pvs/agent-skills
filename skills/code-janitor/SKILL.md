@@ -11,9 +11,7 @@ Automate code hygiene maintenance, dead code removal, code smell remediation, an
 
 ## Overview
 
-The **Code Janitor** skill performs targeted, safe code sanitation focused on practical hygiene rather than architectural theory. It identifies and fixes concrete code smells (unused imports, dead code, oversized functions, deep nesting, missing type annotations, stale TODOs) and produces actionable refactoring diffs.
-
-**Complementary to `architecture-auditor`**: While `architecture-auditor` evaluates high-level design principles (SOLID, CUPID, principle tensions), `code-janitor` operates at the file and function level to enforce day-to-day code cleanliness — the Boy Scout Rule.
+The **Code Janitor** skill performs targeted, safe code sanitation focused on practical hygiene and design principles (SOLID, DRY, KISS, CUPID). It identifies and fixes concrete code smells (unused imports, dead code, oversized functions, deep nesting, missing type annotations, stale TODOs) and produces actionable refactoring diffs following the Boy Scout Rule.
 
 ---
 
@@ -101,6 +99,11 @@ Generate a structured janitorial report following [references/janitor-audit-repo
 - [clean-code-heuristics.md](references/clean-code-heuristics.md) — Clean Code principles, naming rules, and function size guidance.
 - [code-smells-catalog.md](references/code-smells-catalog.md) — Categorized smell catalog with refactoring recipes.
 - [janitor-audit-report.md](references/janitor-audit-report.md) — Report schema and markdown template.
+- [solid.md](references/solid.md) — SOLID object-oriented design principles and code smell indicators.
+- [cupid.md](references/cupid.md) — CUPID joyful code properties (Composability, Predictability, Idiomatic).
+- [dry-yagni.md](references/dry-yagni.md) — DRY and YAGNI pragmatism rules.
+- [kiss.md](references/kiss.md) — Keep It Simple principles and cognitive load reduction.
+- [principle-tensions.md](references/principle-tensions.md) — Resolving trade-offs between competing design principles.
 
 ---
 
