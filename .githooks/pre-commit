@@ -1,27 +1,31 @@
 #!/bin/sh
-# Mirrors the Rust compilation, clippy, depgraph, script linting, markdownlint, and test checks.
+# Fast, staged-file-scoped checks. Heavy/full-repo checks live in pre-push and CI.
 set -e
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
-echo "Running Cargo check..."
-cargo check --workspace
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 
-echo "Running Cargo fmt check..."
-cargo fmt --check
+RS_STAGED=$(printf '%s\n' "$STAGED" | grep -E '\.rs$' || true)
+MD_STAGED=$(printf '%s\n' "$STAGED" | grep -E '\.md$' || true)
 
-echo "Running Cargo clippy..."
-cargo clippy --workspace --all-targets -- -D warnings
+if [ -n "$RS_STAGED" ]; then
+  echo "Running Cargo fmt check..."
+  cargo fmt --check
 
-echo "Running Cargo unit test suite..."
-cargo test --workspace
+  # clippy type-checks as part of its analysis, so a separate `cargo check` is redundant.
+  echo "Running Cargo clippy..."
+  cargo clippy --workspace --all-targets -- -D warnings
+else
+  echo "No staged *.rs files — skipping fmt/clippy."
+fi
 
-echo "Running Rust agent-skills depgraph verification..."
-cargo run -p agent-skills-cli -- depgraph --verify
+if [ -n "$MD_STAGED" ]; then
+  echo "Running markdownlint on staged Markdown files..."
+  # shellcheck disable=SC2086
+  npx markdownlint-cli $MD_STAGED
+else
+  echo "No staged *.md files — skipping markdownlint."
+fi
 
-echo "Running Rust agent-skills lint-scripts compliance check..."
-cargo run -p agent-skills-cli -- lint-scripts
-
-echo "Running markdownlint check..."
-npx markdownlint-cli --ignore "graphify-out/**" "**/*.md"
-
+echo "Pre-commit checks passed."

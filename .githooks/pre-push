@@ -1,0 +1,25 @@
+#!/bin/sh
+# Full-repo checks that are too slow for every commit: unit tests, depgraph, script linting.
+set -e
+
+export PATH="$HOME/.cargo/bin:$PATH"
+
+if command -v agent-skills >/dev/null 2>&1; then
+  AGENT_SKILLS="agent-skills"
+else
+  echo "warning: 'agent-skills' binary not found on PATH." >&2
+  echo "         Run 'cargo install --path crates/cli' for fast pre-push checks." >&2
+  echo "         Falling back to 'cargo run' (slower, triggers a debug build)." >&2
+  AGENT_SKILLS="cargo run -p agent-skills-cli --"
+fi
+
+echo "Running Cargo unit test suite..."
+cargo test --workspace
+
+echo "Running Rust agent-skills depgraph verification..."
+$AGENT_SKILLS depgraph --verify
+
+echo "Running Rust agent-skills lint-scripts compliance check..."
+$AGENT_SKILLS lint-scripts
+
+echo "Pre-push checks passed."

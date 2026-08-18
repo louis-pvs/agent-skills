@@ -3,7 +3,8 @@
 
 council:
   chairman:
-    role: "auto"
+    role: "antigravity"
+    description: "Synthesizes all opinions and provides final recommendation"
 
   members:
     - name: "claude"
@@ -28,4 +29,5 @@ council:
 
   settings:
     exclude_chairman_from_members: true
-    timeout: 180
+    timeout: 120
+

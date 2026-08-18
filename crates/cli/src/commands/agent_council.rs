@@ -108,12 +108,85 @@ pub fn load_council_timeout(repo_root: &Path) -> u64 {
     180
 }
 
+pub fn is_chairman_member(member_name: &str, chairman_role: &str) -> bool {
+    let m = member_name.trim().to_lowercase();
+    let c = chairman_role.trim().to_lowercase();
+    if c.is_empty() {
+        return false;
+    }
+    if c == "auto" {
+        return m == "antigravity" || m == "agy";
+    }
+    if m == c {
+        return true;
+    }
+    matches!(
+        (m.as_str(), c.as_str()),
+        ("antigravity", "agy")
+            | ("agy", "antigravity")
+            | ("claude", "claude-code")
+            | ("claude-code", "claude")
+            | ("copilot", "gh")
+            | ("gh", "copilot")
+    )
+}
+
+pub fn classify_cli_error(stderr: &str, exit_code: i32) -> &'static str {
+    let lower = stderr.to_lowercase();
+    if lower.contains("login")
+        || lower.contains("authenticate")
+        || lower.contains("auth")
+        || lower.contains("api key")
+        || lower.contains("token")
+    {
+        "AUTH_REQUIRED"
+    } else if lower.contains("unrecognized option")
+        || lower.contains("unknown option")
+        || lower.contains("invalid option")
+        || lower.contains("unexpected argument")
+        || lower.contains("error: unknown flag")
+        || lower.contains("unknown argument")
+    {
+        "FLAG_MISMATCH"
+    } else if lower.contains("permission")
+        || lower.contains("access denied")
+        || lower.contains("eacces")
+    {
+        "PERMISSION_DENIED"
+    } else if lower.contains("not found")
+        || lower.contains("no such file")
+        || lower.contains("is not recognized")
+    {
+        "NOT_FOUND"
+    } else if lower.contains("rate limit") || lower.contains("quota") || lower.contains("429") {
+        "RATE_LIMITED"
+    } else if exit_code == 0 {
+        "SUCCESS"
+    } else {
+        "EXIT_ERROR"
+    }
+}
+
 pub fn load_council_members(repo_root: &Path) -> Vec<CouncilMember> {
     let skill_dir = repo_root.join("skills").join("agent-council");
     let cfg = load_skill_config("agent-council", Some(&skill_dir), Some(repo_root), None);
 
     if let Some(map) = cfg.as_mapping() {
         if let Some(council) = map.get("council").and_then(|c| c.as_mapping()) {
+            let exclude_chairman = council
+                .get("settings")
+                .and_then(|s| s.as_mapping())
+                .and_then(|s| s.get("exclude_chairman_from_members"))
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+
+            let chairman_role = council
+                .get("chairman")
+                .and_then(|c| c.as_mapping())
+                .and_then(|c| c.get("role"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+
             if let Some(members_val) = council.get("members").and_then(|m| m.as_sequence()) {
                 let mut members = Vec::new();
                 for item in members_val {
@@ -134,6 +207,9 @@ pub fn load_council_members(repo_root: &Path) -> Vec<CouncilMember> {
                             .unwrap_or_default()
                             .to_string();
                         if !name.is_empty() {
+                            if exclude_chairman && is_chairman_member(&name, chairman_role) {
+                                continue;
+                            }
                             members.push(CouncilMember {
                                 name,
                                 command,
@@ -332,13 +408,35 @@ pub fn create_job_directory(
     let mut member_details = Vec::new();
     let mut missing_members = Vec::new();
     let enriched_path = get_enriched_path();
-    let mut children: Vec<(String, std::process::Child)> = Vec::new();
+
+    struct RunningChild {
+        name: String,
+        child: std::process::Child,
+        start_time: std::time::Instant,
+        out_path: PathBuf,
+        err_path: PathBuf,
+    }
+
+    let mut running_children: Vec<RunningChild> = Vec::new();
+    let mut telemetry_records: std::collections::HashMap<String, serde_json::Value> =
+        std::collections::HashMap::new();
 
     for m in &members {
         let bin_opt = find_cli_binary(&m.command);
         let available = bin_opt.is_some();
         if !available {
             missing_members.push(m.name.clone());
+            telemetry_records.insert(
+                m.name.clone(),
+                serde_json::json!({
+                    "status": "missing_cli",
+                    "exit_code": serde_json::Value::Null,
+                    "latency_ms": 0,
+                    "error_type": "NOT_IN_PATH",
+                    "stderr_snippet": serde_json::Value::Null,
+                    "response_chars": 0
+                }),
+            );
         }
 
         let bin_path_str = bin_opt.as_ref().map(|p| p.to_string_lossy().to_string());
@@ -352,7 +450,19 @@ pub fn create_job_directory(
         }));
 
         if let Some(bin_path) = bin_opt {
-            if !dry_run {
+            if dry_run {
+                telemetry_records.insert(
+                    m.name.clone(),
+                    serde_json::json!({
+                        "status": "dry_run",
+                        "exit_code": serde_json::Value::Null,
+                        "latency_ms": 0,
+                        "error_type": serde_json::Value::Null,
+                        "stderr_snippet": serde_json::Value::Null,
+                        "response_chars": 0
+                    }),
+                );
+            } else {
                 let out_file_path = job_dir.join(format!("{}.response.txt", m.name));
                 let err_file_path = job_dir.join(format!("{}.err", m.name));
 
@@ -362,7 +472,18 @@ pub fn create_job_directory(
                 if let (Some(out_f), Some(err_f)) = (out_file, err_file) {
                     let parts = shlex::split(&m.command).unwrap_or_else(|| vec![m.command.clone()]);
 
-                    let mut cmd = std::process::Command::new(&bin_path);
+                    let is_windows_batch = cfg!(windows)
+                        && bin_path.extension().is_some_and(|ext| {
+                            ext.eq_ignore_ascii_case("cmd") || ext.eq_ignore_ascii_case("bat")
+                        });
+
+                    let mut cmd = if is_windows_batch {
+                        let mut c = std::process::Command::new("cmd.exe");
+                        c.arg("/c").arg(&bin_path);
+                        c
+                    } else {
+                        std::process::Command::new(&bin_path)
+                    };
                     cmd.env("PATH", &enriched_path);
                     cmd.current_dir(repo_root);
 
@@ -378,16 +499,34 @@ pub fn create_job_directory(
                     cmd.stdout(std::process::Stdio::from(out_f));
                     cmd.stderr(std::process::Stdio::from(err_f));
 
+                    let start_instant = std::time::Instant::now();
                     match cmd.spawn() {
                         Ok(child) => {
                             let pid_file = job_dir.join(format!("{}.pid", m.name));
                             let _ = fs::write(&pid_file, child.id().to_string());
-                            children.push((m.name.clone(), child));
+                            running_children.push(RunningChild {
+                                name: m.name.clone(),
+                                child,
+                                start_time: start_instant,
+                                out_path: out_file_path,
+                                err_path: err_file_path,
+                            });
                         }
                         Err(e) => {
                             let _ = fs::write(
                                 &err_file_path,
                                 format!("Failed to spawn child process: {e}\n"),
+                            );
+                            telemetry_records.insert(
+                                m.name.clone(),
+                                serde_json::json!({
+                                    "status": "failed",
+                                    "exit_code": serde_json::Value::Null,
+                                    "latency_ms": 0,
+                                    "error_type": "SPAWN_FAILED",
+                                    "stderr_snippet": format!("Failed to spawn: {e}"),
+                                    "response_chars": 0
+                                }),
                             );
                         }
                     }
@@ -396,51 +535,173 @@ pub fn create_job_directory(
         }
     }
 
-    let meta = serde_json::json!({
-        "job_id": job_id,
-        "question": question,
-        "members": members,
-        "member_details": member_details,
-        "missing_cli": !missing_members.is_empty(),
-        "missing_members": missing_members,
-        "status": if dry_run { "dry_run" } else { "running" },
-        "created_at": chrono::Utc::now().to_rfc3339(),
-    });
-
-    let meta_file = job_dir.join("meta.json");
-    fs::write(
-        &meta_file,
-        serde_json::to_string_pretty(&meta).unwrap_or_default(),
-    )
-    .map_err(|e| anyhow::anyhow!("Failed to write meta.json: {e}"))?;
-
-    // Wait for all spawned children to complete concurrently (with timeout)
-    let timeout_secs = load_council_timeout(repo_root);
-    let timeout = std::time::Duration::from_secs(timeout_secs);
-    let start_time = std::time::Instant::now();
-    let mut remaining_children = children;
-
-    while !remaining_children.is_empty() {
-        if start_time.elapsed() >= timeout {
-            for (name, mut child) in remaining_children {
-                eprintln!("⚠️ Timeout waiting for {name}, killing process");
-                let _ = child.kill();
-            }
-            break;
-        }
-
-        remaining_children.retain_mut(|(name, child)| match child.try_wait() {
-            Ok(Some(_status)) => false,
-            Ok(None) => true,
-            Err(e) => {
-                eprintln!("⚠️ Error waiting for {name}: {e}");
-                false
-            }
+    // Helper closure to write meta.json
+    let write_meta = |status: &str, details: &[serde_json::Value]| -> anyhow::Result<()> {
+        let meta = serde_json::json!({
+            "job_id": job_id,
+            "question": question,
+            "members": members,
+            "member_details": details,
+            "missing_cli": !missing_members.is_empty(),
+            "missing_members": missing_members,
+            "status": status,
+            "created_at": chrono::Utc::now().to_rfc3339(),
         });
+        let meta_file = job_dir.join("meta.json");
+        fs::write(
+            &meta_file,
+            serde_json::to_string_pretty(&meta).unwrap_or_default(),
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to write meta.json: {e}"))
+    };
 
-        if !remaining_children.is_empty() {
-            std::thread::sleep(std::time::Duration::from_millis(500));
+    write_meta(if dry_run { "dry_run" } else { "running" }, &member_details)?;
+
+    if !dry_run {
+        let timeout_secs = load_council_timeout(repo_root);
+        let timeout = std::time::Duration::from_secs(timeout_secs);
+        let start_time = std::time::Instant::now();
+        let mut remaining = running_children;
+
+        while !remaining.is_empty() {
+            if start_time.elapsed() >= timeout {
+                for mut active in remaining {
+                    eprintln!("⚠️ Timeout waiting for {}, killing process", active.name);
+                    let _ = active.child.kill();
+                    let latency_ms = active.start_time.elapsed().as_millis() as u64;
+                    let stderr_text = fs::read_to_string(&active.err_path).unwrap_or_default();
+                    let stderr_trimmed = stderr_text.trim();
+                    let stderr_snippet = if !stderr_trimmed.is_empty() {
+                        let lines: Vec<&str> = stderr_trimmed.lines().take(5).collect();
+                        Some(lines.join("\n"))
+                    } else {
+                        None
+                    };
+
+                    telemetry_records.insert(
+                        active.name.clone(),
+                        serde_json::json!({
+                            "status": "timed_out",
+                            "exit_code": serde_json::Value::Null,
+                            "latency_ms": latency_ms,
+                            "error_type": "TIMEOUT",
+                            "stderr_snippet": stderr_snippet,
+                            "response_chars": 0
+                        }),
+                    );
+                }
+                break;
+            }
+
+            remaining.retain_mut(|active| match active.child.try_wait() {
+                Ok(Some(status)) => {
+                    let exit_code = status.code().unwrap_or(-1);
+                    let latency_ms = active.start_time.elapsed().as_millis() as u64;
+                    let stderr_text = fs::read_to_string(&active.err_path).unwrap_or_default();
+                    let stdout_text = fs::read_to_string(&active.out_path).unwrap_or_default();
+                    let response_chars = stdout_text.trim().chars().count();
+                    let stderr_trimmed = stderr_text.trim();
+                    let stderr_snippet = if !stderr_trimmed.is_empty() {
+                        let lines: Vec<&str> = stderr_trimmed.lines().take(5).collect();
+                        Some(lines.join("\n"))
+                    } else {
+                        None
+                    };
+
+                    let (status_str, error_type) = if status.success() && response_chars > 0 {
+                        ("completed", None)
+                    } else if status.success() && response_chars == 0 {
+                        ("empty_output", Some("EMPTY_RESPONSE"))
+                    } else {
+                        let err_cls = classify_cli_error(&stderr_text, exit_code);
+                        ("failed", Some(err_cls))
+                    };
+
+                    telemetry_records.insert(
+                        active.name.clone(),
+                        serde_json::json!({
+                            "status": status_str,
+                            "exit_code": exit_code,
+                            "latency_ms": latency_ms,
+                            "error_type": error_type,
+                            "stderr_snippet": stderr_snippet,
+                            "response_chars": response_chars
+                        }),
+                    );
+                    false
+                }
+                Ok(None) => true,
+                Err(e) => {
+                    eprintln!("⚠️ Error waiting for {}: {e}", active.name);
+                    let latency_ms = active.start_time.elapsed().as_millis() as u64;
+                    telemetry_records.insert(
+                        active.name.clone(),
+                        serde_json::json!({
+                            "status": "failed",
+                            "exit_code": -1,
+                            "latency_ms": latency_ms,
+                            "error_type": "WAIT_ERROR",
+                            "stderr_snippet": format!("Wait error: {e}"),
+                            "response_chars": 0
+                        }),
+                    );
+                    false
+                }
+            });
+
+            if !remaining.is_empty() {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
         }
+
+        // Build enriched member details with telemetry
+        let mut final_details = Vec::new();
+        for m in &members {
+            let bin_opt = find_cli_binary(&m.command);
+            let bin_path_str = bin_opt.as_ref().map(|p| p.to_string_lossy().to_string());
+            let telem = telemetry_records.get(&m.name);
+
+            let status_val = telem
+                .and_then(|t| t.get("status"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown");
+            let exit_code_val = telem
+                .and_then(|t| t.get("exit_code"))
+                .cloned()
+                .unwrap_or(serde_json::Value::Null);
+            let latency_val = telem
+                .and_then(|t| t.get("latency_ms"))
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let err_type_val = telem
+                .and_then(|t| t.get("error_type"))
+                .cloned()
+                .unwrap_or(serde_json::Value::Null);
+            let stderr_snippet_val = telem
+                .and_then(|t| t.get("stderr_snippet"))
+                .cloned()
+                .unwrap_or(serde_json::Value::Null);
+            let response_chars_val = telem
+                .and_then(|t| t.get("response_chars"))
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+
+            final_details.push(serde_json::json!({
+                "name": m.name,
+                "command": m.command,
+                "emoji": m.emoji,
+                "available": bin_opt.is_some(),
+                "binary_path": bin_path_str,
+                "status": status_val,
+                "exit_code": exit_code_val,
+                "latency_ms": latency_val,
+                "error_type": err_type_val,
+                "stderr_snippet": stderr_snippet_val,
+                "response_chars": response_chars_val,
+            }));
+        }
+
+        write_meta("completed", &final_details)?;
     }
 
     Ok(job_dir)
@@ -511,7 +772,18 @@ pub fn run_doctor_command(repo_root: &Path, verbose: bool) -> anyhow::Result<()>
             Some(bin_path) => {
                 available_count += 1;
 
-                let mut cmd = std::process::Command::new(&bin_path);
+                let is_windows_batch = cfg!(windows)
+                    && bin_path.extension().is_some_and(|ext| {
+                        ext.eq_ignore_ascii_case("cmd") || ext.eq_ignore_ascii_case("bat")
+                    });
+
+                let mut cmd = if is_windows_batch {
+                    let mut c = std::process::Command::new("cmd.exe");
+                    c.arg("/c").arg(&bin_path);
+                    c
+                } else {
+                    std::process::Command::new(&bin_path)
+                };
                 let version_output = cmd
                     .arg("--version")
                     .env("PATH", &enriched_path)
@@ -640,23 +912,32 @@ pub fn run_agent_council_command(
             let prompt =
                 fs::read_to_string(&prompt_path).unwrap_or_else(|_| "Unknown prompt".to_string());
 
-            let configured_members =
-                if let Ok(meta_text) = fs::read_to_string(target.join("meta.json")) {
-                    if let Ok(meta_json) = serde_json::from_str::<serde_json::Value>(&meta_text) {
-                        if let Some(m_array) = meta_json.get("members").and_then(|m| m.as_array()) {
-                            let members: Vec<CouncilMember> =
-                                serde_json::from_value(serde_json::Value::Array(m_array.clone()))
-                                    .unwrap_or_else(|_| load_council_members(repo_root));
-                            members
-                        } else {
-                            load_council_members(repo_root)
+            let mut configured_members = load_council_members(repo_root);
+            let mut member_details_map: std::collections::HashMap<String, serde_json::Value> =
+                std::collections::HashMap::new();
+
+            if let Ok(meta_text) = fs::read_to_string(target.join("meta.json")) {
+                if let Ok(meta_json) = serde_json::from_str::<serde_json::Value>(&meta_text) {
+                    if let Some(m_array) = meta_json.get("members").and_then(|m| m.as_array()) {
+                        if let Ok(members) = serde_json::from_value::<Vec<CouncilMember>>(
+                            serde_json::Value::Array(m_array.clone()),
+                        ) {
+                            if !members.is_empty() {
+                                configured_members = members;
+                            }
                         }
-                    } else {
-                        load_council_members(repo_root)
                     }
-                } else {
-                    load_council_members(repo_root)
-                };
+                    if let Some(d_array) =
+                        meta_json.get("member_details").and_then(|d| d.as_array())
+                    {
+                        for d in d_array {
+                            if let Some(name) = d.get("name").and_then(|n| n.as_str()) {
+                                member_details_map.insert(name.to_string(), d.clone());
+                            }
+                        }
+                    }
+                }
+            }
 
             let responses = read_subagent_responses(&target)?;
             let response_map: std::collections::HashMap<String, String> =
@@ -671,16 +952,49 @@ pub fn run_agent_council_command(
 
             for member in &configured_members {
                 let cli_available = check_cli_available(&member.command);
+                let detail_opt = member_details_map.get(&member.name);
+                let status = detail_opt
+                    .and_then(|d| d.get("status"))
+                    .and_then(|s| s.as_str())
+                    .unwrap_or(if response_map.contains_key(&member.name) {
+                        "completed"
+                    } else if !cli_available {
+                        "missing_cli"
+                    } else {
+                        "no_response"
+                    });
+                let latency_ms = detail_opt
+                    .and_then(|d| d.get("latency_ms"))
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let exit_code = detail_opt
+                    .and_then(|d| d.get("exit_code"))
+                    .and_then(|v| v.as_i64());
+
                 if let Some(response_text) = response_map.get(&member.name) {
                     responded_count += 1;
+                    let latency_part = if latency_ms > 0 {
+                        format!(" • {}ms", latency_ms)
+                    } else {
+                        "".to_string()
+                    };
+                    let code_str = exit_code
+                        .map(|c| format!("Exit {}", c))
+                        .unwrap_or_else(|| "Exit 0".to_string());
                     println!(
-                        "- {} {} (`{}`): Responded ({} chars)",
+                        "- {} {} (`{}`): Responded ({} • {}{} chars)",
                         member.emoji,
                         member.name,
                         member.command,
+                        code_str,
+                        if latency_part.is_empty() {
+                            "".to_string()
+                        } else {
+                            format!("{} • ", latency_part.trim_start_matches(" • "))
+                        },
                         response_text.len()
                     );
-                } else if !cli_available {
+                } else if status == "missing_cli" || !cli_available {
                     failed_members.push((
                         member.name.clone(),
                         format!("CLI not available in PATH (`{}`)", member.command),
@@ -689,14 +1003,42 @@ pub fn run_agent_council_command(
                         "- {} {} (`{}`): ⚠️ Missing CLI (not found in PATH)",
                         member.emoji, member.name, member.command
                     );
-                } else {
+                } else if status == "timed_out" {
                     failed_members.push((
                         member.name.clone(),
-                        "No response or empty output returned".to_string(),
+                        format!("Process timed out after {}ms", latency_ms),
                     ));
                     println!(
-                        "- {} {} (`{}`): ⚠️ No response received",
-                        member.emoji, member.name, member.command
+                        "- {} {} (`{}`): ⏱️ Timed Out ({}ms)",
+                        member.emoji, member.name, member.command, latency_ms
+                    );
+                } else if status == "empty_output" {
+                    failed_members.push((
+                        member.name.clone(),
+                        format!("Exited 0 in {}ms but returned empty output", latency_ms),
+                    ));
+                    println!(
+                        "- {} {} (`{}`): ⚠️ Empty Output (Exit 0 • {}ms)",
+                        member.emoji, member.name, member.command, latency_ms
+                    );
+                } else {
+                    let err_type = detail_opt
+                        .and_then(|d| d.get("error_type"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("EXIT_ERROR");
+                    let code_display = exit_code
+                        .map(|c| format!("Exit {}", c))
+                        .unwrap_or_else(|| "Exit != 0".to_string());
+                    failed_members
+                        .push((member.name.clone(), format!("{err_type} ({code_display})")));
+                    println!(
+                        "- {} {} (`{}`): ❌ Failed ({} • {}ms • {})",
+                        member.emoji,
+                        member.name,
+                        member.command,
+                        code_display,
+                        latency_ms,
+                        err_type
                     );
                 }
             }
@@ -712,19 +1054,31 @@ pub fn run_agent_council_command(
                         println!("⚠️ [ERROR] Member CLI is not usable: executable for '{}' was not found in PATH.", member.command);
                     } else {
                         println!("\n--- {} {} ---", member.emoji, member.name);
-                        let err_file = target.join(format!("{}.err", member.name));
-                        let err_text = fs::read_to_string(&err_file).unwrap_or_default();
-                        let trimmed_err = err_text.trim();
-                        if !trimmed_err.is_empty() {
+                        let detail_opt = member_details_map.get(&member.name);
+                        let err_snippet = detail_opt
+                            .and_then(|d| d.get("stderr_snippet"))
+                            .and_then(|s| s.as_str());
+
+                        if let Some(snippet) = err_snippet {
                             println!(
-                                "⚠️ [WARNING] No response returned by member CLI ('{}'). Stderr output:\n{trimmed_err}",
+                                "⚠️ [WARNING] No response returned by member CLI ('{}'). Stderr snippet:\n{snippet}",
                                 member.command
                             );
                         } else {
-                            println!(
-                                "⚠️ [WARNING] No response was returned by member CLI ('{}').",
-                                member.command
-                            );
+                            let err_file = target.join(format!("{}.err", member.name));
+                            let err_text = fs::read_to_string(&err_file).unwrap_or_default();
+                            let trimmed_err = err_text.trim();
+                            if !trimmed_err.is_empty() {
+                                println!(
+                                    "⚠️ [WARNING] No response returned by member CLI ('{}'). Stderr output:\n{trimmed_err}",
+                                    member.command
+                                );
+                            } else {
+                                println!(
+                                    "⚠️ [WARNING] No response was returned by member CLI ('{}').",
+                                    member.command
+                                );
+                            }
                         }
                     }
                 }
@@ -1104,5 +1458,81 @@ mod tests {
             !response.trim().is_empty(),
             "Response file must not be empty after waiting for child"
         );
+    }
+
+    /// Test that load_council_members honors exclude_chairman_from_members
+    #[test]
+    fn test_load_council_members_respects_exclude_chairman() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let council_skill_dir = base.join("skills").join("agent-council");
+        fs::create_dir_all(&council_skill_dir).unwrap();
+
+        let config_content = "council:\n  chairman:\n    role: \"antigravity\"\n  members:\n    - name: antigravity\n      command: agy -p\n      emoji: \"💎\"\n    - name: claude\n      command: claude -p\n      emoji: \"🧠\"\n  settings:\n    exclude_chairman_from_members: true\n";
+        fs::write(council_skill_dir.join("config.yaml"), config_content).unwrap();
+
+        let members = load_council_members(&base);
+        assert_eq!(
+            members.len(),
+            1,
+            "Must exclude chairman (antigravity), leaving only 1 member"
+        );
+        assert_eq!(members[0].name, "claude");
+    }
+
+    /// Test error classification helper
+    #[test]
+    fn test_classify_cli_error() {
+        assert_eq!(
+            classify_cli_error("Please run claude login to authenticate", 1),
+            "AUTH_REQUIRED"
+        );
+        assert_eq!(
+            classify_cli_error("error: unrecognized option '--allow-all'", 1),
+            "FLAG_MISMATCH"
+        );
+        assert_eq!(
+            classify_cli_error("EACCES: permission denied", 1),
+            "PERMISSION_DENIED"
+        );
+        assert_eq!(classify_cli_error("command not found", 127), "NOT_FOUND");
+        assert_eq!(
+            classify_cli_error("rate limit exceeded 429", 1),
+            "RATE_LIMITED"
+        );
+        assert_eq!(classify_cli_error("", 0), "SUCCESS");
+        assert_eq!(classify_cli_error("generic failure", 1), "EXIT_ERROR");
+    }
+
+    /// Test create_job_directory captures structured telemetry in meta.json
+    #[test]
+    fn test_create_job_directory_telemetry_capture() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().canonicalize().unwrap();
+        let council_skill_dir = base.join("skills").join("agent-council");
+        fs::create_dir_all(&council_skill_dir).unwrap();
+
+        let echo_cmd = if cfg!(windows) {
+            "cmd /C echo telemetry_test"
+        } else {
+            "echo telemetry_test"
+        };
+
+        let config_content = format!(
+            "council:\n  members:\n    - name: telem_echo\n      command: \"{echo_cmd}\"\n      emoji: \"📊\"\n"
+        );
+        fs::write(council_skill_dir.join("config.yaml"), config_content).unwrap();
+
+        let job_dir = create_job_directory("telemetry test question", &base, false).unwrap();
+        let meta_content = fs::read_to_string(job_dir.join("meta.json")).unwrap();
+        let meta_json: serde_json::Value = serde_json::from_str(&meta_content).unwrap();
+
+        assert_eq!(meta_json["status"], "completed");
+        let details = meta_json["member_details"].as_array().unwrap();
+        assert_eq!(details.len(), 1);
+        assert_eq!(details[0]["name"], "telem_echo");
+        assert_eq!(details[0]["status"], "completed");
+        assert_eq!(details[0]["exit_code"], 0);
+        assert!(details[0]["response_chars"].as_u64().unwrap() > 0);
     }
 }
