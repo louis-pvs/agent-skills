@@ -1,5 +1,6 @@
 use agent_skills_core::path_safety::get_repo_root;
 use clap::{Parser, Subcommand};
+use std::path::Path;
 use std::process::ExitCode;
 
 mod commands;
@@ -131,61 +132,71 @@ fn run(result: anyhow::Result<()>) -> ExitCode {
     }
 }
 
+fn run_skill_creator(subcommand: SkillCreatorSubcommand, repo_root: &Path) -> ExitCode {
+    match subcommand {
+        SkillCreatorSubcommand::Scaffold(args) => {
+            run(scaffold_skill(&args, Some(repo_root)).map(|path| {
+                println!("🎉 Successfully scaffolded skill at: {}", path.display());
+            }))
+        }
+        SkillCreatorSubcommand::Validate(args) => {
+            let (is_valid, issues) = validate_skill(&args, Some(repo_root));
+            if is_valid {
+                println!(
+                    "✅ Skill at '{}' is VALID according to agentskills.io standard!",
+                    args.path
+                );
+                ExitCode::SUCCESS
+            } else {
+                eprintln!("❌ Skill validation FAILED for '{}':", args.path);
+                for issue in &issues {
+                    eprintln!("  - {issue}");
+                }
+                ExitCode::FAILURE
+            }
+        }
+    }
+}
+
+fn run_agent_creator(subcommand: AgentCreatorSubcommand, repo_root: &Path) -> ExitCode {
+    match subcommand {
+        AgentCreatorSubcommand::Scaffold(args) => {
+            run(scaffold_agent(&args, Some(repo_root)).map(|path| {
+                println!(
+                    "🎉 Successfully scaffolded custom agent at: {}",
+                    path.display()
+                );
+            }))
+        }
+        AgentCreatorSubcommand::Validate(args) => {
+            let (is_valid, issues) = validate_agent(&args, Some(repo_root));
+            if is_valid {
+                println!(
+                    "✅ Custom Agent at '{}' is VALID according to Antigravity specification!",
+                    args.path
+                );
+                ExitCode::SUCCESS
+            } else {
+                eprintln!("❌ Agent validation FAILED for '{}':", args.path);
+                for issue in &issues {
+                    eprintln!("  - {issue}");
+                }
+                ExitCode::FAILURE
+            }
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let repo_root = get_repo_root(None);
 
     match cli.command {
-        Commands::SkillCreator { subcommand } => match subcommand {
-            SkillCreatorSubcommand::Scaffold(args) => run(scaffold_skill(&args, Some(&repo_root))
-                .map(|path| {
-                    println!("🎉 Successfully scaffolded skill at: {}", path.display());
-                })),
-            SkillCreatorSubcommand::Validate(args) => {
-                let (is_valid, issues) = validate_skill(&args, Some(&repo_root));
-                if is_valid {
-                    println!(
-                        "✅ Skill at '{}' is VALID according to agentskills.io standard!",
-                        args.path
-                    );
-                    ExitCode::SUCCESS
-                } else {
-                    eprintln!("❌ Skill validation FAILED for '{}':", args.path);
-                    for issue in &issues {
-                        eprintln!("  - {issue}");
-                    }
-                    ExitCode::FAILURE
-                }
-            }
-        },
+        Commands::SkillCreator { subcommand } => run_skill_creator(subcommand, &repo_root),
         Commands::SkillEvaluator { subcommand } => {
             run(run_skill_evaluator_command(&subcommand, &repo_root))
         }
-        Commands::AgentCreator { subcommand } => match subcommand {
-            AgentCreatorSubcommand::Scaffold(args) => run(scaffold_agent(&args, Some(&repo_root))
-                .map(|path| {
-                    println!(
-                        "🎉 Successfully scaffolded custom agent at: {}",
-                        path.display()
-                    );
-                })),
-            AgentCreatorSubcommand::Validate(args) => {
-                let (is_valid, issues) = validate_agent(&args, Some(&repo_root));
-                if is_valid {
-                    println!(
-                        "✅ Custom Agent at '{}' is VALID according to Antigravity specification!",
-                        args.path
-                    );
-                    ExitCode::SUCCESS
-                } else {
-                    eprintln!("❌ Agent validation FAILED for '{}':", args.path);
-                    for issue in &issues {
-                        eprintln!("  - {issue}");
-                    }
-                    ExitCode::FAILURE
-                }
-            }
-        },
+        Commands::AgentCreator { subcommand } => run_agent_creator(subcommand, &repo_root),
         Commands::Adr { subcommand } => run(run_adr_command(&subcommand, &repo_root)),
         Commands::AgentCouncil { subcommand } => {
             run(run_agent_council_command(&subcommand, &repo_root))
